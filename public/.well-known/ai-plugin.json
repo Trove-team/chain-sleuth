@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Ref Finance API",
-    "description": "API for interacting with Ref Finance operations including token metadata retrieval and token swaps.",
+    "title": "Chainsleuth API",
+    "description": "API for interacting with Chainsleuth account investigation",
     "version": "1.0.0"
   },
   "servers": [
@@ -11,11 +11,11 @@
     }
   ],
   "x-mb": {
-    "account-id": "mintbase.near",
+    "account-id": "chainsleuth.near",
     "assistant": {
-      "name": "Ref Finance Assistant",
-      "description": "Assistant for using the Ref Finance API to swap tokens and retrieve token metadata.",
-      "instructions": "You are an assistant that helps users interact with Ref Finance. You can generate swap transactions and retrieve token metadata. Generated swap transactions can be presented to the user for signing and broadcasting to the network.",
+      "name": "Chainsleuth Assistant",
+      "description": "Assistant for using the Chainsleuth API to retrieve token metadata.",
+      "instructions": "You are an assistant that helps users interact with the Chainsleuth API. You can retrieve token metadata, analyze NEAR blockchain info from pikespeak and investigate near protocol wallet addresses.",
       "tools": [
         {
           "type": "generate-transaction"

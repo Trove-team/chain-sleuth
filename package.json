@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:make-agent": "concurrently \"next dev\" \"make-agent dev --port 3000\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -11,6 +12,7 @@
   "dependencies": {
     "@elysiajs/swagger": "^1.0.5",
     "@ref-finance/ref-sdk": "^1.3.8",
+    "axios": "^1.7.7",
     "big.js": "^6.2.1",
     "elysia": "^1.0.16",
     "fuse.js": "^7.0.0",
@@ -23,8 +25,10 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "concurrently": "^9.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
+    "make-agent": "^0.0.15",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

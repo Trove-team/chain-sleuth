@@ -97,7 +97,7 @@ const app = new Elysia({ prefix: "/api", aot: false })
       swapTodos,
       slippageTolerance: 0.03,
       AccountId: accountId,
-      referralId: "mintbase.near",
+      referralId: "chainsleuth.near",
     });
 
     if (tokenInData.id === WRAP_NEAR_CONTRACT_ID) {
