@@ -24,8 +24,12 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/.well-known/:path*',
+        destination: '/api/.well-known/:path*',
+      },
+      {
         source: '/api/:path*',
-      destination: '/api/:path*',
+        destination: '/api/:path*',
       },
     ];
   },
