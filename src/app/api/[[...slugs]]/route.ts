@@ -3,8 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import app from '@/api';
 
-export const GET = async (request: NextRequest) => {
-  const url = new URL(request.url);
+async function handler(request: NextRequest) {
   const response = await app.handle(request);
   return new NextResponse(response.body, {
     status: response.status,
@@ -12,11 +11,5 @@ export const GET = async (request: NextRequest) => {
   });
 }
 
-export const POST = async (request: NextRequest) => {
-  const url = new URL(request.url);
-  const response = await app.handle(request);
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: response.headers,
-  });
-}
+export const GET = handler;
+export const POST = handler;
