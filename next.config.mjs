@@ -25,15 +25,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-      destination: '/api/[[...slugs]]',
-      },
-      {
-        source: '/api/swagger',
-        destination: '/api/swagger',
-      },
-      {
-        source: '/api/swagger/json',
-        destination: '/api/swagger/json',
+      destination: '/api/:path*',
       },
     ];
   },
