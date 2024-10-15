@@ -13,7 +13,14 @@ const app = new Elysia()
         title: "Chain Sleuth Agent API",
         version: "1.0.0",
       },
+      servers: [
+        {
+          url: "https://chain-sleuth-jtm6k1y6q-jumpfinance.vercel.app",
+          description: "Production server",
+        },
+      ],
     },
+    path: '/api/swagger',
   }))
   .use(refFinanceRoutes)
   .use(pikespeakRoutes)
