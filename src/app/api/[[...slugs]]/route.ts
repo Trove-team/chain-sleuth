@@ -4,6 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import app from '@/api';
 
 async function handler(request: NextRequest) {
+  const url = new URL(request.url);
+  if (url.pathname === '/api/swagger/json') {
+    const swaggerJson = app.swagger();
+    return NextResponse.json(swaggerJson);
+  }
   const response = await app.handle(request);
   return new NextResponse(response.body, {
     status: response.status,
