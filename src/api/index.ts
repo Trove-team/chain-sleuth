@@ -15,7 +15,7 @@ const app = new Elysia()
       },
       servers: [
         {
-          url: "https://chain-sleuth-jtm6k1y6q-jumpfinance.vercel.app",
+          url: "https://chain-sleuth.vercel.app",
           description: "Production server",
         },
       ],
