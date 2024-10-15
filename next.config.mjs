@@ -2,7 +2,7 @@
 const nextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals.push("@ref-finance/ref-sdk");
+      config.externals.push("@ref-finance/ref-sdk", "near-api-js");
     }
     return config;
   },

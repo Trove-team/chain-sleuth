@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main className="flex flex-col p-2">
       <h1 className="text-3xl font-bold">
-        Ref Finance Agent
+        Chain Sleuth Agent
       </h1>
       <ul>
         <li>

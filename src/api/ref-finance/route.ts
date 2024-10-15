@@ -122,4 +122,4 @@ const refFinanceRoutes = new Elysia({ prefix: "/ref-finance" })
     return transactionsRef;
   });
 
-  export const [routeName]Routes = [routeName]Routes;
+export default refFinanceRoutes;

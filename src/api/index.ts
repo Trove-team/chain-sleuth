@@ -2,9 +2,9 @@
 
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
-import refFinanceRoutes from './ref-finance/routes';
-import pikespeakRoutes from './pikespeak/routes';
-import nearContractRoutes from './near-contract/routes';
+import refFinanceRoutes from './ref-finance/route';
+import pikespeakRoutes from './pikespeak/route';
+//import nearContractRoutes from './near-contract/route';
 
 const app = new Elysia()
   .use(swagger({
@@ -17,6 +17,6 @@ const app = new Elysia()
   }))
   .use(refFinanceRoutes)
   .use(pikespeakRoutes)
-  .use(nearContractRoutes);
+  //.use(nearContractRoutes);
 
 export default app;

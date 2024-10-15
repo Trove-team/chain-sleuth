@@ -1,4 +1,4 @@
-// File: src/api/near-contract/routes.ts
+// File: src/api/near-contract/route.ts
 
 import { Elysia, t } from "elysia";
 import { connect, keyStores, Contract } from 'near-api-js';
