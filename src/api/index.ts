@@ -10,7 +10,7 @@ const app = new Elysia()
   .use(swagger({
     documentation: {
       info: {
-        title: "Ref Finance Agent API",
+        title: "Chain Sleuth Agent API",
         version: "1.0.0",
       },
     },
