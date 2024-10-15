@@ -5,10 +5,15 @@ import app from '@/api';
 
 async function handler(request: NextRequest) {
   const url = new URL(request.url);
+
   if (url.pathname === '/api/swagger/json') {
     // @ts-ignore: Swagger method might not be in type definitions
     const swaggerJson = app.swagger();
     return NextResponse.json(swaggerJson);
+  }
+
+  if (url.pathname.startsWith('/api/swagger')) {
+    return app.handle(request);
   }
   const response = await app.handle(request);
   return new NextResponse(response.body, {
