@@ -15,7 +15,7 @@ async function handleRequest(request: NextRequest) {
 
   if (url.pathname === '/api/swagger/json') {
     // @ts-ignore: Swagger method might not be in type definitions
-    const swaggerJson = app.swagger();
+    const swaggerJson = compiledApp.swagger();
     return NextResponse.json(swaggerJson);
   }
 
