@@ -1,7 +1,6 @@
 // File: src/api/near-contract/route.ts
 
 import { Elysia, t } from "elysia";
-import { connect, keyStores, Contract } from 'near-api-js';
 import axios from 'axios';
 
 const PIKESPEAK_BASE_URL = "https://api.pikespeak.ai";
@@ -31,46 +30,28 @@ const nearContractRoutes = new Elysia({ prefix: "/near-contract" })
       // Generate summary
       const summary = `Account ${accountId} has a reputation score of ${reputationScore}. Activity: ${activity.data.length} events, FT Transfers: ${ftTransfers.data.length}, Contract Interactions: ${contractInteractions.data.length}, Social Connections: ${social.data.connections.length}.`;
 
-      // Connect to NEAR
-      const near = await connect({
-        networkId: "testnet",
-        keyStore: new keyStores.InMemoryKeyStore(),
-        nodeUrl: "https://rpc.testnet.near.org",
-      });
-
-      const account = await near.account("your-account.testnet");
-      const contract = new Contract(account, "nft-contract.testnet", {
-        changeMethods: ["nft_mint"],
-        viewMethods: [],
-      });
-
-      // Mint NFT
-      // @ts-ignore: Contract method
-      const result = await contract.nft_mint({
-        token_id: `${accountId}-${Date.now()}`,
-        metadata: {
-          title: `${accountId} Reputation NFT`,
-          description: summary,
-          media: "https://placekitten.com/200/300", // Placeholder image
-          extra: JSON.stringify({
-            reputationScore,
-            activityCount: activity.data.length,
-            ftTransfersCount: ftTransfers.data.length,
-            contractInteractionsCount: contractInteractions.data.length,
-            socialConnectionsCount: social.data.connections.length,
-          }),
+      // Placeholder for NFT minting
+      const nftMintingResult = {
+        success: true,
+        message: "NFT minting simulation successful",
+        nftData: {
+          token_id: `${accountId}-${Date.now()}`,
+          metadata: {
+            title: `${accountId} Reputation NFT`,
+            description: summary,
+            media: "https://placekitten.com/200/300", // Placeholder image
+          },
         },
-        receiver_id: accountId,
-      });
+      };
 
       return {
         success: true,
-        message: "NFT minted successfully",
-        nftData: result,
+        message: "NFT minted successfully (simulated)",
+        nftData: nftMintingResult,
       };
     } catch (error) {
-      console.error("Error minting NFT:", error);
-      return { error: "Failed to mint NFT" };
+      console.error("Error in NFT minting simulation:", error);
+      return { error: "Failed to simulate NFT minting" };
     }
   }, {
     params: t.Object({
