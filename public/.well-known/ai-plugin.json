@@ -181,6 +181,7 @@
     "/api/pikespeak/account/{accountId}/{endpoint}": {
       "get": {
         "summary": "Get account data from Pikespeak",
+        "description": "An array of transactions neccesary to collect information on a queried NEAR address.",
         "operationId": "getPikespeakAccountData",
         "parameters": [
           {
@@ -235,6 +236,7 @@
     },
     "/api/pikespeak/account/{accountId}/reputation": {
       "get": {
+        "description": "An array of transactions neccesary to quey NEAR blockchain information from pikespeak and return a reputation score.",
         "summary": "Get account reputation",
         "operationId": "getAccountReputation",
         "parameters": [
