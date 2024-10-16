@@ -284,6 +284,33 @@
           }
         ]
       }
+    },
+    "/api/pikespeak/ping": {
+      "get": {
+        "description": "A Ping for testing connection to Pikespeak API",
+        "summary": "Check Pikespeak API connectivity",
+        "operationId": "pingPikespeak",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
