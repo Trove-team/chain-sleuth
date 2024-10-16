@@ -2,20 +2,20 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Chainsleuth API",
-    "description": "API for interacting with Chainsleuth account investigation",
+    "description": "API for interacting with Chainsleuth account investigation, token swaps, and Pikespeak data retrieval",
     "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "https://ref-finance-agent.vercel.app"
+      "url": "https://chain-sleuth.vercel.app"
     }
   ],
   "x-mb": {
     "account-id": "chainsleuth.near",
     "assistant": {
       "name": "Chainsleuth Assistant",
-      "description": "Assistant for using the Chainsleuth API to retrieve token metadata.",
-      "instructions": "You are an assistant that helps users interact with the Chainsleuth API. You can retrieve token metadata, analyze NEAR blockchain info from pikespeak and investigate near protocol wallet addresses.",
+      "description": "Assistant for using the Chainsleuth API to retrieve token metadata, perform token swaps, and analyze NEAR blockchain data via Pikespeak.",
+      "instructions": "You are an assistant that helps users interact with the Chainsleuth API. You can retrieve token metadata, generate swap transactions, analyze NEAR blockchain info from Pikespeak, and investigate NEAR Protocol wallet addresses.",
       "tools": [
         {
           "type": "generate-transaction"
@@ -151,7 +151,7 @@
                                 },
                                 "msg": {
                                   "type": "string",
-                                  "description": "A JSON string containing swap actions and parameters.  Shows minimum amount of tokens to receive."
+                                  "description": "A JSON string containing swap actions and parameters. Shows minimum amount of tokens to receive."
                                 }
                               },
                               "additionalProperties": true
@@ -177,6 +177,127 @@
           }
         }
       }
+    },
+    "/api/pikespeak/account/{accountId}/{endpoint}": {
+      "get": {
+        "summary": "Get account data from Pikespeak",
+        "description": "An array of transactions neccesary to collect information on a queried NEAR address.",
+        "operationId": "getPikespeakAccountData",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The NEAR account ID"
+          },
+          {
+            "in": "path",
+            "name": "endpoint",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["activity", "ft-transfers", "contract-interactions", "probable-eth-address", "social", "nft-transfers"]
+            },
+            "description": "The specific Pikespeak endpoint to query"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Limit the number of results"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Offset for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pikespeak/account/{accountId}/reputation": {
+      "get": {
+        "description": "An array of transactions neccesary to quey NEAR blockchain information from pikespeak and return a reputation score.",
+        "summary": "Get account reputation",
+        "operationId": "getAccountReputation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The NEAR account ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account reputation calculated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accountId": {
+                      "type": "string"
+                    },
+                    "reputationScore": {
+                      "type": "number"
+                    },
+                    "probableEthAddress": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
     }
-  }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ]
 }
