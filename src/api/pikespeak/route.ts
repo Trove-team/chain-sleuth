@@ -6,7 +6,7 @@ import axios from "axios";
 const PIKESPEAK_BASE_URL = "https://api.pikespeak.ai";
 const PIKESPEAK_API_KEY = process.env.PIKESPEAK_API_KEY;
 
-const pikespeakRoutes = new Elysia({ prefix: "/api/pikespeak" })
+const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
   .get("/ping", () => {
     return { status: "ok", message: "Pikespeak routes are working" };
   })
