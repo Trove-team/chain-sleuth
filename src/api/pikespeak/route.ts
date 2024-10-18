@@ -41,6 +41,25 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
       offset: t.Optional(t.String())
     })
   })
+  .get("/account/tx-count/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/tx-count/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching transaction count for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
+  })
   .get("/*", async ({ params, query }) => {
     const path = params["*"];
     try {

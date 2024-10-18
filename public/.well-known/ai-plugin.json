@@ -263,6 +263,53 @@
           }
         ]
       }
+    },
+    "/api/pikespeak/account/tx-count/{contract}": {
+      "get": {
+        "summary": "Get Total Number of Transactions for a Given Account",
+        "description": "Retrieves the total number of transactions for a specified account (contract).",
+        "operationId": "getAccountTransactionCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query transaction count for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account transaction count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tx_count": {
+                      "type": "integer",
+                      "description": "Total number of transactions for the account"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
