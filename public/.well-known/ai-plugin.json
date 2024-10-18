@@ -631,6 +631,26 @@
               "type": "string"
             },
             "description": "The account or contract address to analyze relationships for."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "10"
+            },
+            "description": "Limit the number of results."
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "0"
+            },
+            "description": "Offset for pagination."
           }
         ],
         "responses": {
@@ -643,6 +663,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "500": {
             "description": "Internal Server Error"

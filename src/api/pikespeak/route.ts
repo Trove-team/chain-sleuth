@@ -250,10 +250,15 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
       account: t.String()
     })
   })
-  .get("/event-historic/account/relationship-analysis/:contract", async ({ params }) => {
+  .get("/event-historic/account/relationship-analysis/:contract", async ({ params, query }) => {
     try {
       const response = await axios.get(`${PIKESPEAK_BASE_URL}/event-historic/account/relationship-analysis/${params.contract}`, {
-        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+        headers: { "X-API-Key": PIKESPEAK_API_KEY },
+        params: {
+          limit: query.limit || '10',
+          offset: query.offset || '0',
+          ...query
+        }
       });
       return response.data;
     } catch (error) {
@@ -261,12 +266,19 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
       if (axios.isAxiosError(error) && error.response) {
         console.error("Response data:", error.response.data);
         console.error("Response status:", error.response.status);
+        if (error.response.status === 400) {
+          return new Response(`Bad request: ${error.response.data}`, { status: 400 });
+        }
       }
       return new Response(`Error fetching relationship analysis for account: ${params.contract}`, { status: 500 });
     }
   }, {
     params: t.Object({
       contract: t.String()
+    }),
+    query: t.Object({
+      limit: t.Optional(t.String()),
+      offset: t.Optional(t.String())
     })
   })
   .get("/account/contract-interactions/:contract", async ({ params }) => {
