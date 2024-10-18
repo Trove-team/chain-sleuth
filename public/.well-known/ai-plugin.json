@@ -418,6 +418,171 @@
           }
         }
       }
+    },
+    "/api/pikespeak/account/ft-transfer/{contract}": {
+      "get": {
+        "summary": "Get FT Transfers for a Given Account",
+        "description": "Retrieves FT transfers for a specified account (contract).",
+        "operationId": "getAccountFTTransfers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query FT transfers for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account FT transfers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/incoming-near/{contract}": {
+      "get": {
+        "summary": "Get Incoming NEAR for a Given Account",
+        "description": "Retrieves incoming NEAR transactions for a specified account (contract).",
+        "operationId": "getAccountIncomingNEAR",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query incoming NEAR for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account incoming NEAR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/outgoing-near/{contract}": {
+      "get": {
+        "summary": "Get Outgoing NEAR for a Given Account",
+        "description": "Retrieves outgoing NEAR transactions for a specified account (contract).",
+        "operationId": "getAccountOutgoingNEAR",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query outgoing NEAR for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account outgoing NEAR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/incoming-token/{contract}": {
+      "get": {
+        "summary": "Get Incoming Tokens for a Given Account",
+        "description": "Retrieves incoming token transactions for a specified account (contract).",
+        "operationId": "getAccountIncomingTokens",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query incoming tokens for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account incoming tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/outgoing-token/{contract}": {
+      "get": {
+        "summary": "Get Outgoing Tokens for a Given Account",
+        "description": "Retrieves outgoing token transactions for a specified account (contract).",
+        "operationId": "getAccountOutgoingTokens",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query outgoing tokens for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account outgoing tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
     }
   },
   "components": {

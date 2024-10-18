@@ -130,6 +130,101 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
       console.error("Pikespeak API error:", error);
       return { error: `Error fetching data from Pikespeak: ${path}` };
     }
+  })
+  .get("/account/ft-transfer/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/ft-transfer/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching FT transfers for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
+  })
+  .get("/account/incoming-near/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/incoming-near/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching incoming NEAR for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
+  })
+  .get("/account/outgoing-near/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/outgoing-near/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching outgoing NEAR for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
+  })
+  .get("/account/incoming-token/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/incoming-token/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching incoming tokens for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
+  })
+  .get("/account/outgoing-token/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/outgoing-token/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching outgoing tokens for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
   });
 
 export default pikespeakRoutes;
