@@ -620,7 +620,7 @@
     "/api/pikespeak/event-historic/account/relationships/{contract}": {
       "get": {
         "summary": "Get Account Relationships",
-        "description": "Retrieves historical relationships for a specified account.",
+        "description": "Gives relationships between an account and other accounts having the search parameter in their name.",
         "operationId": "getAccountRelationships",
         "parameters": [
           {
@@ -630,40 +630,38 @@
             "schema": {
               "type": "string"
             },
-            "description": "The account or contract address to retrieve relationships for."
+            "description": "The main account or contract address to analyze relationships for."
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 4
+            },
+            "description": "Account name or part of account name to search for (minimum 4 characters)."
           },
           {
             "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "default": "50"
             },
-            "description": "Limit the number of results."
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Offset for pagination."
+            "description": "Limit the number of results. Maximum 50, defaults to 50 if not specified."
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response with account relationships",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": "Successful response with account relationships"
           },
           "400": {
-            "description": "Bad Request"
+            "description": "Bad Request - Missing or invalid search parameter"
+          },
+          "422": {
+            "description": "Unprocessable Entity - Invalid request parameters"
           },
           "500": {
             "description": "Internal Server Error"
