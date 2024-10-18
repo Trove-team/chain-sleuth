@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Chainsleuth API",
+    "title": "Chainsleuth Agent",
     "description": "API for interacting with Chainsleuth account investigation, token swaps, and Pikespeak data retrieval",
     "version": "1.0.0"
   },
