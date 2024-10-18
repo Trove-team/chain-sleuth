@@ -60,6 +60,64 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
       contract: t.String()
     })
   })
+  .get("/account/balance/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/balance/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching balance for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
+  })
+  .get("/account/wealth/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/wealth/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching wealth for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
+  })
+  .get("/account/:infos/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/${params.infos}/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching ${params.infos} for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      infos: t.String(),
+      contract: t.String()
+    })
+  })
   .get("/*", async ({ params, query }) => {
     const path = params["*"];
     try {

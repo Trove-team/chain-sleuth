@@ -310,6 +310,114 @@
           }
         ]
       }
+    },
+    "/api/pikespeak/account/balance/{contract}": {
+      "get": {
+        "summary": "Get Account Balance",
+        "description": "Retrieves the balance for a specified account (contract).",
+        "operationId": "getAccountBalance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query balance for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/wealth/{contract}": {
+      "get": {
+        "summary": "Get Account Wealth",
+        "description": "Retrieves the wealth information for a specified account (contract).",
+        "operationId": "getAccountWealth",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query wealth for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account wealth information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/{infos}/{contract}": {
+      "get": {
+        "summary": "Get Account Information",
+        "description": "Retrieves various information for a specified account (contract).",
+        "operationId": "getAccountInfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "infos",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The type of information to retrieve (e.g., 'activity', 'ft-transfers', etc.)."
+          },
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query information for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
     }
   },
   "components": {
