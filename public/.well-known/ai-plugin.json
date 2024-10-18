@@ -380,7 +380,7 @@
     "/api/pikespeak/account/{infos}/{contract}": {
       "get": {
         "summary": "Get Account Information",
-        "description": "Retrieves various information for a specified account (contract) based on the infos parameter.",
+        "description": "Retrieves various information for a specified account (contract).",
         "operationId": "getAccountInfo",
         "parameters": [
           {
@@ -390,7 +390,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "The type of information to retrieve (e.g., 'basic', 'transactions', 'balance', 'ft-transfer', etc.)."
+            "description": "The type of information to retrieve (e.g., 'activity', 'ft-transfers', etc.)."
           },
           {
             "in": "path",
@@ -412,9 +412,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "Endpoint not found in Pikespeak API"
           },
           "500": {
             "description": "Internal Server Error"
@@ -573,6 +570,171 @@
         "responses": {
           "200": {
             "description": "Successful response with account outgoing tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/bridge/probable-eth-addresses/{account}": {
+      "get": {
+        "summary": "Get Probable ETH Addresses",
+        "description": "Retrieves probable Ethereum addresses associated with a NEAR account.",
+        "operationId": "getProbableEthAddresses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The NEAR account to query probable ETH addresses for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with probable ETH addresses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/event-historic/account/relationship-analysis/{contract}": {
+      "get": {
+        "summary": "Get Account Relationship Analysis",
+        "description": "Retrieves historical relationship analysis for a specified account.",
+        "operationId": "getAccountRelationshipAnalysis",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to analyze relationships for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with relationship analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/nft-transfer/{contract}": {
+      "get": {
+        "summary": "Get Account NFT Transfers",
+        "description": "Retrieves NFT transfers for a specified account.",
+        "operationId": "getAccountNFTTransfers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query NFT transfers for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account NFT transfers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/social/{contract}": {
+      "get": {
+        "summary": "Get Account Social Connections",
+        "description": "Retrieves social connections for a specified account.",
+        "operationId": "getAccountSocialConnections",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query social connections for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account social connections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/contract-interactions/{contract}": {
+      "get": {
+        "summary": "Get Account Contract Interactions",
+        "description": "Retrieves contract interactions for a specified account.",
+        "operationId": "getAccountContractInteractions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query contract interactions for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account contract interactions",
             "content": {
               "application/json": {
                 "schema": {

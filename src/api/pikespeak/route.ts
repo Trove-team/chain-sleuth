@@ -230,6 +230,63 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
     params: t.Object({
       contract: t.String()
     })
+  })
+  .get("/bridge/probable-eth-addresses/:account", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/bridge/probable-eth-addresses/${params.account}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching probable ETH addresses for account: ${params.account}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      account: t.String()
+    })
+  })
+  .get("/event-historic/account/relationship-analysis/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/event-historic/account/relationship-analysis/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching relationship analysis for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
+  })
+  .get("/account/contract-interactions/:contract", async ({ params }) => {
+    try {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/contract-interactions/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Pikespeak API error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching contract interactions for account: ${params.contract}`, { status: 500 });
+    }
+  }, {
+    params: t.Object({
+      contract: t.String()
+    })
   });
 
 export default pikespeakRoutes;
