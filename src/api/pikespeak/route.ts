@@ -98,19 +98,24 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
       contract: t.String()
     })
   })
-  .get("/account/:infos/:contract", async ({ params }) => {
+  .get("/account/:infos/:contract", async ({ params, query }) => {
+    const { infos, contract } = params;
     try {
-      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/${params.infos}/${params.contract}`, {
-        headers: { "X-API-Key": PIKESPEAK_API_KEY }
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/${infos}/${contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY },
+        params: query
       });
       return response.data;
     } catch (error) {
-      console.error("Pikespeak API error:", error);
+      console.error(`Pikespeak API error for endpoint ${infos}:`, error);
       if (axios.isAxiosError(error) && error.response) {
         console.error("Response data:", error.response.data);
         console.error("Response status:", error.response.status);
+        if (error.response.status === 404) {
+          return new Response(`Endpoint /account/${infos}/${contract} not found in Pikespeak API`, { status: 404 });
+        }
       }
-      return new Response(`Error fetching ${params.infos} for account: ${params.contract}`, { status: 500 });
+      return new Response(`Error fetching ${infos} for account ${contract}`, { status: 500 });
     }
   }, {
     params: t.Object({
