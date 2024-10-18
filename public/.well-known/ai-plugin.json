@@ -617,11 +617,11 @@
         }
       }
     },
-    "/api/pikespeak/event-historic/account/relationship-analysis/{contract}": {
+    "/api/pikespeak/event-historic/account/relationships/{contract}": {
       "get": {
-        "summary": "Get Account Relationship Analysis",
-        "description": "Retrieves historical relationship analysis for a specified account.",
-        "operationId": "getAccountRelationshipAnalysis",
+        "summary": "Get Account Relationships",
+        "description": "Retrieves historical relationships for a specified account.",
+        "operationId": "getAccountRelationships",
         "parameters": [
           {
             "in": "path",
@@ -630,15 +630,14 @@
             "schema": {
               "type": "string"
             },
-            "description": "The account or contract address to analyze relationships for."
+            "description": "The account or contract address to retrieve relationships for."
           },
           {
             "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string",
-              "default": "10"
+              "type": "string"
             },
             "description": "Limit the number of results."
           },
@@ -647,15 +646,14 @@
             "name": "offset",
             "required": false,
             "schema": {
-              "type": "string",
-              "default": "0"
+              "type": "string"
             },
             "description": "Offset for pagination."
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response with relationship analysis",
+            "description": "Successful response with account relationships",
             "content": {
               "application/json": {
                 "schema": {

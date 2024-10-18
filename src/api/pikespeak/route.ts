@@ -250,14 +250,20 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
       account: t.String()
     })
   })
-  .get("/event-historic/account/relationship-analysis/:contract", async ({ params, query }) => {
+  .get("/event-historic/account/relationships/:contract", async ({ params, query }) => {
+    const { contract } = params;
+    const { search, limit } = query;
+
+    if (!search || typeof search !== 'string' || search.length < 4) {
+      return new Response("Search parameter is required and should be at least 4 characters long", { status: 400 });
+    }
+
     try {
-      const response = await axios.get(`${PIKESPEAK_BASE_URL}/event-historic/account/relationship-analysis/${params.contract}`, {
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/event-historic/account/relationships/${contract}`, {
         headers: { "X-API-Key": PIKESPEAK_API_KEY },
-        params: {
-          limit: query.limit || '10',
-          offset: query.offset || '0',
-          ...query
+        params: { 
+          search,
+          limit: limit || '50'  // default to 50 if not provided
         }
       });
       return response.data;
@@ -266,19 +272,17 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
       if (axios.isAxiosError(error) && error.response) {
         console.error("Response data:", error.response.data);
         console.error("Response status:", error.response.status);
-        if (error.response.status === 400) {
-          return new Response(`Bad request: ${error.response.data}`, { status: 400 });
-        }
+        return new Response(`Pikespeak API error: ${JSON.stringify(error.response.data)}`, { status: error.response.status });
       }
-      return new Response(`Error fetching relationship analysis for account: ${params.contract}`, { status: 500 });
+      return new Response(`Error fetching relationships for account: ${contract}`, { status: 500 });
     }
   }, {
     params: t.Object({
       contract: t.String()
     }),
     query: t.Object({
-      limit: t.Optional(t.String()),
-      offset: t.Optional(t.String())
+      search: t.String(),
+      limit: t.Optional(t.String())
     })
   })
   .get("/account/contract-interactions/:contract", async ({ params }) => {
