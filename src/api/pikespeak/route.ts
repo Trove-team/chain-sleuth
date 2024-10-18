@@ -6,95 +6,53 @@ import axios from "axios";
 const PIKESPEAK_BASE_URL = "https://api.pikespeak.ai";
 const PIKESPEAK_API_KEY = process.env.PIKESPEAK_API_KEY;
 
-const pikespeakAxios = axios.create({
-  baseURL: PIKESPEAK_BASE_URL,
-  headers: {
-    "X-API-Key": PIKESPEAK_API_KEY,
-  },
-});
-
 const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
   .get("/ping", () => {
     return { status: "ok", message: "Pikespeak routes are working" };
   })
-  .get("/account/:accountId/:endpoint", async ({ params: { accountId, endpoint }, query }) => {
+  .get("/account/transactions/:contract", async ({ params, query }) => {
+    const limit = query.limit ? parseInt(query.limit as string) : 50;
+    const offset = query.offset ? parseInt(query.offset as string) : 0;
+
+    if (isNaN(limit) || isNaN(offset) || limit < 1 || limit > 50 || offset < 0) {
+      return new Response('Invalid limit or offset', { status: 400 });
+    }
+
     try {
-      const response = await pikespeakAxios.get(`/account/${accountId}/${endpoint}`, { params: query });
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/transactions/${params.contract}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY },
+        params: { limit, offset }
+      });
       return response.data;
     } catch (error) {
       console.error("Pikespeak API error:", error);
-      return {
-        error: `Error fetching ${endpoint} data for account ${accountId} from Pikespeak`,
-      };
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching transactions for account: ${params.contract}`, { status: 500 });
     }
   }, {
     params: t.Object({
-      accountId: t.String(),
-      endpoint: t.Enum({
-        activity: "activity",
-        "ft-transfers": "ft-transfers",
-        "contract-interactions": "contract-interactions",
-        "probable-eth-address": "probable-eth-address",
-        social: "social",
-        "nft-transfers": "nft-transfers",
-      }),
+      contract: t.String()
     }),
     query: t.Object({
-      limit: t.Optional(t.Number()),
-      offset: t.Optional(t.Number()),
-    }),
+      limit: t.Optional(t.String()),
+      offset: t.Optional(t.String())
+    })
   })
-  .get("/account/:accountId/reputation", async ({ params: { accountId } }) => {
+  .get("/*", async ({ params, query }) => {
+    const path = params["*"];
     try {
-      const [activity, ftTransfers, contractInteractions, probableEthAddress, social] = await Promise.all([
-        pikespeakAxios.get(`/account/${accountId}/activity`),
-        pikespeakAxios.get(`/account/${accountId}/ft-transfers`),
-        pikespeakAxios.get(`/account/${accountId}/contract-interactions`),
-        pikespeakAxios.get(`/account/${accountId}/probable-eth-address`),
-        pikespeakAxios.get(`/account/${accountId}/social`),
-      ]);
-
-      const reputationScore = calculateReputationScore(activity.data, ftTransfers.data, contractInteractions.data, social.data);
-
-      return {
-        accountId,
-        reputationScore,
-        probableEthAddress: probableEthAddress.data,
-      };
+      const response = await axios.get(`${PIKESPEAK_BASE_URL}/${path}`, {
+        headers: { "X-API-Key": PIKESPEAK_API_KEY },
+        params: query
+      });
+      return response.data;
     } catch (error) {
       console.error("Pikespeak API error:", error);
-      return {
-        error: `Error calculating reputation for account ${accountId}`,
-      };
+      return { error: `Error fetching data from Pikespeak: ${path}` };
     }
-  }, {
-    params: t.Object({
-      accountId: t.String(),
-    }),
   });
-
-function calculateReputationScore(activity: any, ftTransfers: any, contractInteractions: any, social: any): number {
-  let score = 100;
-
-  if (ftTransfers.length > 1000) score -= 10;
-
-  const accountAge = calculateAccountAge(activity);
-  if (accountAge > 365) score += 10;
-
-  const badContractInteractions = countBadContractInteractions(contractInteractions);
-  score -= badContractInteractions * 5;
-
-  score += social.connections.length;
-
-  return Math.max(0, Math.min(100, score));
-}
-
-function calculateAccountAge(activity: any): number {
-  return 0; // Placeholder
-}
-
-function countBadContractInteractions(contractInteractions: any): number {
-  return 0; // Placeholder
-}
 
 export default pikespeakRoutes;

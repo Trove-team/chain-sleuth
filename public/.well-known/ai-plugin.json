@@ -178,113 +178,6 @@
         }
       }
     },
-    "/api/pikespeak/account/{accountId}/{endpoint}": {
-      "get": {
-        "summary": "Get account data from Pikespeak",
-        "description": "An array of transactions neccesary to collect information on a queried NEAR address.",
-        "operationId": "getPikespeakAccountData",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "accountId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "The NEAR account ID"
-          },
-          {
-            "in": "path",
-            "name": "endpoint",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": ["activity", "ft-transfers", "contract-interactions", "probable-eth-address", "social", "nft-transfers"]
-            },
-            "description": "The specific Pikespeak endpoint to query"
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Limit the number of results"
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Offset for pagination"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Account data retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/api/pikespeak/account/{accountId}/reputation": {
-      "get": {
-        "description": "An array of transactions neccesary to quey NEAR blockchain information from pikespeak and return a reputation score.",
-        "summary": "Get account reputation",
-        "operationId": "getAccountReputation",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "accountId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "The NEAR account ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Account reputation calculated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "accountId": {
-                      "type": "string"
-                    },
-                    "reputationScore": {
-                      "type": "number"
-                    },
-                    "probableEthAddress": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ]
-      }
-    },
     "/api/pikespeak/ping": {
       "get": {
         "description": "A Ping for testing connection to Pikespeak API",
@@ -310,6 +203,65 @@
             }
           }
         }
+      }
+    },
+    "/api/pikespeak/account/transactions/{contract}": {
+      "get": {
+        "summary": "Get Raw Transactions for a Given Account",
+        "description": "Retrieves raw transactions for a specified account (contract).",
+        "operationId": "getAccountTransactions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query transactions for."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "default": 50
+            },
+            "description": "Limit the number of results. Maximum 50, defaults to 50 if not specified."
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Offset for pagination. Defaults to 0 if not specified."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account transactions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     }
   },
