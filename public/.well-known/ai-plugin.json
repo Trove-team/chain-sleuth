@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Chainsleuth API",
+    "title": "Chainsleuth Agent",
     "description": "API for interacting with Chainsleuth account investigation, token swaps, and Pikespeak data retrieval",
     "version": "1.0.0"
   },
@@ -283,6 +283,33 @@
             "ApiKeyAuth": []
           }
         ]
+      }
+    },
+    "/api/pikespeak/ping": {
+      "get": {
+        "description": "A Ping for testing connection to Pikespeak API",
+        "summary": "Check Pikespeak API connectivity",
+        "operationId": "pingPikespeak",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   },

@@ -14,6 +14,9 @@ const pikespeakAxios = axios.create({
 });
 
 const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
+  .get("/ping", () => {
+    return { status: "ok", message: "Pikespeak routes are working" };
+  })
   .get("/account/:accountId/:endpoint", async ({ params: { accountId, endpoint }, query }) => {
     try {
       const response = await pikespeakAxios.get(`/account/${accountId}/${endpoint}`, { params: query });
