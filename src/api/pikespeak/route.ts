@@ -11,26 +11,34 @@ const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })
     return { status: "ok", message: "Pikespeak routes are working" };
   })
   .get("/account/transactions/:contract", async ({ params, query }) => {
+    const limit = query.limit ? parseInt(query.limit as string) : 50;
+    const offset = query.offset ? parseInt(query.offset as string) : 0;
+
+    if (isNaN(limit) || isNaN(offset) || limit < 1 || limit > 50 || offset < 0) {
+      return new Response('Invalid limit or offset', { status: 400 });
+    }
+
     try {
       const response = await axios.get(`${PIKESPEAK_BASE_URL}/account/transactions/${params.contract}`, {
         headers: { "X-API-Key": PIKESPEAK_API_KEY },
-        params: {
-          limit: query.limit || 50,
-          offset: query.offset || 0
-        }
+        params: { limit, offset }
       });
       return response.data;
     } catch (error) {
       console.error("Pikespeak API error:", error);
-      return { error: `Error fetching transactions for account: ${params.contract}` };
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      return new Response(`Error fetching transactions for account: ${params.contract}`, { status: 500 });
     }
   }, {
     params: t.Object({
       contract: t.String()
     }),
     query: t.Object({
-      limit: t.Optional(t.Number()),
-      offset: t.Optional(t.Number())
+      limit: t.Optional(t.String()),
+      offset: t.Optional(t.String())
     })
   })
   .get("/*", async ({ params, query }) => {
