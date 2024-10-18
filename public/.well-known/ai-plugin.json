@@ -380,7 +380,7 @@
     "/api/pikespeak/account/{infos}/{contract}": {
       "get": {
         "summary": "Get Account Information",
-        "description": "Retrieves various information for a specified account (contract).",
+        "description": "Retrieves various types of information for a specified account or contract on the NEAR blockchain.",
         "operationId": "getAccountInfo",
         "parameters": [
           {
@@ -390,7 +390,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "The type of information to retrieve (e.g., 'activity', 'ft-transfers', etc.)."
+            "description": "The type of information to retrieve (e.g., 'basic', 'transactions', 'balance', etc.)."
           },
           {
             "in": "path",
