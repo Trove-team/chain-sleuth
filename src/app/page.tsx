@@ -1,41 +1,32 @@
-import Link from "next/link";
+import Layout from '@/components/layout';
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="flex flex-col p-2">
-      <h1 className="text-3xl font-bold">
-        Chain Sleuth Agent
-      </h1>
-      <ul>
+    <Layout>
+      <h1 className="text-3xl font-bold mb-4">Chain Sleuth Agent</h1>
+      <ul className="space-y-2">
         <li>
-          <a
-            href="https://docs.mintbase.xyz/ai/mintbase-plugins"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <Link href="https://docs.mintbase.xyz/ai/mintbase-plugins" className="text-blue-600 hover:underline">
             Docs
-          </a>
+          </Link>
         </li>
         <li>
-          <Link href="/.well-known/ai-plugin.json">
+          <Link href="/.well-known/ai-plugin.json" className="text-blue-600 hover:underline">
             OpenAPI Spec
           </Link>
         </li>
         <li>
-          <Link href="/api/swagger">
+          <Link href="/api/swagger" className="text-blue-600 hover:underline">
             Swagger
           </Link>
         </li>
         <li>
-          <a
-            href="https://github.com/Trove-team/chain-sleuth"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <Link href="https://github.com/Trove-team/chain-sleuth" className="text-blue-600 hover:underline">
             Source Code
-          </a>
+          </Link>
         </li>
       </ul>
-    </main>
+    </Layout>
   );
 }

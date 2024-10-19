@@ -20,7 +20,22 @@
     "near-api-js": "^5.0.1",
     "next": "14.2.3",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "@near-wallet-selector/core": "^8.1.4",
+    "@near-wallet-selector/modal-ui": "^8.1.4",
+    "@near-wallet-selector/meteor-wallet": "^8.1.4",
+    "@near-wallet-selector/my-near-wallet": "^8.1.4",
+    "@near-wallet-selector/here-wallet": "^8.1.4",
+    "@near-wallet-selector/nightly": "^8.1.4",
+    "@near-wallet-selector/nightly-connect": "^8.1.4",
+    "@near-wallet-selector/sender": "^8.1.4",
+    "@near-wallet-selector/ledger": "^8.1.4",
+    "@near-wallet-selector/wallet-connect": "^8.1.4",
+    "@near-wallet-selector/default-wallets": "^8.1.4",
+    "neo4j-driver": "^5.15.0",
+    "react-force-graph": "^1.44.6",
+    "@near-js/providers": "latest",
+    "borsh": "0.7.0"
   },
   "devDependencies": {
     "@types/big.js": "^6.2.2",
