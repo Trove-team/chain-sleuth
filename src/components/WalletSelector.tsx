@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from 'react';
 import { setupWalletSelector, WalletSelector as NearWalletSelector } from '@near-wallet-selector/core';
 import { setupModal, WalletSelectorModal } from '@near-wallet-selector/modal-ui';
