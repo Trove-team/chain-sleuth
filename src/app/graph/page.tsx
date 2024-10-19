@@ -1,23 +1,14 @@
-import Layout from '../../components/PageLayout';
 import dynamic from 'next/dynamic';
+import PageLayout from '../../components/PageLayout';
 
-const ForceGraph = dynamic(() => import('react-force-graph').then(mod => mod.ForceGraph2D), { ssr: false });
+// Dynamically import the Graph component with ssr disabled
+const DynamicGraph = dynamic(() => import('../../components/Graph'), { ssr: false });
 
-export default function Graph() {
-  const graphData = {
-    nodes: [{ id: 'node1' }, { id: 'node2' }, { id: 'node3' }],
-    links: [
-      { source: 'node1', target: 'node2' },
-      { source: 'node2', target: 'node3' },
-    ],
-  };
-
+export default function GraphPage() {
   return (
-    <Layout>
+    <PageLayout>
       <h1 className="text-3xl font-bold mb-4">Graph Visualization</h1>
-      <div style={{ height: '600px' }}>
-        <ForceGraph graphData={graphData} />
-      </div>
-    </Layout>
+      <DynamicGraph />
+    </PageLayout>
   );
 }
