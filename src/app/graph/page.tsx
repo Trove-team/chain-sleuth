@@ -1,4 +1,4 @@
-import Layout from '../../components/Layout';
+import Layout from '../../components/PageLayout';
 import dynamic from 'next/dynamic';
 
 const ForceGraph = dynamic(() => import('react-force-graph').then(mod => mod.ForceGraph2D), { ssr: false });

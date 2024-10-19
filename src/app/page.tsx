@@ -1,4 +1,4 @@
-import Layout from '../components/Layout';
+import Layout from '../components/PageLayout';
 import Link from 'next/link';
 
 export default function Home() {
