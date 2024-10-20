@@ -48,3 +48,38 @@ next-env.d.ts
 # IDE/Editor folders
 .vscode
 .idea
+
+# Add these lines to your existing .gitignore
+
+# Node modules
+node_modules
+**/node_modules
+
+# Next.js build output
+.next
+
+# Build artifacts
+dist
+build
+
+# Large files
+*.pack
+*.pack.gz
+*.node
+
+# Specific large files
+**/typescript.js
+**/tsserverlibrary.js
+**/typescriptServices.js
+**/tsserver.js
+**/tsc.js
+**/typingsInstaller.js
+**/libbinaryen.dylib
+**/lld
+**/clang-tidy
+**/clang-10
+**/react-force-graph.js
+**/react-force-graph.js.map
+**/aframe-master.js.map
+**/aframe-v1.6.0.js.map
+**/3d-force-graph-vr.js.map
