@@ -1,0 +1,12 @@
+{
+    "name": "query-contract",
+    "version": "1.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+      "build": "near-sdk-js build src/contract.js build/contract.wasm",
+      "deploy": "near dev-deploy build/contract.wasm"
+    },
+    "dependencies": {
+      "near-sdk-js": "^1.0.0"
+    }
+  }

@@ -1,0 +1,73 @@
+on:
+  push:
+    tags:
+      - "v[0-9]+.*"
+jobs:
+  create_release:
+    name: Create release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+  release_assets_linux_mac:
+    name: Release assets
+    needs: create_release # we need to know the upload URL
+    runs-on: ${{ matrix.platform }} # we run many different builds
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    steps:
+      # checkout
+      - name: Checkout code
+        uses: actions/checkout@v1
+      - name: Build qjsc
+        run: ./build.sh
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          # This is how it will be named on the release page.
+          asset_name: qjsc-${{ runner.os }}-${{ runner.arch }}
+          # The path to the file you want to upload.
+          asset_path: ./qjsc
+          # set type of the file you are uploading
+          asset_content_type: application/octet-stream
+  release_assets_windows:
+    name: Release assets (Windows)
+    needs: create_release # we need to know the upload URL
+    runs-on: ubuntu-latest
+    steps:
+      # checkout
+      - name: Checkout code
+        uses: actions/checkout@v1
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+      - name: Build qjsc
+        run: make CONFIG_WIN32=y
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          # This is how it will be named on the release page.
+          asset_name: qjsc-win32-${{ runner.arch }}.exe
+          # The path to the file you want to upload.
+          asset_path: ./qjsc.exe
+          # set type of the file you are uploading
+          asset_content_type: application/octet-stream
+

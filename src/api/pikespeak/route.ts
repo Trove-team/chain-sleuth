@@ -3,7 +3,7 @@
 import { Elysia, t } from "elysia";
 import axios from "axios";
 
-const PIKESPEAK_BASE_URL = "https://api.pikespeak.ai";
+const PIKESPEAK_BASE_URL = process.env.PIKESPEAK_BASE_URL || "https://api.pikespeak.ai";
 const PIKESPEAK_API_KEY = process.env.PIKESPEAK_API_KEY;
 
 const pikespeakRoutes = new Elysia({ prefix: "/pikespeak" })

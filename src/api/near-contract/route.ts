@@ -1,86 +1,124 @@
 // File: src/api/near-contract/route.ts
 
 import { Elysia, t } from "elysia";
-import axios from 'axios';
+import { connect, keyStores, Contract, utils } from "near-api-js";
+import dotenv from 'dotenv';
 
-const PIKESPEAK_BASE_URL = "https://api.pikespeak.ai";
-const PIKESPEAK_API_KEY = process.env.PIKESPEAK_API_KEY;
+dotenv.config();
 
-const pikespeakAxios = axios.create({
-  baseURL: PIKESPEAK_BASE_URL,
-  headers: {
-    "X-API-Key": PIKESPEAK_API_KEY,
-  },
-});
+const config = {
+  networkId: process.env.NEAR_NETWORK || "testnet",
+  keyStore: new keyStores.InMemoryKeyStore(),
+  nodeUrl: process.env.NEAR_NODE_URL || "https://rpc.testnet.near.org",
+  walletUrl: process.env.NEAR_WALLET_URL || "https://wallet.testnet.near.org",
+  helperUrl: process.env.NEAR_HELPER_URL || "https://helper.testnet.near.org",
+  explorerUrl: "https://explorer.testnet.near.org",
+};
+
+function handleContractError(error: unknown) {
+  console.error("Contract interaction error:", error);
+  if (error instanceof Error && error.toString().includes("Cannot read properties of undefined")) {
+    return { error: "Contract method not found or not accessible" };
+  }
+  return { error: error instanceof Error ? error.message : String(error) };
+}
+
+interface NearContract extends Contract {
+  get_contract_metadata: () => Promise<any>;
+  getQueryPrice: () => Promise<string>;
+  setQueryPrice: (args: { price: string }) => Promise<void>;
+  payForQuery: (args: {}, gas: string, amount: string) => Promise<boolean>;
+  mintNFT: (args: { address: string, metadata: { name: string, description: string } }) => Promise<boolean>;
+}
 
 const nearContractRoutes = new Elysia({ prefix: "/near-contract" })
-  .post("/mint-nft/:accountId", async ({ params: { accountId } }) => {
+  .get("/query-price", async () => {
+    const near = await connect(config);
+    let account;
     try {
-      // Fetch Pikespeak data
-      const [activity, ftTransfers, contractInteractions, social] = await Promise.all([
-        pikespeakAxios.get(`/account/${accountId}/activity`),
-        pikespeakAxios.get(`/account/${accountId}/ft-transfers`),
-        pikespeakAxios.get(`/account/${accountId}/contract-interactions`),
-        pikespeakAxios.get(`/account/${accountId}/social`),
-      ]);
-
-      // Calculate reputation score
-      const reputationScore = calculateReputationScore(activity.data, ftTransfers.data, contractInteractions.data, social.data);
-
-      // Generate summary
-      const summary = `Account ${accountId} has a reputation score of ${reputationScore}. Activity: ${activity.data.length} events, FT Transfers: ${ftTransfers.data.length}, Contract Interactions: ${contractInteractions.data.length}, Social Connections: ${social.data.connections.length}.`;
-
-      // Placeholder for NFT minting
-      const nftMintingResult = {
-        success: true,
-        message: "NFT minting simulation successful",
-        nftData: {
-          token_id: `${accountId}-${Date.now()}`,
-          metadata: {
-            title: `${accountId} Reputation NFT`,
-            description: summary,
-            media: "https://placekitten.com/200/300", // Placeholder image
-          },
-        },
-      };
-
-      return {
-        success: true,
-        message: "NFT minted successfully (simulated)",
-        nftData: nftMintingResult,
-      };
+      account = await near.account(process.env.NEAR_ACCOUNT_ID ?? 'default_account_id');
     } catch (error) {
-      console.error("Error in NFT minting simulation:", error);
-      return { error: "Failed to simulate NFT minting" };
+      console.error("Error accessing NEAR account:", error);
+      return { error: "Failed to access NEAR account" };
+    }
+    const contractName = process.env.NEAR_CONTRACT_NAME || "default_contract_name";
+    const contract = new Contract(account, contractName, {
+      viewMethods: ["get_contract_metadata", "getQueryPrice"],
+      changeMethods: ["setQueryPrice", "payForQuery", "mintNFT"],
+      useLocalViewExecution: true, // Set to true for blockchain queries
+    }) as NearContract;
+
+    try {
+      const price = await contract.getQueryPrice();
+      return { price };
+    } catch (error) {
+      return handleContractError(error);
+    }
+  })
+  .post("/pay-for-query", async ({ body }) => {
+    const near = await connect(config);
+    let account;
+    try {
+      account = await near.account(process.env.NEAR_ACCOUNT_ID ?? 'default_account_id');
+    } catch (error) {
+      console.error("Error accessing NEAR account:", error);
+      return { error: "Failed to access NEAR account" };
+    }
+    const contractName = process.env.NEAR_CONTRACT_NAME || "default_contract_name";
+    const contract = new Contract(account, contractName, {
+      viewMethods: ["get_contract_metadata", "getQueryPrice"],
+      changeMethods: ["setQueryPrice", "payForQuery", "mintNFT"],
+      useLocalViewExecution: true, // Set to true for blockchain queries
+    }) as NearContract;
+
+    try {
+      const result = await contract.payForQuery(
+        {},
+        "300000000000000", // gas
+        utils.format.parseNearAmount(body.amount) ?? "0" // Convert to yoctoNEAR, default to "0" if null
+      );
+      return { success: true, result };
+    } catch (error) {
+      return handleContractError(error);
     }
   }, {
-    params: t.Object({
-      accountId: t.String(),
-    }),
+    body: t.Object({
+      amount: t.String()
+    })
+  })
+  .post("/mint-nft", async ({ body }) => {
+    const near = await connect(config);
+    let account;
+    try {
+      account = await near.account(process.env.NEAR_ACCOUNT_ID ?? 'default_account_id');
+    } catch (error) {
+      console.error("Error accessing NEAR account:", error);
+      return { error: "Failed to access NEAR account" };
+    }
+    const contractName = process.env.NEAR_CONTRACT_NAME || "default_contract_name";
+    const contract = new Contract(account, contractName, {
+      viewMethods: ["get_contract_metadata", "getQueryPrice"],
+      changeMethods: ["setQueryPrice", "payForQuery", "mintNFT"],
+      useLocalViewExecution: true, // Set to true for blockchain queries
+    }) as NearContract;
+
+    try {
+      const result = await contract.mintNFT({
+        address: body.address,
+        metadata: body.metadata
+      });
+      return { success: true, result };
+    } catch (error) {
+      return handleContractError(error);
+    }
+  }, {
+    body: t.Object({
+      address: t.String(),
+      metadata: t.Object({
+        name: t.String(),
+        description: t.String()
+      })
+    })
   });
-
-function calculateReputationScore(activity: any, ftTransfers: any, contractInteractions: any, social: any): number {
-  let score = 100;
-
-  if (ftTransfers.length > 1000) score -= 10;
-
-  const accountAge = calculateAccountAge(activity);
-  if (accountAge > 365) score += 10;
-
-  const badContractInteractions = countBadContractInteractions(contractInteractions);
-  score -= badContractInteractions * 5;
-
-  score += social.connections.length;
-
-  return Math.max(0, Math.min(100, score));
-}
-
-function calculateAccountAge(activity: any): number {
-  return 0; // Placeholder
-}
-
-function countBadContractInteractions(contractInteractions: any): number {
-  return 0; // Placeholder
-}
 
 export default nearContractRoutes;

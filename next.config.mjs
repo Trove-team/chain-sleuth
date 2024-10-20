@@ -36,7 +36,16 @@ const nextConfig = {
 
   experimental: {
     esmExternals: 'loose'
-  }
+  },
+
+  env: {
+    NEAR_NETWORK: process.env.NEAR_NETWORK,
+    NEAR_NODE_URL: process.env.NEAR_NODE_URL,
+    NEAR_WALLET_URL: process.env.NEAR_WALLET_URL,
+    NEAR_HELPER_URL: process.env.NEAR_HELPER_URL,
+    NEAR_CONTRACT_NAME: process.env.NEAR_CONTRACT_NAME,
+    DEBUG: process.env.DEBUG,
+  },
 };
 
 export default nextConfig;

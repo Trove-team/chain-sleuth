@@ -1,0 +1,15 @@
+{
+  "name": "near-contract",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "near-sdk-js": "^2.0.0"
+  }
+}
