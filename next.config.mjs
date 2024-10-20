@@ -31,6 +31,14 @@ const nextConfig = {
         source: '/api/:path*',
         destination: '/api/:path*',
       },
+      {
+        source: '/swagger',
+        destination: '/api/swagger',
+      },
+      {
+        source: '/swagger/:path*',
+        destination: '/api/swagger/:path*',
+      },
     ];
   },
 
