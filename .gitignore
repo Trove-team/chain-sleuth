@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/near-contract/node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -19,6 +20,7 @@
 # misc
 .DS_Store
 *.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -26,8 +28,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -35,3 +40,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Cache
+.cache
+.npm
+
+# IDE/Editor folders
+.vscode
+.idea
