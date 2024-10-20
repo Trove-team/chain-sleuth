@@ -1,15 +1,12 @@
 {
-  "name": "near-contract",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "near-sdk-js": "^2.0.0"
+    "name": "query-contract",
+    "version": "1.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+      "build": "near-sdk-js build src/contract.js build/contract.wasm",
+      "deploy": "near dev-deploy build/contract.wasm"
+    },
+    "dependencies": {
+      "near-sdk-js": "^1.0.0"
+    }
   }
-}
