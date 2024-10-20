@@ -85,4 +85,5 @@ const app = new Elysia()
     return await contract.mintNFT({ address: body.address, metadata: body.metadata });
   });
 
-export default app;
+const nearContractRoutes = app;
+export default nearContractRoutes;
