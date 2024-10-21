@@ -19,7 +19,7 @@ const nextConfig = {
         ],
       },
       {
-        source: "/swagger/:path*",
+        source: "/api/swagger/:path*",
         headers: [
           { key: "Access-Control-Allow-Credentials", value: "true" },
           { key: "Access-Control-Allow-Origin", value: "*" },
@@ -41,6 +41,10 @@ const nextConfig = {
         destination: '/api/:path*',
       },
       {
+        source: '/swagger',
+        destination: '/api/swagger',
+      },
+      {
         source: '/swagger/:path*',
         destination: '/api/swagger/:path*',
       },
@@ -58,6 +62,8 @@ const nextConfig = {
     NEAR_HELPER_URL: process.env.NEAR_HELPER_URL,
     NEAR_CONTRACT_NAME: process.env.NEAR_CONTRACT_NAME,
     DEBUG: process.env.DEBUG,
+    PIKESPEAK_BASE_URL: process.env.PIKESPEAK_BASE_URL,
+    PIKESPEAK_API_KEY: process.env.PIKESPEAK_API_KEY,
   },
 };
 
