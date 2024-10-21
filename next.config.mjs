@@ -4,12 +4,6 @@ const nextConfig = {
     if (isServer) {
       config.externals.push("@ref-finance/ref-sdk", "near-api-js");
     }
-      // Exclude the near-contract directory from being processed by webpack
-      config.exclude = [
-        ...config.exclude,
-      /near-contract/
-    ];
-    
     return config;
   },
 
@@ -41,7 +35,12 @@ const nextConfig = {
   },
 
   experimental: {
-    esmExternals: 'loose'
+    esmExternals: 'loose',
+    outputFileTracingExcludes: {
+      '*': [
+        'near-contract/**/*'
+      ],
+    },
   }
 };
 
