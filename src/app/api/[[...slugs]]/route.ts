@@ -1,4 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GET, POST } from '@/api';
+import { NextRequest } from 'next/server';
+import app from '@/api';
 
-export { GET, POST };
+export async function GET(request: NextRequest) {
+  return app.handle(request);
+}
+
+export async function POST(request: NextRequest) {
+  return app.handle(request);
+}
+
+// Add other methods if needed
+export const dynamic = 'force-dynamic';
