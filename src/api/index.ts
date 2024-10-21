@@ -23,8 +23,9 @@ const app = new Elysia({ prefix: "/api", aot: false })
         },
       ],
     },
-    path: '/swagger',
-  }))
+    path: '/api/swagger',
+  specPath: '/api/swagger/json' // Add this line
+}))
   .use(refFinanceRoutes)
   .use(pikespeakRoutes)
   .use(nearContractRoutes);
