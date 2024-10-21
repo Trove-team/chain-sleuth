@@ -19,7 +19,7 @@ const nextConfig = {
         ],
       },
       {
-        source: "/api/swagger/:path*",
+        source: "/swagger/:path*",
         headers: [
           { key: "Access-Control-Allow-Credentials", value: "true" },
           { key: "Access-Control-Allow-Origin", value: "*" },
