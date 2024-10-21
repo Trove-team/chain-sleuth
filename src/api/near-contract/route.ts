@@ -62,7 +62,7 @@ interface MintNFTBody {
   metadata: any; // Replace 'any' with a more specific type if possible
 }
 
-const app = new Elysia()
+const nearContractRoutes = new Elysia({ prefix: "/near-contract" })
   .get("/metadata", async () => {
     const contract = await getContract();
     return await contract.get_contract_metadata();
@@ -85,5 +85,4 @@ const app = new Elysia()
     return await contract.mintNFT({ address: body.address, metadata: body.metadata });
   });
 
-const nearContractRoutes = app;
 export default nearContractRoutes;
