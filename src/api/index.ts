@@ -23,7 +23,7 @@ const app = new Elysia({ prefix: "/api", aot: false })
         },
       ],
     },
-    path: '/swagger',
+    path: '/api/swagger',
   }))
   .use(refFinanceRoutes)
   .use(pikespeakRoutes)
