@@ -4,7 +4,7 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import refFinanceRoutes from './ref-finance/route';
 import pikespeakRoutes from './pikespeak/route';
-//import nearContractRoutes from './near-contract/route';
+import nearContractRoutes from './near-contract/route';
 
 const app = new Elysia({ prefix: "/api", aot: false })
   .use(swagger({
@@ -23,7 +23,8 @@ const app = new Elysia({ prefix: "/api", aot: false })
     path: '/swagger',
   }))
   .use(refFinanceRoutes)
-  .use(pikespeakRoutes);
+  .use(pikespeakRoutes)
+  .use(nearContractRoutes);
 
 const compiledApp = app.compile();
 
