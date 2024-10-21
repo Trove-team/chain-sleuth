@@ -20,6 +20,10 @@ interface NFTMetadata {
   title: string;
   description: string;
   media: string;
+  summary: string;
+  queried_name: string;
+  querier: string;
+  reputation_score: number;
 }
 
 interface NFTToken {
@@ -51,22 +55,34 @@ const getContract = async (account: Account): Promise<NFTContract> => {
 
 const nearContractRoutes = new Elysia({ prefix: "/near-contract" })
   .post("/mint-nft", async ({ body }) => {
-    const { token_id, metadata, recipient } = body;
+    const { token_id, queried_name, querier, summary } = body;
     try {
       const near = await connect(config);
       const account = await near.account(CONTRACT_ID);
       const contract = await getContract(account);
 
+      const metadata: NFTMetadata = {
+        title: `Reputation NFT for ${queried_name}`,
+        description: `Reputation NFT minted by ${querier}`,
+        media: "https://example.com/generic-nft-image.jpg", // Replace with your generic image URL
+        summary,
+        queried_name,
+        querier,
+        reputation_score: 10 // Default score as requested
+      };
+
       await contract.mint_nft({
         token_id,
         metadata,
-        recipient,
+        recipient: querier,
       }, "300000000000000", // 0.3 NEAR as attached deposit
       );
 
       return {
         success: true,
         message: "NFT minted successfully",
+        token_id,
+        metadata
       };
     } catch (error) {
       console.error("Error minting NFT:", error);
@@ -75,12 +91,9 @@ const nearContractRoutes = new Elysia({ prefix: "/near-contract" })
   }, {
     body: t.Object({
       token_id: t.String(),
-      metadata: t.Object({
-        title: t.String(),
-        description: t.String(),
-        media: t.String(),
-      }),
-      recipient: t.String(),
+      queried_name: t.String(),
+      querier: t.String(),
+      summary: t.String()
     }),
   })
   .get("/nft/:tokenId", async ({ params: { tokenId } }) => {

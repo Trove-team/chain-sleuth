@@ -9,6 +9,16 @@ import {
     assert,
   } from 'near-sdk-js';
   
+  interface NFTMetadata {
+    title: string;
+    description: string;
+    media: string;
+    summary: string;
+    queried_name: string;
+    querier: string;
+    reputation_score: number;
+  }
+  
   @NearBindgen({})
   class NFTContract {
     owner: string;
@@ -33,7 +43,7 @@ import {
     }
   
     @call({ payableFunction: true })
-    mint_nft({ token_id, metadata, recipient }: { token_id: string; metadata: any; recipient: string }): void {
+    mint_nft({ token_id, metadata, recipient }: { token_id: string; metadata: NFTMetadata; recipient: string }): void {
       const deposit = BigInt(near.attachedDeposit());
       assert(deposit >= this.mintPrice, "Not enough attached deposit");
       assert(!this.tokenToOwner.get(token_id), "Token already exists");
@@ -47,7 +57,7 @@ import {
   
       this.totalSupply += 1;
   
-      near.log(`Minted NFT ${token_id} for ${recipient}`);
+      near.log(`Minted NFT ${token_id} for ${recipient} with metadata: ${JSON.stringify(metadata)}`);
     }
   
     @view({})
