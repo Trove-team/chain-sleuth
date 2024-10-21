@@ -35,3 +35,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# NEAR contract specific
+near-contract/build/
+near-contract/node_modules/

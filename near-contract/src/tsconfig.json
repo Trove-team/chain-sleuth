@@ -1,11 +1,16 @@
 {
     "compilerOptions": {
-      "target": "es5",
+      "target": "es2020",
       "module": "commonjs",
       "strict": true,
       "esModuleInterop": true,
-      "outDir": "./build",
-      "experimentalDecorators": true
+      "outDir": "../build",
+      "rootDir": "./",
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true
     },
-    "include": ["src"]
+    "include": ["./**/*"],
+    "exclude": ["../node_modules"]
   }
