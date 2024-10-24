@@ -29,6 +29,7 @@
     "dotenv": "^16.4.5",
     "elysia": "^1.0.16",
     "fuse.js": "^7.0.0",
+    "lucide-react": "^0.453.0",
     "near-api-js": "^4.0.3",
     "near-sdk-js": "^2.0.0",
     "neo4j-driver": "^5.15.0",
