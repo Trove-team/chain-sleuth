@@ -263,6 +263,411 @@
           }
         ]
       }
+    },
+    "/api/pikespeak/account/tx-count/{contract}": {
+      "get": {
+        "summary": "Get Total Number of Transactions for a Given Account",
+        "description": "Retrieves the total number of transactions for a specified account (contract).",
+        "operationId": "getAccountTransactionCount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query transaction count for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account transaction count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tx_count": {
+                      "type": "integer",
+                      "description": "Total number of transactions for the account"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pikespeak/account/balance/{contract}": {
+      "get": {
+        "summary": "Get Account Balance",
+        "description": "Retrieves the balance for a specified account (contract).",
+        "operationId": "getAccountBalance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query balance for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/wealth/{contract}": {
+      "get": {
+        "summary": "Get Account Wealth",
+        "description": "Retrieves the wealth information for a specified account (contract).",
+        "operationId": "getAccountWealth",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query wealth for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account wealth information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/{infos}/{contract}": {
+      "get": {
+        "summary": "Get Account Information",
+        "description": "Retrieves various types of information for a specified account or contract on the NEAR blockchain.",
+        "operationId": "getAccountInfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "infos",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The type of information to retrieve (e.g., 'basic', 'transactions', 'balance', etc.)."
+          },
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query information for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/ft-transfer/{contract}": {
+      "get": {
+        "summary": "Get FT Transfers for a Given Account",
+        "description": "Retrieves FT transfers for a specified account (contract).",
+        "operationId": "getAccountFTTransfers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query FT transfers for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account FT transfers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/incoming-near/{contract}": {
+      "get": {
+        "summary": "Get Incoming NEAR for a Given Account",
+        "description": "Retrieves incoming NEAR transactions for a specified account (contract).",
+        "operationId": "getAccountIncomingNEAR",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query incoming NEAR for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account incoming NEAR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/outgoing-near/{contract}": {
+      "get": {
+        "summary": "Get Outgoing NEAR for a Given Account",
+        "description": "Retrieves outgoing NEAR transactions for a specified account (contract).",
+        "operationId": "getAccountOutgoingNEAR",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query outgoing NEAR for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account outgoing NEAR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/incoming-token/{contract}": {
+      "get": {
+        "summary": "Get Incoming Tokens for a Given Account",
+        "description": "Retrieves incoming token transactions for a specified account (contract).",
+        "operationId": "getAccountIncomingTokens",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query incoming tokens for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account incoming tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/account/outgoing-token/{contract}": {
+      "get": {
+        "summary": "Get Outgoing Tokens for a Given Account",
+        "description": "Retrieves outgoing token transactions for a specified account (contract).",
+        "operationId": "getAccountOutgoingTokens",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The account or contract address to query outgoing tokens for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account outgoing tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/bridge/probable-eth-addresses/{account}": {
+      "get": {
+        "summary": "Get Probable ETH Addresses",
+        "description": "Retrieves probable Ethereum addresses associated with a NEAR account.",
+        "operationId": "getProbableEthAddresses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The NEAR account to query probable ETH addresses for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with probable ETH addresses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/pikespeak/event-historic/account/relationships/{contract}": {
+      "get": {
+        "summary": "Get Account Relationships",
+        "description": "Gives relationships between an account and other accounts having the search parameter in their name.",
+        "operationId": "getAccountRelationships",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The main account or contract address to analyze relationships for."
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 4
+            },
+            "description": "Account name or part of account name to search for (minimum 4 characters)."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "50"
+            },
+            "description": "Limit the number of results. Maximum 50, defaults to 50 if not specified."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with account relationships"
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid search parameter"
+          },
+          "422": {
+            "description": "Unprocessable Entity - Invalid request parameters"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
     }
   },
   "components": {

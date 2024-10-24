@@ -1,86 +1,158 @@
 // File: src/api/near-contract/route.ts
 
 import { Elysia, t } from "elysia";
-import axios from 'axios';
+import { connect, keyStores, Contract, Account } from "near-api-js";
 
-const PIKESPEAK_BASE_URL = "https://api.pikespeak.ai";
-const PIKESPEAK_API_KEY = process.env.PIKESPEAK_API_KEY;
+const CONTRACT_ID = process.env.NEAR_CONTRACT_ID || "";
+const NETWORK_ID = process.env.NEAR_NETWORK || "testnet";
 
-const pikespeakAxios = axios.create({
-  baseURL: PIKESPEAK_BASE_URL,
-  headers: {
-    "X-API-Key": PIKESPEAK_API_KEY,
-  },
-});
+const config = {
+  networkId: NETWORK_ID,
+  keyStore: new keyStores.InMemoryKeyStore(),
+  nodeUrl: `https://rpc.${NETWORK_ID}.near.org`,
+  walletUrl: `https://wallet.${NETWORK_ID}.near.org`,
+  helperUrl: `https://helper.${NETWORK_ID}.near.org`,
+  explorerUrl: `https://explorer.${NETWORK_ID}.near.org`,
+};
+
+// Define types for metadata and NFT token
+interface NFTMetadata {
+  title: string;
+  description: string;
+  media: string;
+  summary: string;
+  queried_name: string;
+  querier: string;
+  reputation_score: number;
+}
+
+interface NFTToken {
+  token_id: string;
+  owner_id: string;
+  metadata: NFTMetadata;
+}
+
+// Define a custom type for our contract
+interface NFTContract extends Omit<Contract, 'account'> {
+  mint_nft: (args: { token_id: string; metadata: NFTMetadata; recipient: string }, gas?: string, deposit?: string) => Promise<void>;
+  nft_token: (args: { token_id: string }) => Promise<NFTToken | null>;
+  nft_tokens_for_owner: (args: { account_id: string }) => Promise<string[]>;
+  get_mint_price: () => Promise<string>;
+  nft_total_supply: () => Promise<number>;
+}
+
+const getContract = async (account: Account): Promise<NFTContract> => {
+  return new Contract(
+    account,
+    CONTRACT_ID,
+    {
+      viewMethods: ["nft_token", "nft_tokens_for_owner", "get_mint_price", "nft_total_supply"],
+      changeMethods: ["mint_nft"],
+      useLocalViewExecution: false
+    }
+  ) as unknown as NFTContract;
+};
+
+const GENERIC_NFT_IMAGE_URL = 'ipfs://QmSNycrd5gWH7QAFKBVvKaT58c5S6B1tq9ScHP7thxvLWM';
 
 const nearContractRoutes = new Elysia({ prefix: "/near-contract" })
-  .post("/mint-nft/:accountId", async ({ params: { accountId } }) => {
+  .post("/mint-nft", async ({ body }) => {
+    const { token_id, queried_name, querier, summary } = body;
     try {
-      // Fetch Pikespeak data
-      const [activity, ftTransfers, contractInteractions, social] = await Promise.all([
-        pikespeakAxios.get(`/account/${accountId}/activity`),
-        pikespeakAxios.get(`/account/${accountId}/ft-transfers`),
-        pikespeakAxios.get(`/account/${accountId}/contract-interactions`),
-        pikespeakAxios.get(`/account/${accountId}/social`),
-      ]);
+      const near = await connect(config);
+      const account = await near.account(CONTRACT_ID);
+      const contract = await getContract(account);
 
-      // Calculate reputation score
-      const reputationScore = calculateReputationScore(activity.data, ftTransfers.data, contractInteractions.data, social.data);
-
-      // Generate summary
-      const summary = `Account ${accountId} has a reputation score of ${reputationScore}. Activity: ${activity.data.length} events, FT Transfers: ${ftTransfers.data.length}, Contract Interactions: ${contractInteractions.data.length}, Social Connections: ${social.data.connections.length}.`;
-
-      // Placeholder for NFT minting
-      const nftMintingResult = {
-        success: true,
-        message: "NFT minting simulation successful",
-        nftData: {
-          token_id: `${accountId}-${Date.now()}`,
-          metadata: {
-            title: `${accountId} Reputation NFT`,
-            description: summary,
-            media: "https://placekitten.com/200/300", // Placeholder image
-          },
-        },
+      const metadata: NFTMetadata = {
+        title: `Reputation NFT for ${queried_name}`,
+        description: `Reputation NFT minted by ${querier}`,
+        media: "https://example.com/generic-nft-image.jpg", // Replace with your generic image URL
+        summary,
+        queried_name,
+        querier,
+        reputation_score: 10 // Default score as requested
       };
+
+      await contract.mint_nft({
+        token_id,
+        metadata,
+        recipient: querier,
+      }, "300000000000000", // 0.3 NEAR as attached deposit
+      );
 
       return {
         success: true,
-        message: "NFT minted successfully (simulated)",
-        nftData: nftMintingResult,
+        message: "NFT minted successfully",
+        token_id,
+        metadata
       };
     } catch (error) {
-      console.error("Error in NFT minting simulation:", error);
-      return { error: "Failed to simulate NFT minting" };
+      console.error("Error minting NFT:", error);
+      return { success: false, error: "Failed to mint NFT" };
+    }
+  }, {
+    body: t.Object({
+      token_id: t.String(),
+      queried_name: t.String(),
+      querier: t.String(),
+      summary: t.String()
+    }),
+  })
+  .get("/nft/:tokenId", async ({ params: { tokenId } }) => {
+    try {
+      const near = await connect(config);
+      const account = await near.account(CONTRACT_ID);
+      const contract = await getContract(account);
+      const nftToken = await contract.nft_token({ token_id: tokenId });
+      return nftToken || { error: "NFT not found" };
+    } catch (error) {
+      console.error("Error fetching NFT:", error);
+      return { error: "Failed to fetch NFT" };
     }
   }, {
     params: t.Object({
-      accountId: t.String(),
-    }),
+      tokenId: t.String()
+    })
+  })
+  .get("/nfts/:accountId", async ({ params: { accountId } }) => {
+    try {
+      const near = await connect(config);
+      const account = await near.account(CONTRACT_ID);
+      const contract = await getContract(account);
+      const tokens = await contract.nft_tokens_for_owner({ account_id: accountId });
+      return tokens;
+    } catch (error) {
+      console.error("Error fetching NFTs for account:", error);
+      return { error: "Failed to fetch NFTs for account" };
+    }
+  }, {
+    params: t.Object({
+      accountId: t.String()
+    })
+  })
+  .get("/mint-price", async () => {
+    try {
+      const near = await connect(config);
+      const account = await near.account(CONTRACT_ID);
+      const contract = await getContract(account);
+      const mintPrice = await contract.get_mint_price();
+      return { mintPrice };
+    } catch (error) {
+      console.error("Error fetching mint price:", error);
+      return { error: "Failed to fetch mint price" };
+    }
+  })
+  .get("/total-supply", async () => {
+    try {
+      const near = await connect(config);
+      const account = await near.account(CONTRACT_ID);
+      const contract = await getContract(account);
+      const totalSupply = await contract.nft_total_supply();
+      return { totalSupply };
+    } catch (error) {
+      console.error("Error fetching total supply:", error);
+      return { error: "Failed to fetch total supply" };
+    }
   });
-
-function calculateReputationScore(activity: any, ftTransfers: any, contractInteractions: any, social: any): number {
-  let score = 100;
-
-  if (ftTransfers.length > 1000) score -= 10;
-
-  const accountAge = calculateAccountAge(activity);
-  if (accountAge > 365) score += 10;
-
-  const badContractInteractions = countBadContractInteractions(contractInteractions);
-  score -= badContractInteractions * 5;
-
-  score += social.connections.length;
-
-  return Math.max(0, Math.min(100, score));
-}
-
-function calculateAccountAge(activity: any): number {
-  return 0; // Placeholder
-}
-
-function countBadContractInteractions(contractInteractions: any): number {
-  return 0; // Placeholder
-}
 
 export default nearContractRoutes;

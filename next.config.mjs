@@ -33,6 +33,15 @@ const nextConfig = {
       },
     ];
   },
+
+  experimental: {
+    esmExternals: 'loose',
+    outputFileTracingExcludes: {
+      '*': [
+        'near-contract/**/*'
+      ],
+    },
+  }
 };
 
 export default nextConfig;
