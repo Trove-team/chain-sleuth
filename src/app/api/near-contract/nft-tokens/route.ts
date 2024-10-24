@@ -1,7 +1,7 @@
 // src/app/api/near-contract/nft-tokens/route.ts
 import { NextResponse } from 'next/server';
 import { connect, keyStores, Contract } from 'near-api-js';
-import type { NFTContract } from '@/types/nft';  // Updated import path
+import type { NFTContract } from '@/types/nft';
 
 const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID || 'chainsleuth2.testnet';
 
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       {
         viewMethods: ['nft_tokens', 'nft_total_supply', 'nft_tokens_for_owner', 'nft_token'],
         changeMethods: [],
-        useLocalViewExecution: false, // Add this line
+        useLocalViewExecution: false,
       }
     ) as NFTContract;
 
@@ -39,12 +39,13 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(tokens);
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('Error fetching NFT tokens:', error);
     return NextResponse.json(
       { 
         error: 'Failed to fetch NFT tokens',
-        details: error.message
+        details: errorMessage
       },
       { status: 500 }
     );
