@@ -8,33 +8,47 @@ interface QueryResultsProps {
   queries: NFTMetadata[];
 }
 
-function formatDate(timestamp: string): string {
+interface InvestigationData {
+  subject_account: string;
+  investigator: string;
+  creation_date: number;
+  last_updated: number;
+  transaction_count: number;
+  total_usd_value: number;
+  defi_value: number;
+  near_balance: number;
+  reputation_score: number | null;
+  eth_address: string;
+  summary: string;
+}
+
+function formatDate(timestamp: string | number): string {
   try {
-    const date = new Date(parseInt(timestamp) / 1_000_000);
-    return date.toLocaleString();
+    // Handle nanosecond timestamps from NEAR
+    const timestampNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+    return new Date(timestampNum / 1_000_000).toLocaleString();
   } catch {
     return 'Invalid Date';
   }
 }
 
-function parseMetadataExtra(metadata: any): {
-  queried_name: string;
-  investigator: string;
-  transaction_count: number;
-  near_balance: string;
-  eth_address: string;
-} {
+function parseMetadataExtra(metadata: any): InvestigationData {
   try {
     if (typeof metadata.extra === 'string') {
       const parsedExtra = JSON.parse(metadata.extra);
-      const parsedData = parsedExtra.parsed_data?.parsed_fields || {};
-      
+      // Get investigation data from the metadata
       return {
-        queried_name: parsedExtra.investigated_account || metadata.queried_name,
-        investigator: parsedExtra.investigator || metadata.querier,
-        transaction_count: parseInt(parsedData.transaction_count) || 0,
-        near_balance: parsedData.near_balance || '0',
-        eth_address: parsedData.eth_address || 'N/A'
+        subject_account: parsedExtra.investigated_account || '',
+        investigator: parsedExtra.investigator || '',
+        creation_date: parsedExtra.investigation_date || 0,
+        last_updated: parsedExtra.investigation_date || 0,
+        transaction_count: Number(parsedExtra.parsed_data?.parsed_fields?.transaction_count || 0),
+        total_usd_value: Number(parsedExtra.parsed_data?.parsed_fields?.total_usd_value || 0),
+        defi_value: Number(parsedExtra.parsed_data?.parsed_fields?.defi_value || 0),
+        near_balance: Number(parsedExtra.parsed_data?.parsed_fields?.near_balance || 0),
+        reputation_score: parsedExtra.parsed_data?.parsed_fields?.reputation_score || null,
+        eth_address: parsedExtra.parsed_data?.parsed_fields?.eth_address || 'N/A',
+        summary: parsedExtra.summaries?.short_summary || ''
       };
     }
   } catch (e) {
@@ -42,11 +56,17 @@ function parseMetadataExtra(metadata: any): {
   }
   
   return {
-    queried_name: metadata.queried_name,
-    investigator: metadata.querier,
+    subject_account: '',
+    investigator: '',
+    creation_date: 0,
+    last_updated: 0,
     transaction_count: 0,
-    near_balance: '0',
-    eth_address: 'N/A'
+    total_usd_value: 0,
+    defi_value: 0,
+    near_balance: 0,
+    reputation_score: null,
+    eth_address: 'N/A',
+    summary: ''
   };
 }
 
@@ -90,7 +110,7 @@ export default function QueryResults({ queries }: QueryResultsProps) {
                 <tr key={query.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {parsedData.queried_name}
+                      {parsedData.subject_account}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -100,7 +120,7 @@ export default function QueryResults({ queries }: QueryResultsProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {query.reputation_score || 0}
+                      {parsedData.reputation_score || 0}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -110,16 +130,16 @@ export default function QueryResults({ queries }: QueryResultsProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      Ⓝ {parsedData.near_balance}
+                      Ⓝ {parsedData.near_balance.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
+                    <div className="text-sm text-gray-900 font-mono text-xs">
                       {parsedData.eth_address}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(query.timestamp)}
+                    {formatDate(parsedData.creation_date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-2">
