@@ -1,6 +1,3 @@
-// app/graph/page.tsx
-'use client';
-
 import dynamic from 'next/dynamic';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
