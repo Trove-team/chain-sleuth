@@ -29,6 +29,7 @@ export async function GET(request: Request) {
       {
         viewMethods: ['nft_tokens', 'nft_total_supply', 'nft_tokens_for_owner', 'nft_token'],
         changeMethods: [],
+        useLocalViewExecution: false, // Add this line
       }
     ) as NFTContract;
 
