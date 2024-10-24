@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { setupWalletSelector } from "@near-wallet-selector/core";
 import { setupModal } from "@near-wallet-selector/modal-ui";
