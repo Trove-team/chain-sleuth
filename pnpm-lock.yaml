@@ -18,7 +18,7 @@ importers:
         specifier: ^8.9.13
         version: 8.9.13(@near-js/providers@1.0.1)(near-api-js@4.0.3)
       '@near-wallet-selector/here-wallet':
-        specifier: ^8.1.4
+        specifier: ^8.9.13
         version: 8.9.13(@near-js/providers@1.0.1)(bn.js@5.2.1)(borsh@0.7.0)(near-api-js@4.0.3)
       '@near-wallet-selector/ledger':
         specifier: ^8.9.13
@@ -27,16 +27,16 @@ importers:
         specifier: ^8.9.13
         version: 8.9.13(@near-js/providers@1.0.1)
       '@near-wallet-selector/modal-ui':
-        specifier: ^8.1.4
+        specifier: ^8.9.13
         version: 8.9.13(@near-js/providers@1.0.1)(near-api-js@4.0.3)
       '@near-wallet-selector/my-near-wallet':
-        specifier: ^8.1.4
+        specifier: ^8.9.13
         version: 8.9.13(@near-js/providers@1.0.1)
       '@near-wallet-selector/nightly':
-        specifier: ^8.1.4
+        specifier: ^8.9.13
         version: 8.9.13(@near-js/providers@1.0.1)
       '@near-wallet-selector/sender':
-        specifier: ^8.1.4
+        specifier: ^8.9.13
         version: 8.9.13(@near-js/providers@1.0.1)
       '@near-wallet-selector/wallet-connect':
         specifier: ^8.9.13
@@ -82,7 +82,7 @@ importers:
         version: 18.2.0(react@18.2.0)
       react-force-graph:
         specifier: ^1.44.6
-        version: 1.44.6(react@18.2.0)(three@0.169.0)
+        version: 1.44.6(react@18.2.0)(three@0.164.1)
     devDependencies:
       '@types/big.js':
         specifier: ^6.2.2
@@ -4128,19 +4128,19 @@ packages:
 
 snapshots:
 
-  3d-force-graph-ar@1.8.4(three@0.169.0):
+  3d-force-graph-ar@1.8.4(three@0.164.1):
     dependencies:
-      aframe-forcegraph-component: 3.0.8(three@0.169.0)
+      aframe-forcegraph-component: 3.0.8(three@0.164.1)
       kapsule: 1.14.6
     transitivePeerDependencies:
       - three
 
-  3d-force-graph-vr@2.2.5(three@0.169.0):
+  3d-force-graph-vr@2.2.5(three@0.164.1):
     dependencies:
       accessor-fn: 1.5.1
       aframe: 1.6.0
       aframe-extras: 7.5.1
-      aframe-forcegraph-component: 3.0.8(three@0.169.0)
+      aframe-forcegraph-component: 3.0.8(three@0.164.1)
       kapsule: 1.14.6
       polished: 4.3.1
     transitivePeerDependencies:
@@ -5300,7 +5300,7 @@ snapshots:
 
   '@types/trusted-types@2.0.7': {}
 
-  '@typescript-eslint/eslint-plugin@5.62.0(@typescript-eslint/parser@5.62.0(eslint@8.56.0)(typescript@4.7.4))(eslint@8.56.0)(typescript@4.7.4)':
+  '@typescript-eslint/eslint-plugin@5.62.0(@typescript-eslint/parser@5.62.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0)(typescript@4.7.4)':
     dependencies:
       '@eslint-community/regexpp': 4.11.1
       '@typescript-eslint/parser': 5.62.0(eslint@8.56.0)(typescript@4.7.4)
@@ -5753,10 +5753,10 @@ snapshots:
       three: 0.164.1
       three-pathfinding: 1.3.0(three@0.164.1)
 
-  aframe-forcegraph-component@3.0.8(three@0.169.0):
+  aframe-forcegraph-component@3.0.8(three@0.164.1):
     dependencies:
       accessor-fn: 1.5.1
-      three-forcegraph: 1.41.15(three@0.169.0)
+      three-forcegraph: 1.41.15(three@0.164.1)
     transitivePeerDependencies:
       - three
 
@@ -5928,7 +5928,7 @@ snapshots:
 
   axios@1.7.7:
     dependencies:
-      follow-redirects: 1.15.9(debug@4.3.5)
+      follow-redirects: 1.15.9
       form-data: 4.0.1
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -6610,8 +6610,8 @@ snapshots:
       '@typescript-eslint/parser': 7.2.0(eslint@8.56.0)(typescript@5.0.2)
       eslint: 8.56.0
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0))(eslint@8.56.0)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.56.0)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.56.0)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@5.62.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.56.0)
       eslint-plugin-react: 7.34.3(eslint@8.56.0)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.56.0)
@@ -6629,13 +6629,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0))(eslint@8.56.0):
+  eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.56.0):
     dependencies:
       debug: 4.3.5
       enhanced-resolve: 5.17.0
       eslint: 8.56.0
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0))(eslint@8.56.0))(eslint@8.56.0)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.56.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.56.0))(eslint@8.56.0)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@5.62.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.5
       is-core-module: 2.14.0
@@ -6646,18 +6646,18 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0))(eslint@8.56.0))(eslint@8.56.0):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.56.0))(eslint@8.56.0):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 7.2.0(eslint@8.56.0)(typescript@5.0.2)
       eslint: 8.56.0
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0))(eslint@8.56.0)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.56.0)
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.56.0):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@5.62.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -6667,7 +6667,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.56.0
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0))(eslint@8.56.0))(eslint@8.56.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.56.0)(typescript@5.0.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.56.0))(eslint@8.56.0)
       hasown: 2.0.2
       is-core-module: 2.14.0
       is-glob: 4.0.3
@@ -6678,7 +6678,7 @@ snapshots:
       semver: 6.3.1
       tsconfig-paths: 3.15.0
     optionalDependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@8.56.0)(typescript@5.0.2)
+      '@typescript-eslint/parser': 5.62.0(eslint@8.56.0)(typescript@4.7.4)
     transitivePeerDependencies:
       - eslint-import-resolver-typescript
       - eslint-import-resolver-webpack
@@ -6892,6 +6892,8 @@ snapshots:
       rimraf: 3.0.2
 
   flatted@3.3.1: {}
+
+  follow-redirects@1.15.9: {}
 
   follow-redirects@1.15.9(debug@4.3.2):
     optionalDependencies:
@@ -7791,7 +7793,7 @@ snapshots:
       '@rollup/plugin-node-resolve': 13.3.0(rollup@2.79.2)
       '@scure/base': 1.1.9
       '@types/estree': 1.0.6
-      '@typescript-eslint/eslint-plugin': 5.62.0(@typescript-eslint/parser@5.62.0(eslint@8.56.0)(typescript@4.7.4))(eslint@8.56.0)(typescript@4.7.4)
+      '@typescript-eslint/eslint-plugin': 5.62.0(@typescript-eslint/parser@5.62.0(eslint@8.56.0)(typescript@5.0.2))(eslint@8.56.0)(typescript@4.7.4)
       '@typescript-eslint/parser': 5.62.0(eslint@8.56.0)(typescript@4.7.4)
       commander: 9.5.0
       eslint: 8.56.0
@@ -8271,11 +8273,11 @@ snapshots:
       react: 18.2.0
       scheduler: 0.23.2
 
-  react-force-graph@1.44.6(react@18.2.0)(three@0.169.0):
+  react-force-graph@1.44.6(react@18.2.0)(three@0.164.1):
     dependencies:
       3d-force-graph: 1.73.4
-      3d-force-graph-ar: 1.8.4(three@0.169.0)
-      3d-force-graph-vr: 2.2.5(three@0.169.0)
+      3d-force-graph-ar: 1.8.4(three@0.164.1)
+      3d-force-graph-vr: 2.2.5(three@0.164.1)
       force-graph: 1.45.0
       prop-types: 15.8.1
       react: 18.2.0
@@ -8664,6 +8666,20 @@ snapshots:
       layout-bmfont-text: 1.3.4
       nice-color-palettes: 3.0.0
       quad-indices: 2.0.1
+
+  three-forcegraph@1.41.15(three@0.164.1):
+    dependencies:
+      accessor-fn: 1.5.1
+      d3-array: 3.2.4
+      d3-force-3d: 3.0.5
+      d3-scale: 4.0.2
+      d3-scale-chromatic: 3.1.0
+      data-joint: 1.3.1
+      kapsule: 1.14.6
+      ngraph.forcelayout: 3.3.1
+      ngraph.graph: 20.0.1
+      three: 0.164.1
+      tinycolor2: 1.6.0
 
   three-forcegraph@1.41.15(three@0.169.0):
     dependencies:

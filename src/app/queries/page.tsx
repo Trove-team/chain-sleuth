@@ -1,10 +1,8 @@
-import Layout from '../../components/PageLayout';
-
 export default function Queries() {
   return (
-    <Layout>
+    <>
       <h1 className="text-3xl font-bold mb-4">Queries</h1>
       {/* Add your query components here */}
-    </Layout>
+    </>
   );
 }

@@ -1,9 +1,8 @@
-import Layout from '../components/PageLayout';
 import Link from 'next/link';
 
 export default function Home() {
   return (
-    <Layout>
+    <>
       <h1 className="text-3xl font-bold mb-4">Chain Sleuth Agent</h1>
       <ul className="space-y-2">
         <li>
@@ -27,6 +26,6 @@ export default function Home() {
           </Link>
         </li>
       </ul>
-    </Layout>
+    </>
   );
 }
