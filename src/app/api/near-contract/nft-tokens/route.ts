@@ -1,9 +1,7 @@
-// app/api/near-contract/nft-tokens/route.ts
+// src/app/api/near-contract/nft-tokens/route.ts
 import { NextResponse } from 'next/server';
 import { connect, keyStores, Contract } from 'near-api-js';
-import type { NFTContract } from '../../../types/near-contract';
-// Or if you prefer using path aliases:
-// import type { NFTContract } from '@/types/near-contract';
+import type { NFTContract } from '@/types/nft';  // Updated import path
 
 const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID || 'chainsleuth2.testnet';
 
