@@ -53,6 +53,8 @@ const getContract = async (account: Account): Promise<NFTContract> => {
   ) as unknown as NFTContract;
 };
 
+const GENERIC_NFT_IMAGE_URL = 'ipfs://QmSNycrd5gWH7QAFKBVvKaT58c5S6B1tq9ScHP7thxvLWM';
+
 const nearContractRoutes = new Elysia({ prefix: "/near-contract" })
   .post("/mint-nft", async ({ body }) => {
     const { token_id, queried_name, querier, summary } = body;

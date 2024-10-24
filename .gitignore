@@ -39,3 +39,9 @@ next-env.d.ts
 # NEAR contract specific
 near-contract/build/
 near-contract/node_modules/
+near-contract/src/node_modules/
+
+
+# Added by cargo
+
+/target
