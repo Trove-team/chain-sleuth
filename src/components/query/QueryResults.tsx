@@ -8,6 +8,15 @@ interface QueryResultsProps {
   queries: NFTMetadata[];
 }
 
+function formatDate(timestamp: string): string {
+  try {
+    const date = new Date(parseInt(timestamp) / 1_000_000);
+    return date.toLocaleString();
+  } catch {
+    return 'Invalid Date';
+  }
+}
+
 export default function QueryResults({ queries }: QueryResultsProps) {
   return (
     <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -23,6 +32,15 @@ export default function QueryResults({ queries }: QueryResultsProps) {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Score
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Transaction Count
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                NEAR Balance
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ETH Address
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Date
@@ -47,8 +65,23 @@ export default function QueryResults({ queries }: QueryResultsProps) {
                     {query.reputation_score}
                   </div>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {query.extra?.transaction_count || 'N/A'}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {query.extra?.near_balance ? `Ⓝ ${query.extra.near_balance}` : 'N/A'}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {query.extra?.eth_address || 'N/A'}
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(query.timestamp).toLocaleDateString()}
+                  {formatDate(query.timestamp)}
                 </td>
               </tr>
             ))}

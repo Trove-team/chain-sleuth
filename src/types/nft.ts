@@ -34,6 +34,21 @@ export interface NFTContract extends Contract {
 }
 
 // Application Types
+export interface NFTExtraData {
+  transaction_count: number;
+  total_usd_value: string;
+  defi_value: string;
+  near_balance: string;
+  usdc_balance: string;
+  neko_balance: string;
+  is_bot: boolean;
+  eth_address: string;
+  top_interactions: string[];
+  nft_activity: string;
+  cross_chain: string;
+  trading_activity: string;
+}
+
 export interface NFTMetadata {
   id: string;
   title: string;
@@ -42,6 +57,7 @@ export interface NFTMetadata {
   querier: string;
   reputation_score: number;
   timestamp: string;
+  extra?: NFTExtraData;
 }
 
 export interface QueryResponse {
