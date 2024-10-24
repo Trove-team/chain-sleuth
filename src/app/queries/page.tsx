@@ -8,6 +8,9 @@ import type { NFTMetadata, NFTToken, NFTExtraData } from '@/types/nft';
 const ITEMS_PER_PAGE = 10;
 
 const transformNFTToken = (token: NFTToken): NFTMetadata => {
+  // Add debug logging
+  console.log('Raw token data:', token);
+  
   let parsedExtra: NFTExtraData = {
     subject_account: 'Unknown',
     investigator: 'Unknown',
@@ -23,20 +26,28 @@ const transformNFTToken = (token: NFTToken): NFTMetadata => {
 
   try {
     if (token.metadata.extra) {
-      const extraData: Record<string, any> = JSON.parse(token.metadata.extra);
+      const extraData = JSON.parse(token.metadata.extra);
+      console.log('Parsed extra data:', extraData);
+
+      // Try to access data from different possible structures
+      const parsedFields = extraData.parsed_data?.parsed_fields || {};
+      const mainFields = extraData || {};
+      
       parsedExtra = {
         ...parsedExtra,
-        subject_account: extraData.subject_account || extraData.investigated_account || 'Unknown',
-        investigator: extraData.investigator || 'Unknown',
-        creation_date: extraData.creation_date || 'Unknown',
-        last_updated: extraData.last_updated || 'Unknown',
-        transaction_count: Number(extraData.transaction_count) || 0,
-        total_usd_value: Number(extraData.total_usd_value) || 0,
-        defi_value: Number(extraData.defi_value) || 0,
-        near_balance: Number(extraData.near_balance) || 0,
-        eth_address: extraData.eth_address || 'Unknown',
-        reputation_score: extraData.reputation_score || null
+        subject_account: mainFields.subject_account || mainFields.investigated_account || 'Unknown',
+        investigator: mainFields.investigator || 'Unknown',
+        creation_date: mainFields.creation_date || 'Unknown',
+        last_updated: mainFields.last_updated || 'Unknown',
+        transaction_count: Number(mainFields.transaction_count || parsedFields.transaction_count) || 0,
+        total_usd_value: Number(mainFields.total_usd_value) || 0,
+        defi_value: Number(mainFields.defi_value) || 0,
+        near_balance: Number(mainFields.near_balance || parsedFields.near_balance?.replace('$', '')) || 0,
+        eth_address: mainFields.eth_address || parsedFields.eth_address || 'Unknown',
+        reputation_score: mainFields.reputation_score || null
       };
+
+      console.log('Transformed data:', parsedExtra);
     }
   } catch (error) {
     console.error('Error parsing extra data:', error);

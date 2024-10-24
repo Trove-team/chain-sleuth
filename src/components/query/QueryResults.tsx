@@ -57,12 +57,21 @@ export default function QueryResults({ queries }: QueryResultsProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    ${query.extra.near_balance.toLocaleString()}
+                    {query.extra.near_balance > 0 
+                      ? `$${query.extra.near_balance.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}`
+                      : '$0.00'
+                    }
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-mono text-gray-900">
-                    {query.extra.eth_address}
+                    {query.extra.eth_address !== 'Unknown' 
+                      ? query.extra.eth_address
+                      : 'N/A'
+                    }
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
