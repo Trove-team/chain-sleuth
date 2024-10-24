@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/common/Header";
 import { Providers } from "./providers";
-import ErrorBoundary from "@/components/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,21 +19,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ErrorBoundary>
-          <Providers>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-grow container mx-auto p-4">
-                {children}
-              </main>
-              <footer className="bg-gray-200 p-4">
-                <div className="container mx-auto text-center">
-                  © 2023 Chain Sleuth
-                </div>
-              </footer>
-            </div>
-          </Providers>
-        </ErrorBoundary>
+        <Providers>
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-grow container mx-auto p-4">
+              {children}
+            </main>
+            <footer className="bg-gray-200 p-4">
+              <div className="container mx-auto text-center">
+                © 2023 Chain Sleuth
+              </div>
+            </footer>
+          </div>
+        </Providers>
       </body>
     </html>
   );
