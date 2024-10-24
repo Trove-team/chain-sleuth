@@ -19,13 +19,13 @@ const WalletButton = () => {
   return (
     <button
       onClick={handleClick}
-      className={`px-4 py-2 rounded-lg transition-colors ${
+      className={`px-6 py-2 rounded-lg transition-colors duration-200 ${
         accountId 
-          ? 'bg-blue-600 hover:bg-red-600 text-white' 
-          : 'bg-green-500 hover:bg-green-600 text-white'
+          ? 'bg-red-500 hover:bg-red-600 text-white'
+          : 'bg-blue-600 hover:bg-blue-700 text-white'
       }`}
     >
-      {accountId || 'Connect Wallet'}
+      {accountId ? accountId : 'Connect Wallet'}
     </button>
   );
 };

@@ -3,9 +3,24 @@
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 import QueryResults from '@/components/query/QueryResults';
-import type { NFTMetadata, QueryResponse } from '@/types/nft';
+import type { NFTMetadata, NFTToken } from '@/types/nft';
 
 const ITEMS_PER_PAGE = 10;
+
+// Transform NFTToken to NFTMetadata
+const transformNFTToken = (token: NFTToken): NFTMetadata => {
+  const extraData = token.metadata.extra ? JSON.parse(token.metadata.extra) : {};
+  
+  return {
+    id: token.token_id,
+    title: token.metadata.title,
+    description: token.metadata.description,
+    queried_name: extraData.queried_name || '',
+    querier: token.owner_id,
+    reputation_score: extraData.reputation_score || 0,
+    timestamp: token.metadata.issued_at || '',
+  };
+};
 
 export default function QueriesPage() {
   const {
@@ -15,14 +30,15 @@ export default function QueriesPage() {
     isFetchingNextPage,
     status,
     error
-  } = useInfiniteQuery<NFTMetadata[]>({
+  } = useInfiniteQuery({
     queryKey: ['nft-queries'],
     queryFn: async ({ pageParam }) => {
       const response = await fetch(`/api/near-contract/nft-tokens?page=${pageParam}&limit=${ITEMS_PER_PAGE}`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-      return response.json();
+      const tokens: NFTToken[] = await response.json();
+      return tokens.map(transformNFTToken);
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, pages) => {

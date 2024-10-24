@@ -3,24 +3,44 @@
 
 import React from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import WalletButton from '@/components/wallet/WalletButton';
+import { usePathname } from 'next/navigation';
 
-// Dynamically import WalletConnector with no SSR
-const WalletConnector = dynamic(() => import('@/components/WalletConnector'), {
-  ssr: false,
-  loading: () => <div className="h-10 w-32 bg-blue-500 rounded animate-pulse" />
-});
+const Header = () => {
+  const pathname = usePathname();
 
-const Header: React.FC = () => {
+  const isActivePath = (path: string) => {
+    return pathname === path ? 'text-white' : 'text-blue-100 hover:text-white';
+  };
+
   return (
-    <header className="bg-blue-600 text-white p-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold">Chain Sleuth</Link>
-        <nav className="flex items-center space-x-4">
-          <Link href="/queries" className="hover:text-blue-200">Queries</Link>
-          <Link href="/graph" className="hover:text-blue-200">Graph</Link>
-          <WalletConnector />
-        </nav>
+    <header className="bg-blue-600 text-white">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo/Brand */}
+          <Link href="/" className="text-2xl font-bold">
+            Chain Sleuth
+          </Link>
+
+          {/* Navigation */}
+          <nav className="flex items-center space-x-8">
+            <Link 
+              href="/queries" 
+              className={`${isActivePath('/queries')} transition-colors`}
+            >
+              Queries
+            </Link>
+            <Link 
+              href="/graph" 
+              className={`${isActivePath('/graph')} transition-colors`}
+            >
+              Graph
+            </Link>
+
+            {/* Wallet Button */}
+            <WalletButton />
+          </nav>
+        </div>
       </div>
     </header>
   );
