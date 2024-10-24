@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useWalletSelector } from "@/context/WalletSelectorContext";
+import { utils } from "near-api-js";
 import { 
   InvestigationStage,
   InvestigationProgress,
@@ -11,6 +13,8 @@ import {
   checkInvestigationStatus,
   completeInvestigation
 } from '@/services/testInvestigationWorkflow';
+
+const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID || 'chainsleuth2.testnet';
 
 export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
@@ -20,6 +24,7 @@ export default function QueryInput() {
   });
   const [requestId, setRequestId] = useState<string | null>(null);
   const router = useRouter();
+  const { selector, accountId } = useWalletSelector();
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -35,7 +40,6 @@ export default function QueryInput() {
 
         if (progress.stage === 'complete') {
           await completeInvestigation(requestId);
-          // Wait a moment before redirecting
           setTimeout(() => {
             router.push('/queries');
           }, 2000);
@@ -62,7 +66,7 @@ export default function QueryInput() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nearAddress.trim()) return;
+    if (!nearAddress.trim() || !accountId) return;
 
     try {
       setStatus({
@@ -70,9 +74,25 @@ export default function QueryInput() {
         message: 'Please confirm the transaction...'
       });
 
-      // Simulate wallet signing
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get the wallet
+      const wallet = await selector.wallet();
+      
+      // Call the contract
+      await wallet.signAndSendTransaction({
+        signerId: accountId,
+        receiverId: CONTRACT_ID,
+        actions: [{
+          type: 'FunctionCall',
+          params: {
+            methodName: 'request_investigation',
+            args: { target_account: nearAddress },
+            gas: '300000000000000',
+            deposit: utils.format.parseNearAmount('1')
+          }
+        }]
+      });
 
+      // After successful transaction, start the test flow
       const newRequestId = await requestInvestigation(nearAddress);
       setRequestId(newRequestId);
       
@@ -121,14 +141,14 @@ export default function QueryInput() {
             />
             <button
               type="submit"
-              disabled={!!requestId && status.stage !== 'error'}
+              disabled={!accountId || (!!requestId && status.stage !== 'error')}
               className={`px-6 py-2 bg-blue-600 text-white rounded-lg transition-colors
-                ${!!requestId && status.stage !== 'error'
+                ${(!accountId || (!!requestId && status.stage !== 'error'))
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-blue-700'}
               `}
             >
-              Investigate
+              {!accountId ? 'Connect Wallet First' : 'Investigate'}
             </button>
           </div>
         </div>
