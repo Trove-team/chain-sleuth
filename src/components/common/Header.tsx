@@ -1,6 +1,15 @@
+// components/common/Header.tsx
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
-import WalletConnector from '@/components/WalletConnector';
+import dynamic from 'next/dynamic';
+
+// Dynamically import WalletConnector with no SSR
+const WalletConnector = dynamic(() => import('@/components/WalletConnector'), {
+  ssr: false,
+  loading: () => <div className="h-10 w-32 bg-blue-500 rounded animate-pulse" />
+});
 
 const Header: React.FC = () => {
   return (

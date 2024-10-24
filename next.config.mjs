@@ -40,8 +40,7 @@ const nextConfig = {
       '*': [
         'near-contract/**/*'
       ],
-    },
-    serverActions: true,
+    }
   }
 };
 
