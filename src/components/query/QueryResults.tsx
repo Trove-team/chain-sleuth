@@ -6,8 +6,10 @@ import { formatDate } from '@/types/nft';
 interface QueryResultsProps {
   queries: NFTMetadata[];
 }
-
 export default function QueryResults({ queries }: QueryResultsProps) {
+  const generateNearExplorerLink = (accountId: string) => 
+    `https://explorer.testnet.near.org/accounts/${accountId}`;
+
   return (
     <div className="bg-white shadow-md rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
@@ -27,10 +29,16 @@ export default function QueryResults({ queries }: QueryResultsProps) {
                 NEAR Balance
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Total Value
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                DeFi Value
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ETH Address
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date Created
+                Date Investigated
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
@@ -41,9 +49,14 @@ export default function QueryResults({ queries }: QueryResultsProps) {
             {queries.map((query, index) => (
               <tr key={index} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                  <a 
+                    href={generateNearExplorerLink(query.extra.subject_account)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                  >
                     {query.extra.subject_account}
-                  </div>
+                  </a>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
@@ -57,13 +70,26 @@ export default function QueryResults({ queries }: QueryResultsProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {query.extra.near_balance > 0 
-                      ? `$${query.extra.near_balance.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}`
-                      : '$0.00'
-                    }
+                    ${query.extra.near_balance.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    ${query.extra.total_usd_value.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    ${query.extra.defi_value.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

@@ -8,7 +8,6 @@ import type { NFTMetadata, NFTToken, NFTExtraData } from '@/types/nft';
 const ITEMS_PER_PAGE = 10;
 
 const transformNFTToken = (token: NFTToken): NFTMetadata => {
-  // Add debug logging
   console.log('Raw token data:', token);
   
   let parsedExtra: NFTExtraData = {
@@ -29,22 +28,19 @@ const transformNFTToken = (token: NFTToken): NFTMetadata => {
       const extraData = JSON.parse(token.metadata.extra);
       console.log('Parsed extra data:', extraData);
 
-      // Try to access data from different possible structures
+      // Access the nested parsed fields
       const parsedFields = extraData.parsed_data?.parsed_fields || {};
-      const mainFields = extraData || {};
       
       parsedExtra = {
         ...parsedExtra,
-        subject_account: mainFields.subject_account || mainFields.investigated_account || 'Unknown',
-        investigator: mainFields.investigator || 'Unknown',
-        creation_date: mainFields.creation_date || 'Unknown',
-        last_updated: mainFields.last_updated || 'Unknown',
-        transaction_count: Number(mainFields.transaction_count || parsedFields.transaction_count) || 0,
-        total_usd_value: Number(mainFields.total_usd_value) || 0,
-        defi_value: Number(mainFields.defi_value) || 0,
-        near_balance: Number(mainFields.near_balance || parsedFields.near_balance?.replace('$', '')) || 0,
-        eth_address: mainFields.eth_address || parsedFields.eth_address || 'Unknown',
-        reputation_score: mainFields.reputation_score || null
+        subject_account: extraData.investigated_account || 'Unknown',
+        investigator: extraData.investigator || 'Unknown',
+        creation_date: extraData.investigation_date || 'Unknown',
+        transaction_count: Number(parsedFields.transaction_count?.replace(/,/g, '')) || 0,
+        total_usd_value: Number(parsedFields.total_usd_value?.replace(/[^0-9.-]+/g, '')) || 0,
+        defi_value: Number(parsedFields.defi_value?.replace(/[^0-9.-]+/g, '')) || 0,
+        near_balance: Number(parsedFields.near_balance?.replace(/[^0-9.-]+/g, '')) || 0,
+        eth_address: parsedFields.eth_address || 'Unknown'
       };
 
       console.log('Transformed data:', parsedExtra);
@@ -58,18 +54,7 @@ const transformNFTToken = (token: NFTToken): NFTMetadata => {
     title: token.metadata.title || 'Untitled',
     description: token.metadata.description || 'No description available',
     timestamp: token.metadata.issued_at || 'Unknown',
-    extra: {
-      subject_account: parsedExtra.subject_account,
-      investigator: parsedExtra.investigator,
-      creation_date: parsedExtra.creation_date,
-      last_updated: parsedExtra.last_updated,
-      transaction_count: parsedExtra.transaction_count,
-      total_usd_value: parsedExtra.total_usd_value,
-      defi_value: parsedExtra.defi_value,
-      near_balance: parsedExtra.near_balance,
-      reputation_score: parsedExtra.reputation_score,
-      eth_address: parsedExtra.eth_address
-    }
+    extra: parsedExtra
   };
 };
 
