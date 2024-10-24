@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useWalletSelector } from "@/context/WalletSelectorContext";
 
 const WalletButton = () => {
-  const { modal, accountId } = useWalletSelector();
+  const { selector, modal, accountId } = useWalletSelector();  // Add selector
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -30,11 +30,13 @@ const WalletButton = () => {
 
   const handleSignOut = async () => {
     try {
-      const wallet = await modal?.wallet();
-      await wallet?.signOut();
-      setShowDropdown(false);
-      // Optionally reload the page to clear any cached state
-      window.location.reload();
+      if (selector) {
+        const wallet = await selector.wallet();
+        await wallet.signOut();
+        setShowDropdown(false);
+        // Reload the page to clear any cached state
+        window.location.reload();
+      }
     } catch (error) {
       console.error('Error signing out:', error);
     }

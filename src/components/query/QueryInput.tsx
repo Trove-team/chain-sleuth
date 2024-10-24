@@ -26,6 +26,10 @@ export default function QueryInput() {
   const router = useRouter();
   const { selector, accountId } = useWalletSelector();
 
+  // Add console logs here
+  console.log('Account ID:', accountId);
+  console.log('Selector:', selector);
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -66,6 +70,13 @@ export default function QueryInput() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Starting submit with:', {
+      nearAddress,
+      accountId,
+      selector: !!selector,
+      modal: !!selector.options.modal // Assuming modal is a property of selector.options
+    });
+
     if (!nearAddress.trim() || !accountId) return;
 
     try {
@@ -74,9 +85,11 @@ export default function QueryInput() {
         message: 'Please confirm the transaction...'
       });
 
-      // Get the wallet
+      console.log('Getting wallet...');
       const wallet = await selector.wallet();
-      
+      console.log('Got wallet:', !!wallet);
+
+      console.log('Starting transaction...');
       // Call the contract
       await wallet.signAndSendTransaction({
         signerId: accountId,
@@ -92,10 +105,12 @@ export default function QueryInput() {
         }]
       });
 
+      console.log('Transaction completed, requesting investigation...');
       // After successful transaction, start the test flow
       const newRequestId = await requestInvestigation(nearAddress);
       setRequestId(newRequestId);
       
+      console.log('Investigation started with request ID:', newRequestId);
       setStatus({
         stage: 'investigation-started',
         message: 'Investigation started...',
