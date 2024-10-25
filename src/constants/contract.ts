@@ -1,13 +1,19 @@
 // src/constants/contract.ts
 
-export const CONTRACT_ID: string = process.env.NEXT_PUBLIC_CONTRACT_ID || 'chainsleuth2.testnet';
+const getContractId = () => {
+  const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID;
+  console.log('[CONTRACT] Loading contract ID from env:', contractId);
+  
+  if (!contractId) {
+    console.warn('[CONTRACT] No contract ID found in env, using default');
+    return 'chainsleuth2.testnet';
+  }
+  
+  return contractId;
+};
 
-// Verify contract ID is set
-if (!CONTRACT_ID) {
-  console.error('WARNING: NEXT_PUBLIC_CONTRACT_ID is not set, using default contract ID');
-}
+export const CONTRACT_ID = getContractId();
 
-// Define method names as string array instead of readonly tuple
 export const DEFAULT_METHOD_NAMES: string[] = [
   'request_investigation',
   'complete_investigation',
@@ -15,4 +21,4 @@ export const DEFAULT_METHOD_NAMES: string[] = [
 ];
 
 // For debugging
-console.log('Using Contract ID:', CONTRACT_ID);
+console.log('[CONTRACT] Exported CONTRACT_ID:', CONTRACT_ID);

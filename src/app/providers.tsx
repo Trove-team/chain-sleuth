@@ -5,15 +5,32 @@ import React from 'react';
 import { WalletSelectorContextProvider } from "@/context/WalletSelectorContext";
 import { QueryProvider } from '@/providers/QueryProvider';
 import dynamic from 'next/dynamic';
+import { CONTRACT_ID } from '@/constants/contract';
 
 const Header = dynamic(() => import('@/components/common/Header'), {
   ssr: false
 });
 
+// Debug component
+function EnvTest() {
+  React.useEffect(() => {
+    console.log('[PROVIDERS] Environment check:', {
+      CONTRACT_ID,
+      raw_env: process.env.NEXT_PUBLIC_CONTRACT_ID
+    });
+  }, []);
+  return null;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
+  React.useEffect(() => {
+    console.log('[PROVIDERS] Initializing with contract:', CONTRACT_ID);
+  }, []);
+
   return (
     <QueryProvider>
       <WalletSelectorContextProvider>
+        <EnvTest />
         <div className="min-h-screen flex flex-col">
           <Header />
           <main className="flex-grow container mx-auto p-4">
