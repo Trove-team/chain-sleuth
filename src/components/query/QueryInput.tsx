@@ -94,7 +94,7 @@ export default function QueryInput() {
       }
 
       console.log('Starting transaction...');
-      await wallet.signAndSendTransaction({
+      const result = await wallet.signAndSendTransaction({
         signerId: accountId,
         receiverId: CONTRACT_ID,
         actions: [{
@@ -108,15 +108,12 @@ export default function QueryInput() {
         }]
       });
 
-      console.log('Transaction completed, requesting investigation...');
-      const newRequestId = await requestInvestigation(nearAddress);
-      setRequestId(newRequestId);
+      console.log('Transaction completed:', result);
       
-      console.log('Investigation started with request ID:', newRequestId);
+      // Instead of redirecting, update the status
       setStatus({
-        stage: 'investigation-started',
-        message: 'Investigation started...',
-        requestId: newRequestId
+        stage: 'complete',
+        message: 'Investigation request submitted successfully!'
       });
 
     } catch (error) {
