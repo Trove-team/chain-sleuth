@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-ACCOUNT_ID="chainsleuth.testnet"
+ACCOUNT_ID="chainsleuth2.testnet"
 
 echo "Deploying contract to $ACCOUNT_ID..."
 
