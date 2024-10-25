@@ -70,7 +70,7 @@ export default function QueryInput() {
       const requestId = await requestInvestigation(nearAddress);
       setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId });
 
-      // Simulate checking status
+      // Simulate checking status (you may want to implement actual status checking)
       while (true) {
         await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
         const progress = await checkInvestigationStatus(requestId);
@@ -78,13 +78,18 @@ export default function QueryInput() {
         if (progress.stage === 'investigation-complete') break;
       }
 
-      // Complete the investigation (this will mint the NFT in the real contract)
-await completeInvestigation(requestId, '0.05');
-setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
+      // Complete the investigation (this will mint the NFT on the actual contract)
+      const deposit = utils.format.parseNearAmount('0.05');
+      if (!deposit) throw new Error('Failed to parse NEAR amount');
+      
+      await completeInvestigation(requestId, deposit);
+      setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
+      toast.success('NFT minted successfully!');
 
     } catch (error) {
       console.error('Error:', error);
       setStatus({ stage: 'error', message: 'An error occurred' });
+      toast.error('Failed to complete investigation. Please try again.');
     }
   };
 
