@@ -72,21 +72,30 @@ export default function QueryInput() {
       setRequestId(newRequestId);
       setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId: newRequestId });
 
+      // Wait for the investigation to complete
       const finalStatus = await pollInvestigationStatus(newRequestId);
       setStatus(finalStatus);
 
       if (finalStatus.stage === 'investigation-complete') {
-        setStatus({ stage: 'wallet-signing', message: 'Please confirm the transaction in your wallet...' });
+        setStatus({ stage: 'wallet-signing', message: 'Please confirm the completion transaction in your wallet...' });
         
+        // Wait for user to confirm the transaction
         await completeInvestigation(newRequestId, selector);
-        setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
-        toast.success('NFT minted successfully!');
+        
+        // Check the status again to ensure it's completed
+        const completionStatus = await checkInvestigationStatus(newRequestId);
+        if (completionStatus.stage === 'complete') {
+          setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
+          toast.success('NFT minted successfully!');
+        } else {
+          throw new Error('Investigation completion failed');
+        }
       } else {
         throw new Error('Investigation failed or timed out');
       }
     } catch (error) {
       console.error('Error:', error);
-      setStatus({ stage: 'error', message: 'An error occurred' });
+      setStatus({ stage: 'error', message: 'An error occurred: ' + (error instanceof Error ? error.message : String(error)) });
       toast.error('Failed to complete investigation. Please try again.');
     }
   };

@@ -26,8 +26,7 @@ interface Wallet {
 }
 
 type InvestigationStage = "idle" | "requesting" | "wallet-signing" |
-  "investigation-started" | "investigation-in-progress" |
-  "investigation-complete" | "minting" | "complete" | "error" |
+  "investigation-started" | "investigation-in-progress" | "investigation-complete" | "minting" | "complete" | "error" |
   "existing";
 
 export type InvestigationProgress = {
@@ -122,7 +121,7 @@ export async function completeInvestigation(requestId: string, selector: WalletS
 }
 
 export async function pollInvestigationStatus(requestId: string): Promise<InvestigationProgress> {
-  const maxAttempts = 60; // 1 minute with 1-second intervals
+  const maxAttempts = 60; // 5 minutes with 5-second intervals
   let attempts = 0;
 
   while (attempts < maxAttempts) {
@@ -130,7 +129,7 @@ export async function pollInvestigationStatus(requestId: string): Promise<Invest
     if (status.stage === 'investigation-complete' || status.stage === 'error') {
       return status;
     }
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
     attempts++;
   }
 
