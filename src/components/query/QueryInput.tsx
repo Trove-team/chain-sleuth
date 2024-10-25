@@ -26,10 +26,6 @@ export default function QueryInput() {
   const router = useRouter();
   const { selector, accountId } = useWalletSelector();
 
-  // Add console logs here
-  console.log('Account ID:', accountId);
-  console.log('Selector:', selector);
-
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -73,24 +69,31 @@ export default function QueryInput() {
     console.log('Starting submit with:', {
       nearAddress,
       accountId,
-      selector: !!selector,
-      modal: !!selector.options.modal // Assuming modal is a property of selector.options
+      selector: !!selector
     });
 
-    if (!nearAddress.trim() || !accountId) return;
+    if (!nearAddress.trim() || !accountId || !selector) {
+      console.log('Missing required data:', { nearAddress, accountId, selector: !!selector });
+      return;
+    }
 
     try {
       setStatus({
         stage: 'wallet-signing',
-        message: 'Please confirm the transaction...'
+        message: 'Please confirm the transaction in your wallet...'
       });
 
       console.log('Getting wallet...');
       const wallet = await selector.wallet();
       console.log('Got wallet:', !!wallet);
 
+      // Convert NEAR amount to yoctoNEAR string
+      const deposit = utils.format.parseNearAmount('1');
+      if (!deposit) {
+        throw new Error('Failed to parse NEAR amount');
+      }
+
       console.log('Starting transaction...');
-      // Call the contract
       await wallet.signAndSendTransaction({
         signerId: accountId,
         receiverId: CONTRACT_ID,
@@ -100,13 +103,12 @@ export default function QueryInput() {
             methodName: 'request_investigation',
             args: { target_account: nearAddress },
             gas: '300000000000000',
-            deposit: utils.format.parseNearAmount('1')
+            deposit
           }
         }]
       });
 
       console.log('Transaction completed, requesting investigation...');
-      // After successful transaction, start the test flow
       const newRequestId = await requestInvestigation(nearAddress);
       setRequestId(newRequestId);
       
