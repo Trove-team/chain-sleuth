@@ -6,26 +6,27 @@ import { Loader2 } from 'lucide-react';
 import { WalletSelector } from "@near-wallet-selector/core";
 import { useWalletSelector } from "@/context/WalletSelectorContext";
 import { utils } from "near-api-js";
-import { CONTRACT_ID } from '@/constants/contract';
+import { CONTRACT_ID, CONTRACT_METHODS, DEFAULT_GAS, DEFAULT_DEPOSIT } from '@/constants/contract';
 import { 
   InvestigationStage,
   InvestigationProgress,
   requestInvestigation,
   checkInvestigationStatus,
-  completeInvestigation
+  completeInvestigation,
+  pollInvestigationStatus
 } from '@/services/testInvestigationWorkflow';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Define a type for the wallet
+type Wallet = Awaited<ReturnType<WalletSelector['wallet']>>;
+
 export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
-  const [status, setStatus] = useState<InvestigationProgress>({ 
-    stage: 'requesting',
-    message: '' 
-  });
+  const [status, setStatus] = useState<InvestigationProgress>({ stage: 'idle', message: '' });
   const [requestId, setRequestId] = useState<string | null>(null);
-  const [isExisting, setIsExisting] = useState(false);
   const { selector } = useWalletSelector();
+  const [isExisting, setIsExisting] = useState(false);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -68,25 +69,29 @@ export default function QueryInput() {
     setStatus({ stage: 'requesting', message: 'Requesting investigation...' });
 
     try {
-      const requestId = await requestInvestigation(nearAddress);
-      setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId });
-
-      // Simulate checking status (you may want to implement actual status checking)
-      while (true) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-        const progress = await checkInvestigationStatus(requestId);
-        setStatus(progress);
-        if (progress.stage === 'investigation-complete') break;
+      if (!selector) {
+        throw new Error('Wallet selector is not initialized');
       }
 
-      // Complete the investigation (this will mint the NFT on the actual contract)
-      const deposit = utils.format.parseNearAmount('0.05');
-      if (!deposit) throw new Error('Failed to parse NEAR amount');
-      
-      await completeInvestigation(requestId, deposit, selector as WalletSelector);
-      setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
-      toast.success('NFT minted successfully!');
+      const newRequestId = await requestInvestigation(nearAddress, selector);
+      setRequestId(newRequestId);
+      setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId: newRequestId });
 
+      const finalStatus = await pollInvestigationStatus(newRequestId);
+      setStatus(finalStatus);
+
+      if (finalStatus.stage === 'investigation-complete') {
+        setStatus({ stage: 'wallet-signing', message: 'Please confirm the transaction in your wallet...' });
+
+        const deposit = utils.format.parseNearAmount(DEFAULT_DEPOSIT);
+        if (!deposit) throw new Error('Failed to parse NEAR amount');
+        
+        await completeInvestigation(newRequestId, deposit, selector);
+        setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
+        toast.success('NFT minted successfully!');
+      } else {
+        throw new Error('Investigation failed or timed out');
+      }
     } catch (error) {
       console.error('Error:', error);
       setStatus({ stage: 'error', message: 'An error occurred' });
@@ -108,8 +113,7 @@ export default function QueryInput() {
       const deposit = utils.format.parseNearAmount('0.05');
       if (!deposit) throw new Error('Failed to parse NEAR amount');
 
-      // Use the updated completeInvestigation function
-      await completeInvestigation(reqId, deposit, selector as WalletSelector);
+      await completeInvestigation(reqId, deposit, selector);
 
       setStatus({
         stage: 'complete',
