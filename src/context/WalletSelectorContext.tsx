@@ -9,16 +9,20 @@ import { setupSender } from "@near-wallet-selector/sender";
 import { setupHereWallet } from "@near-wallet-selector/here-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupNightly } from "@near-wallet-selector/nightly";
+import type { WalletSelector, AccountState } from "@near-wallet-selector/core";
+import type { WalletSelectorModal } from "@near-wallet-selector/modal-ui";
 import { CONTRACT_ID, DEFAULT_METHOD_NAMES } from '@/constants/contract';
 
-interface AccountState {
-  accountId: string;
-  active: boolean;
+declare global {
+  interface Window {
+    selector: WalletSelector;
+    modal: WalletSelectorModal;
+  }
 }
 
 interface WalletSelectorContextValue {
-  selector: any | null;
-  modal: any | null;
+  selector: WalletSelector | null;
+  modal: WalletSelectorModal | null;
   accounts: Array<AccountState>;
   accountId: string | null;
 }
@@ -26,8 +30,8 @@ interface WalletSelectorContextValue {
 const WalletSelectorContext = React.createContext<WalletSelectorContextValue | null>(null);
 
 export const WalletSelectorContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selector, setSelector] = useState<any | null>(null);
-  const [modal, setModal] = useState<any | null>(null);
+  const [selector, setSelector] = useState<WalletSelector | null>(null);
+  const [modal, setModal] = useState<WalletSelectorModal | null>(null);
   const [accounts, setAccounts] = useState<Array<AccountState>>([]);
 
   const init = useCallback(async () => {
