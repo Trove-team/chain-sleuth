@@ -2,10 +2,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useWalletSelector } from "@/context/WalletSelectorContext";
 import { utils } from "near-api-js";
+import { CONTRACT_ID } from '@/constants/contract';
 import { 
   InvestigationStage,
   InvestigationProgress,
@@ -14,8 +14,6 @@ import {
   completeInvestigation
 } from '@/services/testInvestigationWorkflow';
 
-const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID || 'chainsleuth2.testnet';
-
 export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
   const [status, setStatus] = useState<InvestigationProgress>({ 
@@ -23,7 +21,7 @@ export default function QueryInput() {
     message: '' 
   });
   const [requestId, setRequestId] = useState<string | null>(null);
-  const router = useRouter();
+  const [isExisting, setIsExisting] = useState(false);
   const { selector, accountId } = useWalletSelector();
 
   useEffect(() => {
@@ -39,10 +37,7 @@ export default function QueryInput() {
         setStatus(progress);
 
         if (progress.stage === 'complete') {
-          await completeInvestigation(requestId);
-          setTimeout(() => {
-            router.push('/queries');
-          }, 2000);
+          clearInterval(intervalId);
         }
       } catch (error) {
         console.error('Error checking status:', error);
@@ -50,6 +45,7 @@ export default function QueryInput() {
           stage: 'error',
           message: 'Failed to check investigation status'
         });
+        clearInterval(intervalId);
       }
     };
 
@@ -62,16 +58,10 @@ export default function QueryInput() {
         clearInterval(intervalId);
       }
     };
-  }, [requestId, status.stage, router]);
+  }, [requestId, status.stage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Starting submit with:', {
-      nearAddress,
-      accountId,
-      selector: !!selector
-    });
-
     if (!nearAddress.trim() || !accountId || !selector) {
       console.log('Missing required data:', { nearAddress, accountId, selector: !!selector });
       return;
@@ -79,48 +69,80 @@ export default function QueryInput() {
 
     try {
       setStatus({
-        stage: 'wallet-signing',
-        message: 'Please confirm the transaction in your wallet...'
+        stage: 'requesting',
+        message: 'Requesting investigation...'
       });
 
-      console.log('Getting wallet...');
-      const wallet = await selector.wallet();
-      console.log('Got wallet:', !!wallet);
+      // Step 1: Request Investigation
+      const newRequestId = await requestInvestigation(nearAddress);
+      setRequestId(newRequestId);
 
-      // Convert NEAR amount to yoctoNEAR string
-      const deposit = utils.format.parseNearAmount('1');
-      if (!deposit) {
-        throw new Error('Failed to parse NEAR amount');
-      }
-
-      console.log('Starting transaction...');
-      const result = await wallet.signAndSendTransaction({
-        signerId: accountId,
-        receiverId: CONTRACT_ID,
-        actions: [{
-          type: 'FunctionCall',
-          params: {
-            methodName: 'request_investigation',
-            args: { target_account: nearAddress },
-            gas: '300000000000000',
-            deposit
-          }
-        }]
-      });
-
-      console.log('Transaction completed:', result);
+      // Step 2: Check if investigation already exists
+      const investigationStatus = await checkInvestigationStatus(newRequestId);
       
-      // Instead of redirecting, update the status
-      setStatus({
-        stage: 'complete',
-        message: 'Investigation request submitted successfully!'
-      });
+      if (investigationStatus.stage === 'complete') {
+        setIsExisting(true);
+        setStatus({
+          stage: 'existing',
+          message: 'This address has already been investigated.'
+        });
+      } else {
+        // Step 3: Proceed with completion for new investigations
+        await proceedWithCompletion(newRequestId);
+      }
 
     } catch (error) {
       console.error('Investigation error:', error);
       setStatus({
         stage: 'error',
-        message: 'Failed to start investigation. Please try again.'
+        message: 'Failed to process investigation. Please try again.'
+      });
+    }
+  };
+
+  const proceedWithCompletion = async (reqId: string) => {
+    try {
+      setStatus({
+        stage: 'wallet-signing',
+        message: 'Please confirm the transaction in your wallet...'
+      });
+
+      if (!selector) {
+        throw new Error('Wallet selector is not initialized');
+      }
+
+      const wallet = await selector.wallet();
+
+      // Send 0.05 NEAR deposit and complete the investigation
+      const deposit = utils.format.parseNearAmount('0.05');
+      if (!deposit) throw new Error('Failed to parse NEAR amount');
+
+      await wallet.signAndSendTransaction({
+        signerId: accountId!,
+        receiverId: CONTRACT_ID,
+        actions: [{
+          type: 'FunctionCall',
+          params: {
+            methodName: 'complete_investigation',
+            args: { request_id: reqId },
+            gas: '300000000000000',
+            deposit: deposit
+          }
+        }]
+      });
+
+      // Simulate completion with test route
+      await completeInvestigation(reqId);
+
+      setStatus({
+        stage: 'complete',
+        message: 'Investigation completed successfully!'
+      });
+    } catch (error) {
+      console.error('Completion error:', error);
+      setStatus({
+        stage: 'error',
+        message: 'Failed to complete investigation. Please try again.'
       });
     }
   };
@@ -181,6 +203,24 @@ export default function QueryInput() {
               </span>
             </div>
           </div>
+        </div>
+      )}
+
+      {isExisting && (
+        <div className="mt-4">
+          <p>This address has already been investigated. Would you like to:</p>
+          <button
+            onClick={() => {/* Logic to view existing results */}}
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2"
+          >
+            View Existing Results
+          </button>
+          <button
+            onClick={() => proceedWithCompletion(requestId!)}
+            className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Proceed with New Investigation
+          </button>
         </div>
       )}
     </div>

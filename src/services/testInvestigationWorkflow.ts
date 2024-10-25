@@ -8,7 +8,8 @@ export type InvestigationStage =
   | 'investigation-complete'
   | 'minting'
   | 'complete'
-  | 'error';
+  | 'error'
+  | 'existing';  // Added this new stage
 
 export interface InvestigationProgress {
   stage: InvestigationStage;
