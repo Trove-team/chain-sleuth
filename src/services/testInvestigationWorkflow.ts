@@ -5,7 +5,8 @@ import {
   CONTRACT_ID, 
   CONTRACT_METHODS,
   DEFAULT_GAS,
-  DEFAULT_DEPOSIT 
+  DEFAULT_DEPOSIT,
+  COMPLETE_INVESTIGATION_DEPOSIT
 } from '@/constants/contract';
 
 // Update the Wallet interface to match the actual structure
@@ -77,7 +78,7 @@ export async function checkInvestigationStatus(requestId: string): Promise<Inves
   return response.json();
 }
 
-export async function completeInvestigation(requestId: string, deposit: string, selector: WalletSelector): Promise<void> {
+export async function completeInvestigation(requestId: string, selector: WalletSelector): Promise<void> {
   try {
     const wallet = await selector.wallet();
 
@@ -108,7 +109,7 @@ export async function completeInvestigation(requestId: string, deposit: string, 
             short_summary: mockShortSummary
           },
           gas: DEFAULT_GAS,
-          deposit: deposit
+          deposit: COMPLETE_INVESTIGATION_DEPOSIT
         }
       }]
     });

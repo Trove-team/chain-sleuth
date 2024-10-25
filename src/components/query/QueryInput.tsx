@@ -5,8 +5,6 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { WalletSelector } from "@near-wallet-selector/core";
 import { useWalletSelector } from "@/context/WalletSelectorContext";
-import { utils } from "near-api-js";
-import { CONTRACT_ID, CONTRACT_METHODS, DEFAULT_GAS, DEFAULT_DEPOSIT } from '@/constants/contract';
 import { 
   InvestigationStage,
   InvestigationProgress,
@@ -17,9 +15,6 @@ import {
 } from '@/services/testInvestigationWorkflow';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-// Define a type for the wallet
-type Wallet = Awaited<ReturnType<WalletSelector['wallet']>>;
 
 export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
@@ -82,11 +77,8 @@ export default function QueryInput() {
 
       if (finalStatus.stage === 'investigation-complete') {
         setStatus({ stage: 'wallet-signing', message: 'Please confirm the transaction in your wallet...' });
-
-        const deposit = utils.format.parseNearAmount(DEFAULT_DEPOSIT);
-        if (!deposit) throw new Error('Failed to parse NEAR amount');
         
-        await completeInvestigation(newRequestId, deposit, selector);
+        await completeInvestigation(newRequestId, selector);
         setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
         toast.success('NFT minted successfully!');
       } else {
@@ -110,10 +102,7 @@ export default function QueryInput() {
         throw new Error('Wallet selector is not initialized');
       }
 
-      const deposit = utils.format.parseNearAmount('0.05');
-      if (!deposit) throw new Error('Failed to parse NEAR amount');
-
-      await completeInvestigation(reqId, deposit, selector);
+      await completeInvestigation(reqId, selector);
 
       setStatus({
         stage: 'complete',
@@ -189,7 +178,7 @@ export default function QueryInput() {
         </div>
       )}
 
-      {isExisting && (
+      {isExisting && requestId && (
         <div className="mt-4">
           <p>This address has already been investigated. Would you like to:</p>
           <button
@@ -199,7 +188,7 @@ export default function QueryInput() {
             View Existing Results
           </button>
           <button
-            onClick={() => proceedWithCompletion(requestId!)}
+            onClick={() => proceedWithCompletion(requestId)}
             className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
           >
             Proceed with New Investigation
