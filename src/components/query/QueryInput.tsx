@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { WalletSelector } from "@near-wallet-selector/core";
 import { useWalletSelector } from "@/context/WalletSelectorContext";
 import { utils } from "near-api-js";
 import { CONTRACT_ID } from '@/constants/contract';
@@ -24,7 +25,7 @@ export default function QueryInput() {
   });
   const [requestId, setRequestId] = useState<string | null>(null);
   const [isExisting, setIsExisting] = useState(false);
-  const { selector, accountId } = useWalletSelector();
+  const { selector } = useWalletSelector();
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -82,7 +83,7 @@ export default function QueryInput() {
       const deposit = utils.format.parseNearAmount('0.05');
       if (!deposit) throw new Error('Failed to parse NEAR amount');
       
-      await completeInvestigation(requestId, deposit);
+      await completeInvestigation(requestId, deposit, selector as WalletSelector);
       setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
       toast.success('NFT minted successfully!');
 
@@ -104,28 +105,11 @@ export default function QueryInput() {
         throw new Error('Wallet selector is not initialized');
       }
 
-      const wallet = await selector.wallet();
-
-      // Send 0.05 NEAR deposit and complete the investigation
       const deposit = utils.format.parseNearAmount('0.05');
       if (!deposit) throw new Error('Failed to parse NEAR amount');
 
-      await wallet.signAndSendTransaction({
-        signerId: accountId!,
-        receiverId: CONTRACT_ID,
-        actions: [{
-          type: 'FunctionCall',
-          params: {
-            methodName: 'complete_investigation',
-            args: { request_id: reqId },
-            gas: '300000000000000',
-            deposit: deposit
-          }
-        }]
-      });
-
-      // Simulate completion with test route
-      await completeInvestigation(reqId, '0.05');
+      // Use the updated completeInvestigation function
+      await completeInvestigation(reqId, deposit, selector as WalletSelector);
 
       setStatus({
         stage: 'complete',
@@ -172,14 +156,14 @@ export default function QueryInput() {
             />
             <button
               type="submit"
-              disabled={!accountId || (!!requestId && status.stage !== 'error')}
+              disabled={!selector || (!!requestId && status.stage !== 'error')}
               className={`px-6 py-2 bg-blue-600 text-white rounded-lg transition-colors
-                ${(!accountId || (!!requestId && status.stage !== 'error'))
+                ${(!selector || (!!requestId && status.stage !== 'error'))
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-blue-700'}
               `}
             >
-              {!accountId ? 'Connect Wallet First' : 'Investigate'}
+              {!selector ? 'Connect Wallet First' : 'Investigate'}
             </button>
           </div>
         </div>

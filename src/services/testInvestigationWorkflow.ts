@@ -1,6 +1,6 @@
 // src/services/testInvestigationWorkflow.ts
 
-import { useWalletSelector } from "@/context/WalletSelectorContext";
+import { WalletSelector } from "@near-wallet-selector/core";
 import { 
   CONTRACT_ID, 
   CONTRACT_METHODS,
@@ -8,13 +8,8 @@ import {
   DEFAULT_DEPOSIT 
 } from '@/constants/contract';
 
-// Add wallet interface types
-interface WalletSelector {
-  wallet(): Promise<Wallet>;
-}
-
+// Update the Wallet interface to match the actual structure
 interface Wallet {
-  accountId: string;
   signAndSendTransaction(params: {
     receiverId: string;
     actions: {
@@ -26,7 +21,7 @@ interface Wallet {
         deposit: string;
       };
     }[];
-  }): Promise<void>;
+  }): Promise<any>; // Change the return type if you know the exact type
 }
 
 export type InvestigationStage = 
@@ -81,14 +76,14 @@ export async function checkInvestigationStatus(requestId: string): Promise<Inves
 
 export async function completeInvestigation(
   requestId: string, 
-  deposit: string
+  deposit: string,
+  walletSelector: WalletSelector
 ): Promise<void> {
-  const { selector } = useWalletSelector();
-  if (!selector) {
+  if (!walletSelector) {
     throw new Error('Wallet selector is not initialized');
   }
 
-  const wallet = await selector.wallet();
+  const wallet = await walletSelector.wallet();
 
   // Extract the actual NEAR address from the requestId
   const nearAddress = requestId.split(':')[1];
