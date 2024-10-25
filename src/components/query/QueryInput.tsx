@@ -64,49 +64,27 @@ export default function QueryInput() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nearAddress.trim() || !accountId || !selector) {
-      console.log('Missing required data:', { nearAddress, accountId, selector: !!selector });
-      return;
-    }
+    setStatus({ stage: 'requesting', message: 'Requesting investigation...' });
 
     try {
-      setStatus({
-        stage: 'requesting',
-        message: 'Requesting investigation...'
-      });
+      const requestId = await requestInvestigation(nearAddress);
+      setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId });
 
-      console.log('Starting investigation for:', nearAddress);
-      const newRequestId = await requestInvestigation(nearAddress);
-      console.log('Received request ID:', newRequestId);
-      setRequestId(newRequestId);
-
-      console.log('Checking investigation status...');
-      const investigationStatus = await checkInvestigationStatus(newRequestId);
-      console.log('Investigation status:', investigationStatus);
-      
-      if (investigationStatus.stage === 'complete') {
-        setIsExisting(true);
-        setStatus({
-          stage: 'existing',
-          message: 'This address has already been investigated.'
-        });
-      } else {
-        console.log('Proceeding with completion...');
-        await proceedWithCompletion(newRequestId);
+      // Simulate checking status
+      while (true) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        const progress = await checkInvestigationStatus(requestId);
+        setStatus(progress);
+        if (progress.stage === 'investigation-complete') break;
       }
 
-      toast.success('Investigation started successfully!');
+      // Complete the investigation (this will mint the NFT in the real contract)
+await completeInvestigation(requestId, '0.05');
+setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
+
     } catch (error) {
-      console.error('Investigation error:', error);
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
-      setStatus({
-        stage: 'error',
-        message: 'Failed to process investigation. Please try again.'
-      });
-      toast.error('Investigation failed. Please try again.');
+      console.error('Error:', error);
+      setStatus({ stage: 'error', message: 'An error occurred' });
     }
   };
 
@@ -142,7 +120,7 @@ export default function QueryInput() {
       });
 
       // Simulate completion with test route
-      await completeInvestigation(reqId);
+      await completeInvestigation(reqId, '0.05');
 
       setStatus({
         stage: 'complete',
