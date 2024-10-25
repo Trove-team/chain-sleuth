@@ -6,6 +6,8 @@ import { WalletSelectorContextProvider } from "@/context/WalletSelectorContext";
 import { QueryProvider } from '@/providers/QueryProvider';
 import dynamic from 'next/dynamic';
 import { CONTRACT_ID } from '@/constants/contract';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Header = dynamic(() => import('@/components/common/Header'), {
   ssr: false
@@ -42,6 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             </div>
           </footer>
         </div>
+        <ToastContainer position="top-right" autoClose={5000} />
       </WalletSelectorContextProvider>
     </QueryProvider>
   );

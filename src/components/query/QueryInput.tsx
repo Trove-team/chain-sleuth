@@ -13,6 +13,8 @@ import {
   checkInvestigationStatus,
   completeInvestigation
 } from '@/services/testInvestigationWorkflow';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
@@ -73,12 +75,14 @@ export default function QueryInput() {
         message: 'Requesting investigation...'
       });
 
-      // Step 1: Request Investigation
+      console.log('Starting investigation for:', nearAddress);
       const newRequestId = await requestInvestigation(nearAddress);
+      console.log('Received request ID:', newRequestId);
       setRequestId(newRequestId);
 
-      // Step 2: Check if investigation already exists
+      console.log('Checking investigation status...');
       const investigationStatus = await checkInvestigationStatus(newRequestId);
+      console.log('Investigation status:', investigationStatus);
       
       if (investigationStatus.stage === 'complete') {
         setIsExisting(true);
@@ -87,16 +91,22 @@ export default function QueryInput() {
           message: 'This address has already been investigated.'
         });
       } else {
-        // Step 3: Proceed with completion for new investigations
+        console.log('Proceeding with completion...');
         await proceedWithCompletion(newRequestId);
       }
 
+      toast.success('Investigation started successfully!');
     } catch (error) {
       console.error('Investigation error:', error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       setStatus({
         stage: 'error',
         message: 'Failed to process investigation. Please try again.'
       });
+      toast.error('Investigation failed. Please try again.');
     }
   };
 
@@ -138,8 +148,10 @@ export default function QueryInput() {
         stage: 'complete',
         message: 'Investigation completed successfully!'
       });
+      toast.success('Transaction successful!');
     } catch (error) {
       console.error('Completion error:', error);
+      toast.error('Transaction failed. Please try again.');
       setStatus({
         stage: 'error',
         message: 'Failed to complete investigation. Please try again.'
@@ -172,7 +184,7 @@ export default function QueryInput() {
               value={nearAddress}
               onChange={(e) => setNearAddress(e.target.value)}
               placeholder="e.g. example.testnet"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black bg-white"
               disabled={!!requestId && status.stage !== 'error'}
             />
             <button
@@ -223,6 +235,7 @@ export default function QueryInput() {
           </button>
         </div>
       )}
+      <ToastContainer position="top-right" autoClose={5000} />
     </div>
   );
 }
