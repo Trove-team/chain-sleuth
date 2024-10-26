@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { ForceGraph2D } from 'react-force-graph';
 import { runQuery } from '@/utils/neo4j';
@@ -28,6 +30,7 @@ function Neo4jGraph() {
 
   const fetchGraphData = useCallback(async () => {
     try {
+      console.log('Fetching graph data with searchTerm:', searchTerm);
       const query = `
         MATCH (m:Movie)<-[r:ACTED_IN]-(a:Person)
         WHERE m.title CONTAINS $searchTerm OR a.name CONTAINS $searchTerm
@@ -35,11 +38,13 @@ function Neo4jGraph() {
         LIMIT 100
       `;
       const result = await runQuery(query, { searchTerm });
+      console.log('Query result:', result);
       
       const nodes = new Map<string, Node>();
       const links: Link[] = [];
 
       result.forEach(record => {
+        console.log('Processing record:', record);
         const movie = record.get('m');
         const actor = record.get('a');
         const relationship = record.get('r');
@@ -65,6 +70,9 @@ function Neo4jGraph() {
           label: relationship.type
         });
       });
+
+      console.log('Processed nodes:', nodes);
+      console.log('Processed links:', links);
 
       setGraphData({
         nodes: Array.from(nodes.values()),
