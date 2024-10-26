@@ -214,11 +214,11 @@ export default function QueryInput() {
         </div>
       </form>
 
-      {status.stage !== 'requesting' && (
-        <div className="bg-white shadow-md rounded-lg p-4">
+      {status.stage !== 'idle' && (
+        <div className="bg-white shadow-md rounded-lg p-4 mt-4">
           <div className="flex items-center space-x-3">
             {status.stage !== 'error' && status.stage !== 'complete' && (
-              <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500"></div>
             )}
             <div className="flex flex-col">
               <span className="font-medium">Investigation Status</span>

@@ -20,7 +20,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
-          {children}
+          <div className="min-h-screen flex flex-col bg-hero-pattern bg-cover bg-center">
+            {children}
+          </div>
         </Providers>
       </body>
     </html>
