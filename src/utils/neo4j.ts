@@ -1,6 +1,8 @@
 import neo4j, { Driver, SessionConfig } from 'neo4j-driver';
 
 console.log("Neo4j URI:", process.env.NEO4J_URI);
+console.log("Neo4j User:", process.env.NEO4J_USER);
+console.log("Neo4j Database:", process.env.NEO4J_DATABASE);
 
 const driver: Driver = neo4j.driver(
   process.env.NEO4J_URI || '',
@@ -9,8 +11,7 @@ const driver: Driver = neo4j.driver(
     process.env.NEO4J_PASSWORD || ''
   ),
   { 
-    database: process.env.NEO4J_DATABASE || 'neo4j',
-    encrypted: process.env.NEO4J_URI?.startsWith('bolt+s') || undefined
+    database: process.env.NEO4J_DATABASE || 'neo4j'
   } as SessionConfig
 );
 
