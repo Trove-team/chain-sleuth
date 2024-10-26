@@ -194,7 +194,7 @@ pub fn request_investigation(&mut self, target_account: AccountId) -> Investigat
         "Invalid target account ID"
     );
 
-    let request_id = format!("{}:{}", env::block_timestamp(), target_account);
+    let request_id = target_account.to_string();
     
     // Check for existing investigation
     if let Some(token_id) = self.investigated_accounts.get(&target_account) {

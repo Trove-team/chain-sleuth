@@ -55,14 +55,26 @@ export async function requestInvestigation(address: string, selector: WalletSele
       ]
     });
 
+    console.log('Transaction result:', result);
+
     if (result && result.transaction && result.transaction.hash) {
       console.log('Investigation requested, transaction hash:', result.transaction.hash);
-      // Parse the result to get the request_id and is_existing flag
-      const response = JSON.parse(result.transaction.receipts_outcome[0].outcome.status.SuccessValue);
-      return {
-        request_id: response.request_id,
-        is_existing: response.is_existing
-      };
+      
+      // Check if receipts_outcome exists and has elements
+      if (result.transaction.receipts_outcome && result.transaction.receipts_outcome.length > 0) {
+        const response = JSON.parse(Buffer.from(result.transaction.receipts_outcome[0].outcome.status.SuccessValue, 'base64').toString());
+        return {
+          request_id: response.request_id,
+          is_existing: response.is_existing
+        };
+      } else {
+        // If receipts_outcome is not available, return a default response
+        console.warn('Transaction successful, but receipts_outcome not available. Using address as request_id.');
+        return {
+          request_id: address,
+          is_existing: false
+        };
+      }
     } else {
       throw new Error('Failed to get transaction result');
     }

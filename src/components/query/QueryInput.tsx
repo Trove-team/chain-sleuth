@@ -68,37 +68,40 @@ export default function QueryInput() {
         throw new Error('Wallet selector is not initialized');
       }
 
-      toast.info('Initiating investigation request...', { autoClose: 3000 });
-
       const response = await requestInvestigation(nearAddress, selector);
       setRequestId(response.request_id);
 
       if (response.is_existing) {
         setStatus({ stage: 'existing', message: 'Existing investigation found.' });
-        toast.info(`Existing investigation found for ${nearAddress}. Request ID: ${response.request_id}`, { autoClose: 5000 });
+        toast.info('Existing investigation found.');
       } else {
         setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId: response.request_id });
-        toast.success(`New investigation requested for ${nearAddress}. Request ID: ${response.request_id}`, { autoClose: 5000 });
+        toast.success('Investigation request successful.');
 
         // Proceed with completion
         setStatus({ stage: 'wallet-signing', message: 'Please confirm the completion transaction in your wallet...' });
-        toast.info('Please confirm the completion transaction in your wallet...', { autoClose: 10000 });
         
-        await completeInvestigation(response.request_id, selector);
-        
-        // Check the status again to ensure it's completed
-        const completionStatus = await checkInvestigationStatus(response.request_id);
-        if (completionStatus.stage === 'complete') {
-          setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
-          toast.success(`Investigation completed and NFT minted for ${nearAddress}. Request ID: ${response.request_id}`, { autoClose: 7000 });
-        } else {
-          throw new Error('Investigation completion failed');
+        try {
+          await completeInvestigation(response.request_id, selector);
+          
+          // Check the status again to ensure it's completed
+          const completionStatus = await checkInvestigationStatus(response.request_id);
+          if (completionStatus.stage === 'complete') {
+            setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
+            toast.success('Investigation completed and NFT minted successfully!');
+          } else {
+            throw new Error('Investigation completion failed');
+          }
+        } catch (completionError) {
+          console.error('Error completing investigation:', completionError);
+          setStatus({ stage: 'error', message: 'Failed to complete investigation' });
+          toast.error('Failed to complete investigation. Please try again later.');
         }
       }
     } catch (error) {
       console.error('Error:', error);
       setStatus({ stage: 'error', message: 'An error occurred: ' + (error instanceof Error ? error.message : String(error)) });
-      toast.error(`Failed to complete investigation for ${nearAddress}. Please try again. Error: ${error instanceof Error ? error.message : String(error)}`, { autoClose: 7000 });
+      toast.error('Failed to start investigation. Please try again.');
     }
   };
 
