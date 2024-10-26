@@ -12,6 +12,7 @@ export default function QueryResults({ queries }: QueryResultsProps) {
 
   return (
     <div className="bg-white bg-opacity-30 backdrop-filter backdrop-custom rounded-lg overflow-hidden">
+      <h2 className="text-xl font-semibold mb-4 text-gray-300">Query Results</h2>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

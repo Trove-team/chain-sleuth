@@ -183,8 +183,8 @@ export default function QueryInput() {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4 bg-white bg-opacity-30 backdrop-filter backdrop-custom p-6 rounded-lg">
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white bg-opacity-30 backdrop-filter backdrop-blur-md p-6 rounded-lg">
+    <div className="max-w-xl mx-auto space-y-4">
+     <form onSubmit={handleSubmit} className="space-y-4 bg-transparent p-6 rounded-lg">
         <div className="flex flex-col space-y-2">
           <label htmlFor="nearAddress" className="text-lg font-medium">
             Enter NEAR Address to Investigate
