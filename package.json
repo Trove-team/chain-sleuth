@@ -29,6 +29,7 @@
     "dotenv": "^16.4.5",
     "elysia": "^1.0.16",
     "fuse.js": "^7.0.0",
+    "ioredis": "^5.4.1",
     "lucide-react": "^0.453.0",
     "near-api-js": "^4.0.3",
     "near-sdk-js": "^2.0.0",
@@ -37,13 +38,15 @@
     "react": "^18",
     "react-dom": "^18",
     "react-force-graph": "^1.44.6",
-    "react-toastify": "^10.0.6"
+    "react-toastify": "^10.0.6",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@types/big.js": "^6.2.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/uuid": "^10.0.0",
     "concurrently": "^9.0.1",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.2.15",
