@@ -1,4 +1,4 @@
-# Chain Sleuth Agent
+# Chain-Sleuth Agent
 
 <img src="https://github.com/user-attachments/assets/aa54bac4-30ef-49bb-bac7-732ff561bd95" alt="cover_image" width="0"/>
 
