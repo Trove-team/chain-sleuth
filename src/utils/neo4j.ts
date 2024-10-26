@@ -15,6 +15,16 @@ const driver: Driver = neo4j.driver(
   } as SessionConfig
 );
 
+// Test connection immediately
+(async () => {
+  try {
+    await driver.verifyConnectivity();
+    console.log('Successfully connected to Neo4j');
+  } catch (error) {
+    console.error('Failed to connect to Neo4j:', error);
+  }
+})();
+
 export const runQuery = async (query: string, params = {}) => {
   const session = driver.session({
     database: process.env.NEO4J_DATABASE || 'neo4j'
