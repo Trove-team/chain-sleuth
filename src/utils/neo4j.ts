@@ -2,6 +2,7 @@ import neo4j, { Driver, SessionConfig } from 'neo4j-driver';
 
 console.log("Neo4j URI:", process.env.NEO4J_URI);
 console.log("Neo4j User:", process.env.NEO4J_USER);
+console.log("Neo4j Password:", process.env.NEO4J_PASSWORD ? '[REDACTED]' : 'undefined');
 console.log("Neo4j Database:", process.env.NEO4J_DATABASE);
 
 const driver: Driver = neo4j.driver(
