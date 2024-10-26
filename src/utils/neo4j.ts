@@ -6,7 +6,10 @@ const driver: Driver = neo4j.driver(
     process.env.NEO4J_USER || 'neo4j',
     process.env.NEO4J_PASSWORD || 'password'
   ),
-  { database: process.env.NEO4J_DATABASE || 'neo4j' } as SessionConfig
+  { 
+    database: process.env.NEO4J_DATABASE || 'neo4j',
+    encrypted: process.env.NEO4J_URI?.startsWith('bolt+s') || undefined
+  } as SessionConfig
 );
 
 export const runQuery = async (query: string, params = {}) => {
