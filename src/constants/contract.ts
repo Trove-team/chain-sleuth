@@ -13,6 +13,7 @@ const getContractId = () => {
 };
 
 export const CONTRACT_ID = getContractId();
+export const NETWORK_ID = process.env.NEXT_PUBLIC_NETWORK_ID || 'testnet';
 
 // Contract method names as a const object for better TypeScript support
 export const CONTRACT_METHODS = {
@@ -20,9 +21,6 @@ export const CONTRACT_METHODS = {
   COMPLETE_INVESTIGATION: 'complete_investigation',
   GET_INVESTIGATION_STATUS: 'get_investigation_status'
 } as const;
-
-// Legacy array for backward compatibility if needed
-export const DEFAULT_METHOD_NAMES: string[] = Object.values(CONTRACT_METHODS);
 
 // Gas configuration
 export const DEFAULT_GAS = '300000000000000'; // 300 TGas
@@ -45,4 +43,5 @@ export const DEFAULT_FUNCTION_CALL_CONFIG = {
 
 // For debugging
 console.log('[CONTRACT] Exported CONTRACT_ID:', CONTRACT_ID);
-console.log('[CONTRACT] Available methods:', DEFAULT_METHOD_NAMES);
+console.log('[CONTRACT] Exported NETWORK_ID:', NETWORK_ID);
+console.log('[CONTRACT] Available methods:', Object.values(CONTRACT_METHODS));
