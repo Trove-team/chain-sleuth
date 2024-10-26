@@ -34,7 +34,7 @@ function GraphComponent() {
         graphData={graphData}
         nodeRelSize={6}
         linkWidth={1}
-        backgroundColor="#ffffff"
+        backgroundColor="rgba(255, 255, 255, 0.1)"
       />
     </div>
   );

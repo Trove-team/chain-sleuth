@@ -13,9 +13,11 @@ const DynamicGraph = dynamic(() => import('@/components/graph/Graph'), {
 export default function GraphPage() {
   return (
     <ErrorBoundary>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Graph Visualization</h1>
-        <DynamicGraph />
+      <div className="space-y-6 bg-transparent">
+        <h1 className="text-3xl font-bold text-white">Graph Visualization</h1>
+        <div className="bg-white bg-opacity-30 backdrop-filter backdrop-blur-md rounded-lg overflow-hidden">
+          <DynamicGraph />
+        </div>
       </div>
     </ErrorBoundary>
   );
