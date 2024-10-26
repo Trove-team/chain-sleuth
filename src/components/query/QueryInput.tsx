@@ -183,7 +183,7 @@ export default function QueryInput() {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
+    <div className="max-w-xl mx-auto space-y-4 bg-white bg-opacity-30 backdrop-filter backdrop-custom p-6 rounded-lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex flex-col space-y-2">
           <label htmlFor="nearAddress" className="text-lg font-medium">

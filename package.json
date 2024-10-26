@@ -35,7 +35,7 @@
     "near-api-js": "^4.0.3",
     "near-sdk-js": "^2.0.0",
     "neo4j-driver": "^5.15.0",
-    "next": "14.2.3",
+    "next": "14.2.10",
     "pino": "^9.5.0",
     "react": "^18",
     "react-dom": "^18",

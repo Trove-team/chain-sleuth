@@ -11,7 +11,7 @@ export default function QueryResults({ queries }: QueryResultsProps) {
     `https://explorer.testnet.near.org/accounts/${accountId}`;
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden">
+    <div className="bg-white bg-opacity-30 backdrop-filter backdrop-custom rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
