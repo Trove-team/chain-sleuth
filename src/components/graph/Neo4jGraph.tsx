@@ -29,9 +29,9 @@ function Neo4jGraph() {
   const fetchGraphData = useCallback(async () => {
     try {
       const query = `
-        MATCH (n)-[r]->(m)
-        WHERE n.id CONTAINS $searchTerm OR m.id CONTAINS $searchTerm
-        RETURN n, r, m
+        MATCH (m:Movie)<-[r:ACTED_IN]-(a:Person)
+        WHERE m.title CONTAINS $searchTerm OR a.name CONTAINS $searchTerm
+        RETURN m, a, r
         LIMIT 100
       `;
       const result = await runQuery(query, { searchTerm });
@@ -40,28 +40,28 @@ function Neo4jGraph() {
       const links: Link[] = [];
 
       result.forEach(record => {
-        const source = record.get('n');
-        const target = record.get('m');
+        const movie = record.get('m');
+        const actor = record.get('a');
         const relationship = record.get('r');
 
-        if (!nodes.has(source.identity.toString())) {
-          nodes.set(source.identity.toString(), {
-            id: source.identity.toString(),
-            label: source.labels[0],
-            properties: source.properties
+        if (!nodes.has(movie.identity.toString())) {
+          nodes.set(movie.identity.toString(), {
+            id: movie.identity.toString(),
+            label: 'Movie',
+            properties: movie.properties
           });
         }
-        if (!nodes.has(target.identity.toString())) {
-          nodes.set(target.identity.toString(), {
-            id: target.identity.toString(),
-            label: target.labels[0],
-            properties: target.properties
+        if (!nodes.has(actor.identity.toString())) {
+          nodes.set(actor.identity.toString(), {
+            id: actor.identity.toString(),
+            label: 'Person',
+            properties: actor.properties
           });
         }
 
         links.push({
-          source: source.identity.toString(),
-          target: target.identity.toString(),
+          source: actor.identity.toString(),
+          target: movie.identity.toString(),
           label: relationship.type
         });
       });
@@ -106,7 +106,7 @@ function Neo4jGraph() {
       <div className="absolute top-4 left-4 z-10">
         <input
           type="text"
-          placeholder="Search nodes..."
+          placeholder="Search movies or actors..."
           value={searchTerm}
           onChange={handleSearch}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -115,7 +115,7 @@ function Neo4jGraph() {
       <ForceGraph2D 
         ref={fgRef}
         graphData={graphData}
-        nodeLabel="label"
+        nodeLabel={node => `${node.label}: ${node.properties.title || node.properties.name}`}
         linkLabel="label"
         nodeAutoColorBy="label"
         linkAutoColorBy="label"
