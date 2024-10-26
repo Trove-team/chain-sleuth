@@ -1,5 +1,7 @@
 import neo4j, { Driver, SessionConfig } from 'neo4j-driver';
 
+console.log("Neo4j URI:", process.env.NEO4J_URI);
+
 const driver: Driver = neo4j.driver(
   process.env.NEO4J_URI || '',
   neo4j.auth.basic(

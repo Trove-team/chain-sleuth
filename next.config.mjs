@@ -41,7 +41,11 @@ const nextConfig = {
         'near-contract/**/*'
       ],
     }
-  }
+  },
+
+  env: {
+    NEO4J_URI: process.env.NEO4J_URI,
+  },
 };
 
 export default nextConfig;
