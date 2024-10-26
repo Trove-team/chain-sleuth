@@ -13,7 +13,7 @@ import {
   completeInvestigation,
   pollInvestigationStatus
 } from '@/services/testInvestigationWorkflow';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function QueryInput() {
@@ -68,35 +68,37 @@ export default function QueryInput() {
         throw new Error('Wallet selector is not initialized');
       }
 
-      const newRequestId = await requestInvestigation(nearAddress, selector);
-      setRequestId(newRequestId);
-      setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId: newRequestId });
+      toast.info('Initiating investigation request...', { autoClose: 3000 });
 
-      // Wait for the investigation to complete
-      const finalStatus = await pollInvestigationStatus(newRequestId);
-      setStatus(finalStatus);
+      const response = await requestInvestigation(nearAddress, selector);
+      setRequestId(response.request_id);
 
-      if (finalStatus.stage === 'investigation-complete') {
+      if (response.is_existing) {
+        setStatus({ stage: 'existing', message: 'Existing investigation found.' });
+        toast.info(`Existing investigation found for ${nearAddress}. Request ID: ${response.request_id}`, { autoClose: 5000 });
+      } else {
+        setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId: response.request_id });
+        toast.success(`New investigation requested for ${nearAddress}. Request ID: ${response.request_id}`, { autoClose: 5000 });
+
+        // Proceed with completion
         setStatus({ stage: 'wallet-signing', message: 'Please confirm the completion transaction in your wallet...' });
+        toast.info('Please confirm the completion transaction in your wallet...', { autoClose: 10000 });
         
-        // Wait for user to confirm the transaction
-        await completeInvestigation(newRequestId, selector);
+        await completeInvestigation(response.request_id, selector);
         
         // Check the status again to ensure it's completed
-        const completionStatus = await checkInvestigationStatus(newRequestId);
+        const completionStatus = await checkInvestigationStatus(response.request_id);
         if (completionStatus.stage === 'complete') {
           setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
-          toast.success('NFT minted successfully!');
+          toast.success(`Investigation completed and NFT minted for ${nearAddress}. Request ID: ${response.request_id}`, { autoClose: 7000 });
         } else {
           throw new Error('Investigation completion failed');
         }
-      } else {
-        throw new Error('Investigation failed or timed out');
       }
     } catch (error) {
       console.error('Error:', error);
       setStatus({ stage: 'error', message: 'An error occurred: ' + (error instanceof Error ? error.message : String(error)) });
-      toast.error('Failed to complete investigation. Please try again.');
+      toast.error(`Failed to complete investigation for ${nearAddress}. Please try again. Error: ${error instanceof Error ? error.message : String(error)}`, { autoClose: 7000 });
     }
   };
 
@@ -204,7 +206,6 @@ export default function QueryInput() {
           </button>
         </div>
       )}
-      <ToastContainer position="top-right" autoClose={5000} />
     </div>
   );
 }

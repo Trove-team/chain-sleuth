@@ -19,7 +19,7 @@ use near_contract_standards::non_fungible_token::NonFungibleTokenResolver;
 use near_contract_standards::non_fungible_token::metadata::{NFTContractMetadata, TokenMetadata};
 
 //pub use crate::metadata::*;
-pub use crate::investigation::*;
+pub use crate::investigation::{InvestigationRequest, InvestigationStatus, InvestigationData, InvestigationResponse};
 pub use crate::enumeration::*;
 pub use crate::events::*;
 
@@ -187,54 +187,57 @@ impl Contract {
     }
 
     #[payable]
-    pub fn request_investigation(&mut self, target_account: AccountId) -> String {
-        // Validate input
-        assert!(
-            env::is_valid_account_id(target_account.as_bytes()),
-            "Invalid target account ID"
-        );
+pub fn request_investigation(&mut self, target_account: AccountId) -> InvestigationResponse {
+    // Validate input
+    assert!(
+        env::is_valid_account_id(target_account.as_bytes()),
+        "Invalid target account ID"
+    );
 
-        let request_id = format!("{}:{}", env::block_timestamp(), target_account);
-        
-        // Check for existing investigation with detailed error
-        if let Some(token_id) = self.investigated_accounts.get(&target_account) {
-            if env::attached_deposit() > NearToken::from_yoctonear(0) {
-                Promise::new(env::predecessor_account_id()).transfer(env::attached_deposit());
-            }
-            env::log_str(&format!(
-                "Existing investigation found for account: {}. Token ID: {}",
-                target_account, token_id
-            ));
-            return token_id;
+    let request_id = format!("{}:{}", env::block_timestamp(), target_account);
+    
+    // Check for existing investigation
+    if let Some(token_id) = self.investigated_accounts.get(&target_account) {
+        if env::attached_deposit() > NearToken::from_yoctonear(0) {
+            Promise::new(env::predecessor_account_id()).transfer(env::attached_deposit());
         }
-
-        // Verify payment with detailed error
-        assert!(
-            env::attached_deposit() >= QUERY_COST,
-            "Insufficient deposit. Required: {} NEAR, Provided: {} NEAR",
-            QUERY_COST.as_near(),
-            env::attached_deposit().as_near()
-        );
-
-        // Create new investigation request with validation
-        let request = InvestigationRequest {
-            requester: env::predecessor_account_id(),
-            target_account: target_account.clone(),
-            timestamp: U64(env::block_timestamp()),
-            status: InvestigationStatus::Pending,
+        env::log_str(&format!(
+            "Existing investigation found for account: {}. Token ID: {}",
+            target_account, token_id
+        ));
+        return InvestigationResponse {
+            request_id: token_id,
+            is_existing: true,
         };
-
-        match self.pending_investigations.insert(&request_id, &request) {
-            Some(_) => env::panic_str("Request ID collision detected"),
-            None => {
-                env::log_str(&format!(
-                    "New investigation requested - Account: {}, Request ID: {}",
-                    target_account, request_id
-                ));
-                request_id
-            }
-        }
     }
+
+    // Verify payment with detailed error
+    assert!(
+        env::attached_deposit() >= QUERY_COST,
+        "Insufficient deposit. Required: {} NEAR, Provided: {} NEAR",
+        QUERY_COST.as_near(),
+        env::attached_deposit().as_near()
+    );
+
+    // Create new investigation request
+    let request = InvestigationRequest {
+        requester: env::predecessor_account_id(),
+        target_account: target_account.clone(),
+        timestamp: U64(env::block_timestamp()),
+        status: InvestigationStatus::Pending,
+    };
+
+    self.pending_investigations.insert(&request_id, &request);
+    env::log_str(&format!(
+        "New investigation requested - Account: {}, Request ID: {}",
+        target_account, request_id
+    ));
+
+    InvestigationResponse {
+        request_id,
+        is_existing: false,
+    }
+}
 
     #[payable]
     pub fn complete_investigation(

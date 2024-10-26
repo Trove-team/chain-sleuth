@@ -36,7 +36,7 @@ export type InvestigationProgress = {
   data?: any;
 };
 
-export async function requestInvestigation(address: string, selector: WalletSelector): Promise<string> {
+export async function requestInvestigation(address: string, selector: WalletSelector): Promise<{ request_id: string, is_existing: boolean }> {
   console.log('Requesting investigation for address:', address);
   try {
     const wallet = await selector.wallet();
@@ -57,9 +57,14 @@ export async function requestInvestigation(address: string, selector: WalletSele
 
     if (result && result.transaction && result.transaction.hash) {
       console.log('Investigation requested, transaction hash:', result.transaction.hash);
-      return result.transaction.hash;
+      // Parse the result to get the request_id and is_existing flag
+      const response = JSON.parse(result.transaction.receipts_outcome[0].outcome.status.SuccessValue);
+      return {
+        request_id: response.request_id,
+        is_existing: response.is_existing
+      };
     } else {
-      throw new Error('Failed to get transaction hash');
+      throw new Error('Failed to get transaction result');
     }
   } catch (error) {
     console.error('Error in requestInvestigation:', error);
@@ -80,17 +85,13 @@ export async function checkInvestigationStatus(requestId: string): Promise<Inves
 export async function completeInvestigation(requestId: string, selector: WalletSelector): Promise<void> {
   try {
     const wallet = await selector.wallet();
+    const nearAddress = (await wallet.getAccounts())[0].accountId;
 
-    // Extract the actual NEAR address from the requestId
-    const nearAddress = requestId.split(':')[1];
-    console.log('Completing investigation for address:', nearAddress);
+    // Generate mock summaries (replace with actual data in production)
+    const mockRobustSummary = `Detailed analysis for ${nearAddress}...`;
+    const mockShortSummary = `Account ID: ${nearAddress}; Created: 2022-01-18; Last Updated: 2024-10-20; Transaction Count: 1556; Total USD Value: $63,547.60; DeFi Value: $36,091.58; NEAR Balance: $2,686.01; USDC Balance: $2,009.18; NEKO Balance: $22,635.27; Not a Bot; Probable Ethereum Address: 0x983ba06d3c13c73a9c47e70e14681fffd3731c8d; Top Interactions: Ref Finance, wrap.near; NFT Activity: Good Fortune Felines; Cross-Chain: Yes; Active in DeFi and NFT trading.`;
 
-    // Create mock summaries with actual account
-    const mockRobustSummary = `Comprehensive, Detailed Summary:\n\nThe account ${nearAddress} is a highly active participant in the NEAR Protocol blockchain, with a creation date of January 18, 2022, and a total of 1556 transactions. This account is primarily engaged in decentralized finance (DeFi) activities, with significant investments in meme tokens through Ref Finance, contributing to a total USD value of $63,547.60. The account's wealth is diversified across several tokens, including NEAR, USDC, and NEKO, with NEKO comprising the largest portion of the balance. Despite its high transaction volume, the account is not flagged as a bot, indicating genuine user activity. The account has a probable Ethereum address linkage, suggesting cross-chain interactions. The transaction history reveals significant interactions with Ref Finance and wrap.near, with a notable presence in NFT-related transactions, particularly with the Good Fortune Felines collection. The account's activities suggest a focus on both trading and collecting NFTs, along with active participation in cross-chain bridging and token transfers. This diverse engagement highlights the account's strategic approach to leveraging blockchain opportunities.`;
-
-    const mockShortSummary = `Neo4j-Friendly Metadata Summary:\n\nAccount ID: ${nearAddress}; Created: 2022-01-18; Last Updated: ${new Date().toISOString().split('T')[0]}; Transaction Count: 1556; Total USD Value: $63,547.60; DeFi Value: $36,091.58; NEAR Balance: $2,686.01; USDC Balance: $2,009.18; NEKO Balance: $22,635.27; Not a Bot; Probable Ethereum Address: 0x983ba06d3c13c73a9c47e70e14681fffd3731c8d; Top Interactions: Ref Finance, wrap.near; NFT Activity: Good Fortune Felines; Cross-Chain: Yes; Active in DeFi and NFT trading.`;
-
-    console.log('Sending transaction with:', {
+    console.log('Sending completion transaction with:', {
       requestId,
       nearAddress,
       summaryLength: mockShortSummary.length
