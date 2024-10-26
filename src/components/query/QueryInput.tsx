@@ -24,6 +24,17 @@ export default function QueryInput() {
   const [isExisting, setIsExisting] = useState(false);
 
   useEffect(() => {
+    const storedState = localStorage.getItem('investigationState');
+    if (storedState) {
+      const { address, requestId, stage } = JSON.parse(storedState);
+      setNearAddress(address);
+      setRequestId(requestId);
+      setStatus({ stage, message: 'Resuming investigation...' });
+      handleInvestigationContinuation(address, requestId, stage);
+    }
+  }, []);
+
+  useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
     const pollStatus = async () => {
@@ -37,6 +48,7 @@ export default function QueryInput() {
 
         if (progress.stage === 'complete') {
           clearInterval(intervalId);
+          localStorage.removeItem('investigationState');
         }
       } catch (error) {
         console.error('Error checking status:', error);
@@ -49,7 +61,7 @@ export default function QueryInput() {
     };
 
     if (requestId && status.stage !== 'complete' && status.stage !== 'error') {
-      intervalId = setInterval(pollStatus, 3000);
+      intervalId = setInterval(pollStatus, 3000); // Poll every 3 seconds
     }
 
     return () => {
@@ -58,6 +70,30 @@ export default function QueryInput() {
       }
     };
   }, [requestId, status.stage]);
+
+  const handleInvestigationContinuation = async (
+    address: string, 
+    reqId: string, 
+    stage: InvestigationStage
+  ) => {
+    if (!selector) {
+      toast.error('Wallet selector is not initialized');
+      return;
+    }
+
+    if (stage === 'investigation-started') {
+      try {
+        await completeInvestigation(reqId, selector as WalletSelector);
+        setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
+        toast.success('Investigation completed and NFT minted successfully!');
+        localStorage.removeItem('investigationState');
+      } catch (error) {
+        console.error('Error completing investigation:', error);
+        setStatus({ stage: 'error', message: 'Failed to complete investigation' });
+        toast.error('Failed to complete investigation. Please try again later.');
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,25 +113,27 @@ export default function QueryInput() {
       } else {
         setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId: response.request_id });
         toast.success('Investigation request successful.');
-
-        // Proceed with completion
-        setStatus({ stage: 'wallet-signing', message: 'Please confirm the completion transaction in your wallet...' });
         
+        // Store the state in localStorage
+        localStorage.setItem('investigationState', JSON.stringify({
+          address: nearAddress,
+          requestId: response.request_id,
+          stage: 'investigation-started'
+        }));
+
+        // Wait for a short period before attempting to complete the investigation
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
         try {
+          setStatus({ stage: 'wallet-signing', message: 'Please confirm the completion transaction in your wallet...' });
           await completeInvestigation(response.request_id, selector);
-          
-          // Check the status again to ensure it's completed
-          const completionStatus = await checkInvestigationStatus(response.request_id);
-          if (completionStatus.stage === 'complete') {
-            setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
-            toast.success('Investigation completed and NFT minted successfully!');
-          } else {
-            throw new Error('Investigation completion failed');
-          }
+          setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
+          toast.success('Investigation completed and NFT minted successfully!');
+          localStorage.removeItem('investigationState');
         } catch (completionError) {
           console.error('Error completing investigation:', completionError);
-          setStatus({ stage: 'error', message: 'Failed to complete investigation' });
-          toast.error('Failed to complete investigation. Please try again later.');
+          setStatus({ stage: 'investigation-started', message: 'Investigation started, waiting for completion...' });
+          toast.info('Investigation started. Please wait for completion or refresh the page if redirected.');
         }
       }
     } catch (error) {

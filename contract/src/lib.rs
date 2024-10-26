@@ -246,22 +246,21 @@ pub fn request_investigation(&mut self, target_account: AccountId) -> Investigat
         robust_summary: String,
         short_summary: String,
     ) -> (TokenId, String) {
-        // Only owner can complete investigations
-        assert_eq!(
-            env::predecessor_account_id(),
-            self.owner_id,
-            "Unauthorized: Only owner can complete investigations"
-        );
-
-        // Validate summaries
-        assert!(!robust_summary.is_empty(), "Robust summary cannot be empty");
-        assert!(!short_summary.is_empty(), "Short summary cannot be empty");
-
         // Get request with detailed error
         let request = self.pending_investigations.get(&request_id)
             .unwrap_or_else(|| env::panic_str(&format!(
                 "Investigation request not found: {}", request_id
             )));
+
+        // Allow either the contract owner or the original requester to complete the investigation
+        assert!(
+            env::predecessor_account_id() == self.owner_id || env::predecessor_account_id() == request.requester,
+            "Unauthorized: Only owner or original requester can complete investigations"
+        );
+
+        // Validate summaries
+        assert!(!robust_summary.is_empty(), "Robust summary cannot be empty");
+        assert!(!short_summary.is_empty(), "Short summary cannot be empty");
 
         // Check for existing token
         assert!(
