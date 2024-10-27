@@ -5,6 +5,7 @@ import { parseNearAmount } from 'near-api-js/lib/utils/format';
 import { Redis } from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { CONTRACT_ID, NETWORK_ID } from '../constants/contract';
+import { makeNeo4jRequest } from '../utils/auth';
 
 export interface WorkflowState {
   requestId: string;
@@ -56,8 +57,18 @@ export class InvestigationWorkflow {
       state.stage = 'ANALYSIS';
       await this.saveWorkflowState(state);
 
-      // Start analysis
-      const analysisResult = await this.handleAnalysis(state);
+      // Start analysis using the new method
+      const analysis = await makeNeo4jRequest('/v1/analyze', {
+        method: 'POST',
+        body: JSON.stringify({ accountId: targetAccount })
+      });
+
+      const { taskId } = analysis;
+      state.analysisTaskId = taskId;
+      await this.saveWorkflowState(state);
+
+      // Wait for analysis completion
+      const analysisResult = await this.waitForAnalysis(taskId);
       state.stage = 'COMPLETION';
       state.analysisResult = analysisResult;
       await this.saveWorkflowState(state);
@@ -181,5 +192,24 @@ export class InvestigationWorkflow {
 
   private parseContractResponse(result: any): any {
     return JSON.parse(Buffer.from(result.status.SuccessValue, 'base64').toString());
+  }
+
+  private async waitForAnalysis(taskId: string) {
+    const maxAttempts = 60;
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const status = await makeNeo4jRequest(`/v1/status/${taskId}`);
+        
+        if (status.status === 'complete') {
+          return status;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } catch (error) {
+        console.error(`Attempt ${i + 1} failed:`, error);
+        // Continue trying if it's just a temporary error
+      }
+    }
+    throw new Error('Analysis timeout');
   }
 }

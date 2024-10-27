@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { ForceGraph2D } from 'react-force-graph';
 import { runQuery } from '@/utils/neo4j';
 
@@ -8,6 +8,9 @@ interface Node {
   id: string;
   label: string;
   properties: Record<string, any>;
+  x?: number;
+  y?: number;
+  color?: string;
 }
 
 interface Link {
@@ -20,6 +23,8 @@ interface GraphData {
   nodes: Node[];
   links: Link[];
 }
+
+const NODE_R = 20; // Increased radius to fit text
 
 function Neo4jGraph() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -101,6 +106,50 @@ function Neo4jGraph() {
     setSearchTerm(event.target.value);
   };
 
+  const graph = useMemo(() => {
+    return (
+      <ForceGraph2D 
+        ref={fgRef}
+        graphData={graphData}
+        nodeLabel={node => `${node.label}: ${node.properties.title || node.properties.name}`}
+        linkLabel="label"
+        nodeAutoColorBy="label"
+        linkAutoColorBy="label"
+        nodeRelSize={NODE_R}
+        linkWidth={1}
+        backgroundColor="rgba(255, 255, 255, 0.1)"
+        onNodeClick={handleNodeClick}
+        onBackgroundClick={handleBackgroundClick}
+        cooldownTicks={100}
+        d3AlphaDecay={0.02}
+        d3VelocityDecay={0.3}
+        nodeCanvasObject={(node, ctx, globalScale) => {
+          const label = node.properties.title || node.properties.name;
+          ctx.fillStyle = node.color || 'white'; // Provide a default color if node.color is undefined
+          ctx.beginPath();
+          ctx.arc(node.x!, node.y!, NODE_R, 0, 2 * Math.PI, false);
+          ctx.fill();
+          const fontSize = 12/globalScale;
+          ctx.font = `${fontSize}px Sans-Serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'white';
+          
+          // Truncate text if too long
+          const maxLength = NODE_R * 2 / (fontSize / 2);
+          let truncatedLabel = label.length > maxLength ? label.substring(0, maxLength) + '...' : label;
+          ctx.fillText(truncatedLabel, node.x!, node.y!);
+        }}
+        nodePointerAreaPaint={(node, color, ctx) => {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(node.x!, node.y!, NODE_R, 0, 2 * Math.PI, false);
+          ctx.fill();
+        }}
+      />
+    );
+  }, [graphData, handleNodeClick, handleBackgroundClick]);
+
   if (loading) {
     return (
       <div className="h-[600px] flex items-center justify-center">
@@ -120,22 +169,7 @@ function Neo4jGraph() {
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
-      <ForceGraph2D 
-        ref={fgRef}
-        graphData={graphData}
-        nodeLabel={node => `${node.label}: ${node.properties.title || node.properties.name}`}
-        linkLabel="label"
-        nodeAutoColorBy="label"
-        linkAutoColorBy="label"
-        nodeRelSize={6}
-        linkWidth={1}
-        backgroundColor="rgba(255, 255, 255, 0.1)"
-        onNodeClick={handleNodeClick}
-        onBackgroundClick={handleBackgroundClick}
-        cooldownTicks={100}
-        d3AlphaDecay={0.02}
-        d3VelocityDecay={0.3}
-      />
+      {graph}
       {selectedNode && (
         <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-md">
           <h3 className="text-lg font-bold mb-2">{selectedNode.label}</h3>
