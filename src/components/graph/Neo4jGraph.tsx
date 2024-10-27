@@ -37,9 +37,10 @@ function Neo4jGraph() {
     try {
       console.log('Fetching graph data with searchTerm:', searchTerm);
       const query = `
-        MATCH (m:Movie)<-[r:ACTED_IN]-(a:Person)
-        WHERE m.title CONTAINS $searchTerm OR a.name CONTAINS $searchTerm
-        RETURN m, a, r
+        MATCH (a:Account)-[r]-(b:Account)
+        WHERE a <> b
+        AND (a.name CONTAINS $searchTerm OR b.name CONTAINS $searchTerm)
+        RETURN a, r, b
         LIMIT 100
       `;
       const result = await runQuery(query, { searchTerm });
@@ -47,38 +48,32 @@ function Neo4jGraph() {
       
       const nodes = new Map<string, Node>();
       const links: Link[] = [];
-
+  
       result.forEach(record => {
-        console.log('Processing record:', record);
-        const movie = record.get('m');
-        const actor = record.get('a');
+        const a = record.get('a');
+        const b = record.get('b');
         const relationship = record.get('r');
-
-        if (!nodes.has(movie.identity.toString())) {
-          nodes.set(movie.identity.toString(), {
-            id: movie.identity.toString(),
-            label: 'Movie',
-            properties: movie.properties
-          });
-        }
-        if (!nodes.has(actor.identity.toString())) {
-          nodes.set(actor.identity.toString(), {
-            id: actor.identity.toString(),
-            label: 'Person',
-            properties: actor.properties
-          });
-        }
-
+  
+        [a, b].forEach(node => {
+          if (!nodes.has(node.identity.toString())) {
+            nodes.set(node.identity.toString(), {
+              id: node.identity.toString(),
+              label: 'Account',
+              properties: node.properties
+            });
+          }
+        });
+  
         links.push({
-          source: actor.identity.toString(),
-          target: movie.identity.toString(),
+          source: a.identity.toString(),
+          target: b.identity.toString(),
           label: relationship.type
         });
       });
-
+  
       console.log('Processed nodes:', nodes);
       console.log('Processed links:', links);
-
+  
       setGraphData({
         nodes: Array.from(nodes.values()),
         links: links

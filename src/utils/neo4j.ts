@@ -5,16 +5,25 @@ console.log("Neo4j User:", process.env.NEO4J_USER);
 console.log("Neo4j Password:", process.env.NEO4J_PASSWORD ? '[REDACTED]' : 'undefined');
 console.log("Neo4j Database:", process.env.NEO4J_DATABASE);
 
-const driver: Driver = neo4j.driver(
-  process.env.NEO4J_URI || '',
-  neo4j.auth.basic(
-    process.env.NEO4J_USER || '',
-    process.env.NEO4J_PASSWORD || ''
-  ),
-  { 
-    database: process.env.NEO4J_DATABASE || 'neo4j'
-  } as SessionConfig
-);
+let driver: Driver;
+
+try {
+  driver = neo4j.driver(
+    process.env.NEO4J_URI || '',
+    neo4j.auth.basic(
+      process.env.NEO4J_USER || '',
+      process.env.NEO4J_PASSWORD || ''
+    ),
+    { 
+      database: process.env.NEO4J_DATABASE || 'neo4j'
+    } as SessionConfig
+  );
+
+  console.log('Driver created successfully');
+} catch (error) {
+  console.error('Error creating Neo4j driver:', error);
+  throw error;
+}
 
 // Test connection immediately
 (async () => {
@@ -27,6 +36,9 @@ const driver: Driver = neo4j.driver(
 })();
 
 export const runQuery = async (query: string, params = {}) => {
+  if (!driver) {
+    throw new Error('Neo4j driver not initialized');
+  }
   const session = driver.session({
     database: process.env.NEO4J_DATABASE || 'neo4j'
   });
@@ -44,5 +56,5 @@ export const runQuery = async (query: string, params = {}) => {
 };
 
 export const closeDriver = () => {
-  return driver.close();
+  return driver?.close();
 };
