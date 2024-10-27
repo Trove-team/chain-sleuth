@@ -102,4 +102,26 @@ export class PipelineService {
 
         return ws;
     }
+
+    async getSummaries(accountId: string, token: string): Promise<{
+        robustSummary: string | null;
+        shortSummary: string | null;
+    }> {
+        const response = await fetch(`${this.baseUrl}/api/v1/summaries/${accountId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch summaries: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return {
+            robustSummary: data.robustSummary,
+            shortSummary: data.shortSummary
+        };
+    }
 }
