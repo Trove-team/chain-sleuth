@@ -14,7 +14,7 @@ Chain Sleuth is a a comprehnsive data querying tool that uses a Bitte.ai Plugin 
 
 ## Project Walkthrough
 
-Ref Finance Agent facilitates the development of AI-powered DeFi swap agents. The template supports creating, managing, and deploying DeFi swap functionalities. [Build your own agent](https://docs.mintbase.xyz/ai/assistant-plugins)
+Chain sleuth agent facilitates the development of AI-powered DeFi swap agents. The template supports creating, managing, and deploying DeFi swap functionalities. [Build your own agent](https://docs.mintbase.xyz/ai/assistant-plugins)
 
 #### API Base URL
 
