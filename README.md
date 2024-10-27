@@ -18,7 +18,7 @@ Chain sleuth agent facilitates the development of AI-powered blockchain investig
 
 #### API Base URL
 
-https://ref-finance-agent.vercel.app
+https://chain-sleuth.vercel.app/
 
 #### Endpoints
 
