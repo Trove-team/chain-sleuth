@@ -58,3 +58,4 @@ export const runQuery = async (query: string, params = {}) => {
 export const closeDriver = () => {
   return driver?.close();
 };
+
