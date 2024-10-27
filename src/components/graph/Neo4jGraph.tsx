@@ -24,7 +24,15 @@ interface GraphData {
   links: Link[];
 }
 
-const NODE_R = 20;
+const NODE_R = 8;
+const RELEVANT_PROPERTIES = [
+  'total_usd_value',
+  'probable_eth_addresses',
+  'transaction_counts',
+  'bot_detection',
+  'last_updated',
+  'id'
+];
 
 function Neo4jGraph() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -164,7 +172,7 @@ function Neo4jGraph() {
       </div>
       {graph}
       {selectedNode && (
-        <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-md">
+        <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-md max-w-md text-black">
           <h3 className="text-lg font-bold mb-2">{selectedNode.label}</h3>
           <ul>
             {Object.entries(selectedNode.properties).map(([key, value]) => (
