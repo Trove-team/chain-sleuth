@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { PipelineService } from "../../../services/pieplineService";
+import { PipelineService } from "../../services/pieplineService";
 
 const pipelineService = new PipelineService();
 
