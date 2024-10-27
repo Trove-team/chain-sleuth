@@ -1,11 +1,11 @@
-// File: src/api/index.ts
-
+// src/api/index.ts
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import refFinanceRoutes from './ref-finance/route';
 import pikespeakRoutes from './pikespeak/route';
 import nearContractRoutes from './near-contract/route';
 import testInvestigationRoutes from './near-contract/test-investigation/route';
+import pipelineRoutes from './pipeline/route';  // Updated import
 
 const app = new Elysia({ prefix: "/api", aot: false })
   .use(swagger({
@@ -26,7 +26,8 @@ const app = new Elysia({ prefix: "/api", aot: false })
   .use(refFinanceRoutes)
   .use(pikespeakRoutes)
   .use(nearContractRoutes)
-  .use(testInvestigationRoutes);
+  .use(testInvestigationRoutes)
+  .use(pipelineRoutes);
 
 const compiledApp = app.compile();
 
