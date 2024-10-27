@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { PipelineService } from '@/services/pipelineService';
 
+const pipelineService = new PipelineService();
+
 export async function POST() {
     try {
         const pipelineService = new PipelineService();
