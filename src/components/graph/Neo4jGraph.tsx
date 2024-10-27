@@ -24,7 +24,7 @@ interface GraphData {
   links: Link[];
 }
 
-const NODE_R = 20; // Increased radius to fit text
+const NODE_R = 20;
 
 function Neo4jGraph() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -38,8 +38,7 @@ function Neo4jGraph() {
       console.log('Fetching graph data with searchTerm:', searchTerm);
       const query = `
         MATCH (a:Account)-[r]-(b:Account)
-        WHERE a <> b
-        AND (a.name CONTAINS $searchTerm OR b.name CONTAINS $searchTerm)
+        WHERE a.id CONTAINS $searchTerm OR b.id CONTAINS $searchTerm
         RETURN a, r, b
         LIMIT 100
       `;
@@ -57,7 +56,7 @@ function Neo4jGraph() {
         [a, b].forEach(node => {
           if (!nodes.has(node.identity.toString())) {
             nodes.set(node.identity.toString(), {
-              id: node.identity.toString(),
+              id: node.properties.id,
               label: 'Account',
               properties: node.properties
             });
@@ -65,8 +64,8 @@ function Neo4jGraph() {
         });
   
         links.push({
-          source: a.identity.toString(),
-          target: b.identity.toString(),
+          source: a.properties.id,
+          target: b.properties.id,
           label: relationship.type
         });
       });
@@ -106,7 +105,7 @@ function Neo4jGraph() {
       <ForceGraph2D 
         ref={fgRef}
         graphData={graphData}
-        nodeLabel={node => `${node.label}: ${node.properties.title || node.properties.name}`}
+        nodeLabel={node => `${node.label}: ${node.id}`}
         linkLabel="label"
         nodeAutoColorBy="label"
         linkAutoColorBy="label"
@@ -119,8 +118,8 @@ function Neo4jGraph() {
         d3AlphaDecay={0.02}
         d3VelocityDecay={0.3}
         nodeCanvasObject={(node, ctx, globalScale) => {
-          const label = node.properties.title || node.properties.name;
-          ctx.fillStyle = node.color || 'white'; // Provide a default color if node.color is undefined
+          const label = node.id;
+          ctx.fillStyle = node.color || 'white';
           ctx.beginPath();
           ctx.arc(node.x!, node.y!, NODE_R, 0, 2 * Math.PI, false);
           ctx.fill();
@@ -128,9 +127,8 @@ function Neo4jGraph() {
           ctx.font = `${fontSize}px Sans-Serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillStyle = 'white';
+          ctx.fillStyle = 'black';
           
-          // Truncate text if too long
           const maxLength = NODE_R * 2 / (fontSize / 2);
           let truncatedLabel = label.length > maxLength ? label.substring(0, maxLength) + '...' : label;
           ctx.fillText(truncatedLabel, node.x!, node.y!);
@@ -158,7 +156,7 @@ function Neo4jGraph() {
       <div className="absolute top-4 left-4 z-10">
         <input
           type="text"
-          placeholder="Search movies or actors..."
+          placeholder="Search account IDs..."
           value={searchTerm}
           onChange={handleSearch}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
