@@ -4,27 +4,38 @@
 import { useState, useEffect } from 'react';
 import { useWalletSelector } from "@/context/WalletSelectorContext";
 import { PipelineService } from '@/services/pipelineService';
-import { initInvestigationContract, createInitialMetadata, DEFAULT_GAS, DEFAULT_DEPOSIT } from '@/constants/contract';
+import { DEFAULT_GAS, DEFAULT_DEPOSIT } from '@/constants/contract';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-type InvestigationStage = 'idle' | 'requesting' | 'processing' | 'complete' | 'error' | 'existing';
+type WebhookType = 'progress' | 'completion' | 'error' | 'metadata_ready' | 'log';
 
 interface InvestigationState {
-  stage: InvestigationStage;
+  stage: 'idle' | 'requesting' | 'processing' | 'complete' | 'error' | 'existing';
   message: string;
   taskId?: string;
   token?: string;
+  progress?: number;
+  requestId?: string;
 }
 
 const pipelineService = new PipelineService();
+
+const ProgressBar = ({ progress }: { progress: number }) => (
+  <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+    <div 
+      className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+      style={{ width: `${progress}%` }}
+    />
+  </div>
+);
 
 export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
   const [status, setStatus] = useState<InvestigationState>({ stage: 'idle', message: '' });
   const { selector } = useWalletSelector();
-  
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!selector) {
@@ -35,42 +46,55 @@ export default function QueryInput() {
     setStatus({ stage: 'requesting', message: 'Starting investigation...' });
 
     try {
-      // 1. Get the active account from the context
+      const wallet = await selector.wallet();
       const activeAccount = selector.store.getState().accounts.find(
-        (account) => account.active
+        account => account.active
       );
 
       if (!activeAccount) {
         throw new Error('No active account found');
       }
 
-      // 2. Start contract interaction (mint placeholder NFT)
-      const wallet = await selector.wallet();
-      const contractResponse = await fetch('/api/near-contract/investigate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          target_account: nearAddress,
-          deposit: "1" // or whatever deposit amount you want to use
-        })
+      // Start investigation - maps to test_start_investigation in test.rs (lines 31-53)
+      const contractResult = await wallet.signAndSendTransaction({
+        signerId: activeAccount.accountId,
+        receiverId: process.env.NEXT_PUBLIC_CONTRACT_ID!,
+        actions: [{
+          type: 'FunctionCall',
+          params: {
+            methodName: 'start_investigation',
+            args: { target_account: nearAddress },
+            gas: DEFAULT_GAS,
+            deposit: DEFAULT_DEPOSIT
+          }
+        }]
       });
 
-      const { data: contractResult } = await contractResponse.json();
-      
-      if (!contractResult?.taskId) {
-        throw new Error('Failed to start contract investigation');
+      if (!contractResult || !contractResult.status) {
+        throw new Error('Contract call failed');
       }
 
+      // Start pipeline processing
+      const { transactionOutcome } = contractResult.status as { transactionOutcome: { outcome: { status: { SuccessValue: string } } } };
+      const outcomeValue = JSON.parse(Buffer.from(transactionOutcome.outcome.status.SuccessValue, 'base64').toString());
+      const requestId = outcomeValue.request_id;
+
+      const { taskId, token } = await pipelineService.startProcessing(
+        nearAddress,
+        requestId
+      );
+
       setStatus({ 
-        stage: 'processing', 
+        stage: 'processing',
         message: 'Investigation started, analyzing on-chain data...',
-        taskId: contractResult.taskId 
+        taskId,
+        token,
+        requestId,
+        progress: 0
       });
 
-      // 3. Start polling for status
-      startStatusPolling(contractResult.taskId);
+      // Start polling for status updates
+      startStatusPolling(taskId, requestId);
 
     } catch (error) {
       console.error('Error starting investigation:', error);
@@ -82,43 +106,53 @@ export default function QueryInput() {
     }
   };
 
-  const startStatusPolling = async (taskId: string) => {
+  const startStatusPolling = async (taskId: string, requestId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/near-contract/investigate/status?taskId=${taskId}`);
-        const status = await response.json();
+        const pipelineResponse = await fetch(`/api/pipeline/status/${taskId}`);
+        const pipelineStatus = await pipelineResponse.json();
         
-        if (status.stage === 'investigation-complete') {
-          clearInterval(pollInterval);
-          setStatus({
-            stage: 'complete',
-            message: 'Investigation complete! NFT has been minted with results.',
-            taskId
-          });
-          toast.success('Investigation completed successfully!');
-        } else if (status.stage === 'error') {
-          clearInterval(pollInterval);
-          setStatus({
-            stage: 'error',
-            message: status.message || 'Investigation failed',
-            taskId
-          });
-          toast.error('Investigation failed');
+        setStatus(prev => ({
+          ...prev,
+          progress: pipelineStatus.progress || prev.progress
+        }));
+
+        switch (pipelineStatus.status) {
+          case 'complete':
+            const contractResponse = await fetch(`/api/near-contract/status/${requestId}`);
+            const contractStatus = await contractResponse.json();
+            
+            if (contractStatus.status === 'complete') {
+              clearInterval(pollInterval);
+              setStatus(prev => ({
+                ...prev,
+                stage: 'complete',
+                message: 'Investigation complete! View your NFT in the gallery.',
+                progress: 100
+              }));
+            }
+            break;
+
+          case 'failed':
+            clearInterval(pollInterval);
+            setStatus(prev => ({
+              ...prev,
+              stage: 'error',
+              message: pipelineStatus.error || 'Investigation failed',
+              progress: 0
+            }));
+            break;
         }
       } catch (error) {
-        console.error('Error checking status:', error);
-        clearInterval(pollInterval);
-        setStatus({
-          stage: 'error',
-          message: 'Failed to check investigation status'
-        });
+        console.error('Status polling failed:', error);
       }
     }, 5000); // Poll every 5 seconds
 
+    // Cleanup interval on component unmount
     return () => clearInterval(pollInterval);
   };
 
-  const getStatusColor = (stage: InvestigationStage) => {
+  const getStatusColor = (stage: InvestigationState['stage']) => {
     switch (stage) {
       case 'error':
         return 'text-red-600';
@@ -163,16 +197,21 @@ export default function QueryInput() {
 
       {status.stage !== 'idle' && (
         <div className="bg-white shadow-md rounded-lg p-4 mt-4">
-          <div className="flex items-center space-x-3">
-            {status.stage === 'processing' && (
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500"></div>
-            )}
-            <div className="flex flex-col">
-              <span className="font-medium">Investigation Status</span>
-              <span className={`text-sm ${getStatusColor(status.stage)}`}>
-                {status.message}
-              </span>
+          <div className="flex flex-col w-full">
+            <div className="flex items-center space-x-3">
+              {status.stage === 'processing' && (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500" />
+              )}
+              <div className="flex flex-col">
+                <span className="font-medium">Investigation Status</span>
+                <span className={`text-sm ${getStatusColor(status.stage)}`}>
+                  {status.message}
+                </span>
+              </div>
             </div>
+            {status.stage === 'processing' && status.progress !== undefined && (
+              <ProgressBar progress={status.progress} />
+            )}
           </div>
         </div>
       )}

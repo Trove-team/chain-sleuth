@@ -1,6 +1,7 @@
 // src/services/pipelineService.ts
 interface ProcessingResponse {
     taskId: string;
+    token: string;
     statusLink: string;
     existingData?: {
         robustSummary: string;
@@ -62,6 +63,7 @@ export class PipelineService {
             const data = await response.json();
             return {
                 taskId: data.data.taskId,
+                token,
                 statusLink: data.data.statusLink,
                 existingData: data.status === 'exists' ? {
                     robustSummary: data.data.robustSummary,

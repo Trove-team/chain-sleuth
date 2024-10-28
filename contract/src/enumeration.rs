@@ -1,8 +1,10 @@
+use std::prelude::v1::*;
 use crate::*;
 use near_contract_standards::non_fungible_token::Token;
 use near_contract_standards::non_fungible_token::enumeration::NonFungibleTokenEnumeration;
 use near_sdk::json_types::U128;
 use near_sdk::AccountId;
+use crate::investigation::InvestigationMetadata;
 
 #[near_bindgen]
 impl NonFungibleTokenEnumeration for Contract {
@@ -29,9 +31,18 @@ impl NonFungibleTokenEnumeration for Contract {
 }
 
 impl Contract {
-    // Additional helper methods for enumeration if needed
-    pub fn get_tokens_for_owner(&self, account_id: AccountId) -> Vec<Token> {
+    // Helper methods for investigation-specific queries
+    pub fn get_investigations_by_account(&self, account_id: AccountId) -> Vec<Token> {
         self.tokens.nft_tokens_for_owner(account_id, None, None)
+    }
+
+    pub fn get_investigation_metadata(&self, _token_id: TokenId) -> Option<InvestigationMetadata> {
+        // Implementation
+        None
+    }
+
+    pub fn get_all_investigations(&self) -> Vec<Token> {
+        self.tokens.nft_tokens(None, None)
     }
 
     pub fn get_token_metadata(&self, token_id: TokenId) -> Option<TokenMetadata> {
@@ -40,9 +51,5 @@ impl Contract {
         } else {
             None
         }
-    }
-
-    pub fn get_all_tokens(&self) -> Vec<Token> {
-        self.tokens.nft_tokens(None, None)
     }
 }

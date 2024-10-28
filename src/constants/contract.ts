@@ -1,6 +1,7 @@
 // src/constants/contract.ts
 import { Account, Contract } from "near-api-js";
 import { AccountMetadata, InvestigationSummaries, InvestigationNFTMetadata } from "../types/investigation";
+import { WebhookType } from '../types/webhook';
 
 const getContractId = () => {
   const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID;
@@ -40,15 +41,16 @@ export interface InvestigationContract extends Contract {
         };
         gas: string;
         deposit?: string;
-    }): Promise<{ taskId: string }>;
+    }): Promise<{ request_id: string }>;
 
     update_investigation_metadata(args: {
         args: {
-            task_id: string;
+            token_id: string;
             metadata_update: {
                 description?: string;
-                extra: string; // Stringified InvestigationNFTMetadata
+                extra: string;
             };
+            webhook_type: WebhookType;
         };
         gas: string;
     }): Promise<void>;

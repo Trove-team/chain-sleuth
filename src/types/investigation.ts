@@ -1,5 +1,28 @@
 // src/types/investigation.ts
-
+export interface WebhookData {
+    type: 'Progress' | 'Completion' | 'Error' | 'MetadataReady' | 'Log';
+    status: 'processing' | 'complete' | 'failed';
+    data: {
+        accountId: string;
+        taskId: string;
+        requestId: string;
+        progress?: number;
+        message?: string;
+        result?: {
+            robustSummary: string;
+            shortSummary: string;
+            transactionCount: number;
+            isBot: boolean;
+            financialData: {
+                totalUsdValue: string;
+                nearBalance: string;
+                defiValue: string;
+            }
+        };
+        error?: string;
+        timestamp: string;
+    };
+}
 export interface AccountMetadata {
     // Core account info
     accountId: string;
@@ -99,5 +122,30 @@ export function formatInvestigationMetadata(
                 completion_date: accountMetadata.last_updated
             }
         }
+    };
+}
+
+export interface WebhookData {
+    type: 'Progress' | 'Completion' | 'Error' | 'MetadataReady' | 'Log';
+    status: 'processing' | 'complete' | 'failed';
+    data: {
+        accountId: string;
+        taskId: string;
+        requestId: string;
+        progress?: number;
+        message?: string;
+        result?: {
+            robustSummary: string;
+            shortSummary: string;
+            transactionCount: number;
+            isBot: boolean;
+            financialData: {
+                totalUsdValue: string;
+                nearBalance: string;
+                defiValue: string;
+            }
+        };
+        error?: string;
+        timestamp: string;
     };
 }

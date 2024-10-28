@@ -1,11 +1,16 @@
 // src/services/investigationWorkflow.ts
-
 import { connect } from "near-api-js";
 import { parseNearAmount } from 'near-api-js/lib/utils/format';
 import { Redis } from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { CONTRACT_ID, NETWORK_ID } from '../constants/contract';
-import { makeNeo4jRequest } from '../utils/auth';
+import { PipelineService } from './pipelineService';
+import { createLogger } from '@/utils/logger';
+import { initInvestigationContract } from '@/constants/contract';
+import { WebhookData } from '@/types/investigation';
+import { WebhookType } from '@/types/webhook';
+
+const logger = createLogger('investigation-workflow');
 
 export interface WorkflowState {
   requestId: string;
@@ -19,28 +24,17 @@ export interface WorkflowState {
   error?: string;
 }
 
-export interface WorkflowResult {
-  status: 'success' | 'error' | 'pending';
-  requestId: string;
-  analysisTaskId?: string;
-  tokenId?: string;
-  error?: string;
-  analysisResult?: any;
-  nftMetadata?: any;
-  stage?: string;
-  progress?: number;
-}
-
 export class InvestigationWorkflow {
   private readonly redis: Redis;
+  private readonly pipelineService: PipelineService;
   private readonly MAX_ATTEMPTS = 3;
-  private readonly ANALYSIS_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 
   constructor() {
     this.redis = new Redis(process.env.REDIS_URL || '');
+    this.pipelineService = new PipelineService();
   }
 
-  async executeFullInvestigation(targetAccount: string, deposit: string): Promise<WorkflowResult> {
+  async startInvestigation(targetAccount: string, deposit: string): Promise<WorkflowState> {
     const requestId = uuidv4();
     const state: WorkflowState = {
       requestId,
@@ -51,165 +45,159 @@ export class InvestigationWorkflow {
       attempts: 0
     };
 
+    await this.saveWorkflowState(state);
+    return state;
+  }
+
+  async processAnalysis(state: WorkflowState) {
     try {
-      // Start contract request
-      const contractResult = await this.handleContractRequest(state, deposit);
+      // Get token for Neo4j API
+      const token = await this.pipelineService.getToken();
+      
+      // Start analysis
+      const { taskId } = await this.pipelineService.startProcessing(
+        state.targetAccount, 
+        token
+      );
+
+      state.analysisTaskId = taskId;
       state.stage = 'ANALYSIS';
       await this.saveWorkflowState(state);
 
-      // Start analysis using the new method
-      const analysis = await makeNeo4jRequest('/v1/analyze', {
-        method: 'POST',
-        body: JSON.stringify({ accountId: targetAccount })
-      });
-
-      const { taskId } = analysis;
-      state.analysisTaskId = taskId;
-      await this.saveWorkflowState(state);
-
-      // Wait for analysis completion
-      const analysisResult = await this.waitForAnalysis(taskId);
-      state.stage = 'COMPLETION';
-      state.analysisResult = analysisResult;
-      await this.saveWorkflowState(state);
-
-      // Complete investigation
-      const completionResult = await this.handleCompletion(state);
-      await this.cleanupWorkflowState(state.requestId);
-
-      return {
-        status: 'success',
-        requestId: state.requestId,
-        analysisTaskId: state.analysisTaskId,
-        tokenId: completionResult.token_id,
-        analysisResult,
-        nftMetadata: completionResult.metadata
-      };
-
+      return taskId;
     } catch (error) {
       state.attempts++;
       state.error = error instanceof Error ? error.message : String(error);
       await this.saveWorkflowState(state);
-      
       throw error;
     }
   }
 
-  async getInvestigationStatus(requestId: string): Promise<WorkflowResult> {
-    const state = await this.getWorkflowState(requestId);
-    if (!state) {
-      throw new Error('Investigation not found');
+  async handleWebhookUpdate(taskId: string, data: WebhookData): Promise<void> {
+    const metadata = await this.prepareMetadataUpdate(data);
+    await this.updateContractMetadata(data.data.requestId, data.data.accountId, metadata);
+  }
+
+  private async prepareMetadataUpdate(data: WebhookData): Promise<{
+    description: string;
+    extra: string;
+    webhookType: WebhookType;
+  }> {
+    switch (data.type) {
+      case 'Progress':
+        return {
+          description: data.data.message || "Processing...",
+          extra: JSON.stringify({
+            progress: data.data.progress,
+            timestamp: data.data.timestamp
+          }),
+          webhookType: 'Progress'
+        };
+
+      case 'Completion':
+        return {
+          description: data.data.result?.shortSummary || "Complete",
+          extra: JSON.stringify({
+            financial_summary: {
+              total_usd_value: data.data.result?.financialData.totalUsdValue || "0",
+              near_balance: data.data.result?.financialData.nearBalance || "0",
+              defi_value: data.data.result?.financialData.defiValue || "0"
+            },
+            analysis_summary: {
+              robust_summary: data.data.result?.robustSummary,
+              short_summary: data.data.result?.shortSummary,
+              transaction_count: data.data.result?.transactionCount || 0,
+              is_bot: data.data.result?.isBot || false
+            }
+          }),
+          webhookType: 'Completion'
+        };
+
+      case 'Error':
+        return {
+          description: data.data.error || "Investigation failed",
+          extra: JSON.stringify({
+            error: data.data.error,
+            timestamp: data.data.timestamp
+          }),
+          webhookType: 'Error'
+        };
+
+      default:
+        throw new Error(`Unsupported webhook type: ${data.type}`);
     }
-
-    return {
-      status: state.error ? 'error' : 'pending',
-      requestId: state.requestId,
-      analysisTaskId: state.analysisTaskId,
-      stage: state.stage,
-      error: state.error,
-      analysisResult: state.analysisResult
-    };
   }
 
-  private async handleContractRequest(state: WorkflowState, deposit: string) {
-    const near = await connect({
-      networkId: NETWORK_ID,
-      nodeUrl: `https://rpc.${NETWORK_ID}.near.org`
-    });
-    const account = await near.account(CONTRACT_ID);
-    
-    const result = await account.functionCall({
-      contractId: CONTRACT_ID,
-      methodName: 'request_investigation',
-      args: { target_account: state.targetAccount },
-      gas: BigInt('300000000000000'),
-      attachedDeposit: BigInt(parseNearAmount(deposit) || '0')
-    });
-
-    return this.parseContractResponse(result);
-  }
-
-  private async handleAnalysis(state: WorkflowState) {
-    state.analysisTaskId = uuidv4();
-    await this.saveWorkflowState(state);
-
-    // Call Neo4j analysis
-    const response = await fetch(`${process.env.NEO4J_API_URL}/analyze`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.NEO4J_API_KEY}`
-      },
-      body: JSON.stringify({ accountId: state.targetAccount })
-    });
-
-    if (!response.ok) {
-      throw new Error('Analysis failed');
+  private async updateContractMetadata(
+    tokenId: string,
+    accountId: string,
+    data: {
+      description: string;
+      extra: string;
+      webhookType: 'Progress' | 'Completion' | 'Error' | 'MetadataReady' | 'Log';
     }
-
-    return response.json();
-  }
-
-  private async handleCompletion(state: WorkflowState) {
+  ) {
+    // Your existing updateContractMetadata implementation
     const near = await connect({
-      networkId: NETWORK_ID,
-      nodeUrl: `https://rpc.${NETWORK_ID}.near.org`
+      networkId: process.env.NEAR_NETWORK_ID!,
+      nodeUrl: `https://rpc.${process.env.NEAR_NETWORK_ID}.near.org`
     });
-    const account = await near.account(CONTRACT_ID);
     
-    const result = await account.functionCall({
-      contractId: CONTRACT_ID,
-      methodName: 'complete_investigation',
+    const account = await near.account(process.env.NEAR_CONTRACT_ID!);
+    const contract = initInvestigationContract(account);
+
+    await contract.update_investigation_metadata({
       args: {
-        request_id: state.requestId,
-        robust_summary: state.analysisResult.robust_summary,
-        short_summary: state.analysisResult.short_summary
+        token_id: tokenId,
+        metadata_update: {
+          description: data.description,
+          extra: data.extra
+        },
+        webhook_type: data.webhookType
       },
-      gas: BigInt('300000000000000'),
-      attachedDeposit: BigInt('50000000000000000000000')
+      gas: '300000000000000'
     });
+  }
 
-    return this.parseContractResponse(result);
+  async getStatus(requestId: string): Promise<WorkflowState | null> {
+    return this.getWorkflowState(requestId);
   }
 
   private async saveWorkflowState(state: WorkflowState) {
     state.lastUpdated = Date.now();
-    await this.redis.hset(`workflow:${state.requestId}`, state);
+    await this.redis.hset(
+      `workflow:${state.requestId}`, 
+      'state', 
+      JSON.stringify(state)
+    );
   }
 
   private async getWorkflowState(requestId: string): Promise<WorkflowState | null> {
-    const state = await this.redis.hgetall(`workflow:${requestId}`);
-    if (Object.keys(state).length === 0) return null;
-
-    return Object.fromEntries(
-      Object.entries(state).map(([k, v]) => [k, JSON.parse(v)])
-    ) as WorkflowState;
+    const data = await this.redis.hget(`workflow:${requestId}`, 'state');
+    return data ? JSON.parse(data) : null;
   }
 
-  private async cleanupWorkflowState(requestId: string) {
-    await this.redis.del(`workflow:${requestId}`);
-  }
-
-  private parseContractResponse(result: any): any {
-    return JSON.parse(Buffer.from(result.status.SuccessValue, 'base64').toString());
-  }
-
-  private async waitForAnalysis(taskId: string) {
-    const maxAttempts = 60;
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        const status = await makeNeo4jRequest(`/v1/status/${taskId}`);
-        
-        if (status.status === 'complete') {
-          return status;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 5000));
-      } catch (error) {
-        console.error(`Attempt ${i + 1} failed:`, error);
-        // Continue trying if it's just a temporary error
-      }
+  private async findStateByTaskId(taskId: string): Promise<WorkflowState | null> {
+    // Implementation to find state by taskId in Redis
+    // You might want to maintain a separate index for this
+    const keys = await this.redis.keys('workflow:*');
+    for (const key of keys) {
+      const state = await this.getWorkflowState(key.split(':')[1]);
+      if (state?.analysisTaskId === taskId) return state;
     }
-    throw new Error('Analysis timeout');
+    return null;
+  }
+
+  public async getStateByTaskId(taskId: string): Promise<WorkflowState | null> {
+    try {
+        const state = await this.getWorkflowState(taskId);
+        return state;
+    } catch (error) {
+        logger.error('Failed to get workflow state', {
+            taskId,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        return null;
+    }
   }
 }

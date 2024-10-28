@@ -1,183 +1,108 @@
-use near_sdk::NearToken;
+#![cfg_attr(not(feature = "std"), no_std)]
+use std::prelude::v1::*;  // Brings in String, Vec, etc.
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap};
-use near_sdk::serde_json::{json, Value};
-use near_sdk::serde::{Serialize, Deserialize};  
-use near_sdk::json_types::U64;  
+use near_sdk::json_types::U64;
 use near_sdk::{
     env, 
     near_bindgen, 
     AccountId, 
-    PanicOnDefault, 
     BorshStorageKey, 
-    PromiseOrValue, 
-    Promise
+    PanicOnDefault,
+    PromiseOrValue,
+    require,
 };
-use near_contract_standards::non_fungible_token::{Token, NonFungibleToken};
-use near_contract_standards::non_fungible_token::core::NonFungibleTokenCore;
-use near_contract_standards::non_fungible_token::NonFungibleTokenResolver;
-use near_contract_standards::non_fungible_token::metadata::{NFTContractMetadata, TokenMetadata};
 
-//pub use crate::metadata::*;
-pub use crate::investigation::{InvestigationRequest, InvestigationStatus, InvestigationData, InvestigationResponse};
-pub use crate::enumeration::*;
+#[macro_use]
+extern crate near_sdk_macros;
+
+// Import abort from env
+use near_sdk::env::panic_str;
+
+use near_sdk::serde::{Serialize, Deserialize};
+use near_sdk::serde_json;
+
+use near_contract_standards::non_fungible_token::metadata::{
+    NFTContractMetadata, TokenMetadata,
+};
+use near_contract_standards::non_fungible_token::{Token, NonFungibleToken, TokenId};
+use near_contract_standards::non_fungible_token::core::NonFungibleTokenCore;
+
+
+pub use crate::investigation::*;
+
 pub use crate::events::*;
+pub use crate::webhook_mappings::*;
 
 mod metadata;
 mod investigation;
 mod enumeration;
 mod events;
+mod webhook_mappings;
 
+// Constants
 pub const NFT_METADATA_SPEC: &str = "nft-1.0.0";
 pub const NFT_STANDARD_NAME: &str = "nep171";
 pub const DEFAULT_ICON_URL: &str = "https://gateway.pinata.cloud/ipfs/QmYkT5eNLePKnvw9vLXNdLxFynp8amKUPaPZ74LhQxxdpu";
 pub const DEFAULT_NFT_IMAGE_URL: &str = "https://gateway.pinata.cloud/ipfs/QmSNycrd5gWH7QAFKBVvKaT58c5S6B1tq9ScHP7thxvLWM";
-pub const QUERY_COST: NearToken = NearToken::from_yoctonear(1_000_000_000_000_000_000_000_000); // 1 NEAR
 
-pub type TokenId = String;
-
-// Update the InvestigationStatus enum
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, Debug)]
-#[serde(crate = "near_sdk::serde")]
-pub enum InvestigationStatus {
-    Queued,
-    Processing,
-    Complete,
-    Error
-}
-
-// Update the InvestigationProgress struct
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct InvestigationProgress {
-    pub status: InvestigationStatus,
-    pub progress: u8,
-    pub current_step: String,
-    pub start_time: U64,
-    pub last_updated: U64,
-}
-
-// Update the InvestigationRequest struct
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct InvestigationRequest {
-    pub requester: AccountId,
-    pub target_account: AccountId,
-    pub timestamp: U64,
-    pub status: InvestigationStatus,
-    pub task_id: Option<String>,
-    pub webhook_url: Option<String>,
-}
-
-// Add InvestigationResponse struct
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct InvestigationResponse {
-    pub request_id: String,
-    pub is_existing: bool,
-    pub status_link: Option<String>,
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct InvestigationProgress {
-    pub status: InvestigationStatus,
-    pub start_time: U64,
-    pub last_updated: U64,
-    pub progress_message: Option<String>
-}
-
-#[derive(BorshSerialize, BorshStorageKey)]
+#[derive(BorshSerialize, BorshDeserialize, BorshStorageKey)]
 pub enum StorageKey {
     NonFungibleToken,
     TokenMetadata,
-    Enumeration,
-    TokensPerOwner,
-    TokenPerOwnerInner { account_hash: Vec<u8> },
-    InvestigationData,
-    InvestigatedAccounts,
-    PendingInvestigations,
-    InvestigationProgress,
-    NFTContractMetadata,
+    TokenEnumeration,
     Approvals,
+    ContractMetadata,
+    InvestigationStatus { hash: Vec<u8> },
+    FailedMints { hash: Vec<u8> },
+    InvestigatedAccounts { hash: Vec<u8> },
+    PendingInvestigations { hash: Vec<u8> },
+}
+
+impl StorageKey {
+    pub fn for_investigation_status(account_id: &AccountId) -> Self {
+        Self::InvestigationStatus {
+            hash: env::sha256(account_id.as_bytes())
+        }
+    }
+
+    pub fn for_failed_mints(account_id: &AccountId) -> Self {
+        Self::FailedMints {
+            hash: env::sha256(account_id.as_bytes())
+        }
+    }
+
+    pub fn for_investigated_accounts(account_id: &AccountId) -> Self {
+        Self::InvestigatedAccounts {
+            hash: env::sha256(account_id.as_bytes())
+        }
+    }
+
+    pub fn for_pending_investigations(account_id: &AccountId) -> Self {
+        Self::PendingInvestigations {
+            hash: env::sha256(account_id.as_bytes())
+        }
+    }
 }
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
-    pub version: u32,  // Add version for migration management
     pub owner_id: AccountId,
-    pub case_number_counter: u64,
     pub tokens: NonFungibleToken,
-    pub investigation_data_by_id: UnorderedMap<TokenId, InvestigationData>,
-    pub investigated_accounts: LookupMap<AccountId, TokenId>,
-    pub pending_investigations: UnorderedMap<String, InvestigationRequest>,
     pub metadata: LazyOption<NFTContractMetadata>,
-    pub icon_url: String,
-    pub nft_image_url: String,
-    pub investigation_progress: UnorderedMap<String, InvestigationProgress>,
-}
-
-fn parse_metadata_summary(summary: &str) -> Value {
-    let mut parsed = json!({
-        "raw_data": summary,
-        "parsed_fields": {
-            "account_id": "",
-            "created_date": "",
-            "last_updated": "",
-            "transaction_count": "",
-            "total_usd_value": "",
-            "defi_value": "",
-            "near_balance": "",
-            "usdc_balance": "",
-            "neko_balance": "",
-            "is_bot": "",
-            "eth_address": "",
-            "top_interactions": "",
-            "nft_activity": "",
-            "cross_chain": "",
-            "trading_activity": ""
-        }
-    });
-
-    // Extract from Neo4j-friendly format
-    for pair in summary.split(";") {
-        if let Some((key, value)) = pair.split_once(":") {
-            let clean_key = key.trim()
-                .replace("**Neo4j-Friendly Metadata Summary:**", "")
-                .trim()
-                .to_string();
-            let clean_value = value.trim().to_string();
-            
-            match clean_key.as_str() {
-                "Account ID" => parsed["parsed_fields"]["account_id"] = json!(clean_value),
-                "Created" => parsed["parsed_fields"]["created_date"] = json!(clean_value),
-                "Last Updated" => parsed["parsed_fields"]["last_updated"] = json!(clean_value),
-                "Transaction Count" => parsed["parsed_fields"]["transaction_count"] = json!(clean_value),
-                "Total USD Value" => parsed["parsed_fields"]["total_usd_value"] = json!(clean_value),
-                "DeFi Value" => parsed["parsed_fields"]["defi_value"] = json!(clean_value),
-                "NEAR Balance" => parsed["parsed_fields"]["near_balance"] = json!(clean_value),
-                "USDC Balance" => parsed["parsed_fields"]["usdc_balance"] = json!(clean_value),
-                "NEKO Balance" => parsed["parsed_fields"]["neko_balance"] = json!(clean_value),
-                "Not a Bot" => parsed["parsed_fields"]["is_bot"] = json!("false"),
-                "Probable Ethereum Address" => parsed["parsed_fields"]["eth_address"] = json!(clean_value),
-                "Top Interactions" => parsed["parsed_fields"]["top_interactions"] = json!(clean_value),
-                "NFT Activity" => parsed["parsed_fields"]["nft_activity"] = json!(clean_value),
-                "Cross-Chain" => parsed["parsed_fields"]["cross_chain"] = json!(clean_value),
-                _ => if clean_key.contains("trading") { 
-                    parsed["parsed_fields"]["trading_activity"] = json!(clean_value)
-                }
-            }
-        }
-    }
-
-    parsed
+    pub case_number_counter: u64,
+    pub investigated_accounts: LookupMap<AccountId, TokenId>,
+    pub investigation_status: UnorderedMap<TokenId, InvestigationStatus>,
+    pub failed_mints: UnorderedMap<TokenId, InvestigationMetadata>,
 }
 
 #[near_bindgen]
 impl Contract {
     #[init]
     pub fn new(owner_id: AccountId) -> Self {
+        require!(!env::state_exists(), "Already initialized");
+        
         let metadata = NFTContractMetadata {
             spec: NFT_METADATA_SPEC.to_string(),
             name: "Chain Sleuth".to_string(),
@@ -190,490 +115,297 @@ impl Contract {
         metadata.assert_valid();
 
         Self {
-            version: 1, // Initial version
-            owner_id: owner_id.clone(),
             tokens: NonFungibleToken::new(
                 StorageKey::NonFungibleToken,
-                owner_id,
+                owner_id.clone(),
                 Some(StorageKey::TokenMetadata),
-                Some(StorageKey::Enumeration),
+                Some(StorageKey::TokenEnumeration),
                 Some(StorageKey::Approvals),
             ),
-            investigation_data_by_id: UnorderedMap::new(StorageKey::InvestigationData),
-            investigated_accounts: LookupMap::new(StorageKey::InvestigatedAccounts),
-            pending_investigations: UnorderedMap::new(StorageKey::PendingInvestigations),
-            metadata: LazyOption::new(StorageKey::NFTContractMetadata, Some(&metadata)),
+            metadata: LazyOption::new(
+                StorageKey::ContractMetadata,
+                Some(&metadata)
+            ),
+            owner_id,
             case_number_counter: 0,
-            icon_url: DEFAULT_ICON_URL.to_string(),
-            nft_image_url: DEFAULT_NFT_IMAGE_URL.to_string(),
-            investigation_progress: UnorderedMap::new(StorageKey::InvestigationProgress),
+            investigated_accounts: LookupMap::new(
+                StorageKey::InvestigatedAccounts { 
+                    hash: vec![] 
+                }
+            ),
+            investigation_status: UnorderedMap::new(
+                StorageKey::InvestigationStatus { 
+                    hash: vec![] 
+                }
+            ),
+            failed_mints: UnorderedMap::new(
+                StorageKey::FailedMints { 
+                    hash: vec![] 
+                }
+            ),
         }
     }
 
-    // Add migration method for future updates
-    #[private]
-    pub fn migrate(&mut self) -> bool {
-        assert_eq!(
-            env::predecessor_account_id(),
-            self.owner_id,
-            "Only owner can migrate contract"
-        );
-        match self.version {
-            1 => {
-                // Future migration code from version 1 to 2
-                self.version = 2;
-                true
-            }
-            _ => false
-        }
-    }
-
-    // Update the request_investigation method
     #[payable]
-    pub fn request_investigation(&mut self, target_account: AccountId) -> InvestigationResponse {
-        // Validate input
-        assert!(
-            env::is_valid_account_id(target_account.as_bytes()),
-            "Invalid target account ID"
-        );
-
-        let request_id = format!("inv-{}-{}", env::block_timestamp(), target_account);
-        
-        // Check for existing investigation
+    #[handle_result]
+    pub fn start_investigation(&mut self, target_account: AccountId) -> Result<InvestigationResponse, near_sdk::Abort> {
+        // Check if investigation already exists
         if let Some(token_id) = self.investigated_accounts.get(&target_account) {
-            if env::attached_deposit() > NearToken::from_yoctonear(0) {
-                Promise::new(env::predecessor_account_id()).transfer(env::attached_deposit());
-            }
-            return InvestigationResponse {
-                request_id: token_id,
-                is_existing: true,
-                status_link: None
-            };
+            return Ok(InvestigationResponse {
+                request_id: token_id.clone(),
+                status: self.investigation_status.get(&token_id).unwrap_or(InvestigationStatus::Failed),
+                message: Some("Investigation already exists".to_string()),
+            });
         }
 
-        // Verify payment
-        assert!(
-            env::attached_deposit() >= QUERY_COST,
-            "Insufficient deposit. Required: {} NEAR, Provided: {} NEAR",
-            QUERY_COST.as_near(),
-            env::attached_deposit().as_near()
-        );
-
-        // Create new investigation request
-        let request = InvestigationRequest {
-            requester: env::predecessor_account_id(),
-            target_account: target_account.clone(),
-            timestamp: U64(env::block_timestamp()),
-            status: InvestigationStatus::Queued,
-            task_id: None,
-            webhook_url: None,
-        };
-
-        self.pending_investigations.insert(&request_id, &request);
-        
-        // Initialize progress tracking
-        self.investigation_progress.insert(&request_id, &InvestigationProgress {
-            status: InvestigationStatus::Queued,
-            progress: 0,
-            current_step: "Investigation queued".to_string(),
-            start_time: U64(env::block_timestamp()),
-            last_updated: U64(env::block_timestamp()),
-        });
-
-        InvestigationResponse {
-            request_id: request_id.clone(),
-            is_existing: false,
-            status_link: Some(format!("/api/near-contract/status/{}", request_id))
-        }
-    }
-
-    // Add the update_investigation_progress method
-    pub fn update_investigation_progress(
-        &mut self,
-        request_id: String,
-        task_id: Option<String>,
-        status: InvestigationStatus,
-        progress: u8,
-        current_step: String
-    ) {
-        // Only contract owner can update progress
-        assert_eq!(
-            env::predecessor_account_id(),
-            self.owner_id,
-            "Only owner can update progress"
-        );
-
-        // Update request task_id if provided
-        if let Some(task_id) = task_id {
-            if let Some(mut request) = self.pending_investigations.get(&request_id) {
-                request.task_id = Some(task_id);
-                self.pending_investigations.insert(&request_id, &request);
-            }
-        }
-
-        // Update progress
-        let progress_update = InvestigationProgress {
-            status: status.clone(),
-            progress,
-            current_step,
-            start_time: self.investigation_progress
-                .get(&request_id)
-                .map(|p| p.start_time)
-                .unwrap_or(U64(env::block_timestamp())),
-            last_updated: U64(env::block_timestamp()),
-        };
-
-        self.investigation_progress.insert(&request_id, &progress_update);
-
-        env::log_str(&format!(
-            "Investigation progress updated - Request ID: {}, Status: {:?}, Progress: {}%",
-            request_id, status, progress
-        ));
-    }
-
-    // Update the complete_investigation method
-    #[payable]
-    pub fn complete_investigation(
-        &mut self,
-        request_id: String,
-        robust_summary: String,
-        short_summary: String,
-    ) -> (TokenId, String) {
-        // Only allow completion if status is Complete
-        let progress = self.investigation_progress.get(&request_id)
-            .expect("Investigation not found");
-        
-        assert!(
-            matches!(progress.status, InvestigationStatus::Complete),
-            "Investigation is not ready for completion"
-        );
-
-        let request = self.pending_investigations.get(&request_id)
-            .expect("Investigation request not found");
-
-        // Allow either the contract owner or the original requester to complete the investigation
-        assert!(
-            env::predecessor_account_id() == self.owner_id || env::predecessor_account_id() == request.requester,
-            "Unauthorized: Only owner or original requester can complete investigations"
-        );
-
-        // Validate summaries
-        assert!(!robust_summary.is_empty(), "Robust summary cannot be empty");
-        assert!(!short_summary.is_empty(), "Short summary cannot be empty");
-
-        // Check for existing token
-        assert!(
-            !self.investigated_accounts.contains_key(&request.target_account),
-            "Investigation already exists for account: {}",
-            request.target_account
-        );
-
+        // Generate case number and token ID
         let case_number = self.case_number_counter + 1;
         self.case_number_counter = case_number;
-        
-        let token_id = format!("case-file-{}-{}", case_number, request.target_account);
-        let current_timestamp = env::block_timestamp().to_string();
+        let token_id = format!("Case File #{}: {}", case_number, target_account);
 
-        // Parse the Neo4j-friendly short summary
-        let parsed_metadata = parse_metadata_summary(&short_summary);
-        
-        // Helper functions for cleaning and parsing values
-        let clean_currency = |value: &str| -> f64 {
-            value.replace("$", "")
-                 .replace(",", "")
-                 .parse()
-                 .unwrap_or(0.0)
-        };
-
-        let clean_count = |value: &str| -> u64 {
-            value.replace(",", "")
-                 .parse()
-                 .unwrap_or(0)
-        };
-
-        let token_metadata = TokenMetadata {
-            title: Some(format!("Case File #{}: {}", case_number, request.target_account)),
-            description: Some(robust_summary.clone()), // Using comprehensive summary for description
-            media: Some(self.nft_image_url.clone()), // Use the stored NFT image URL
+        // Create initial metadata
+        let metadata = TokenMetadata {
+            title: Some(format!("Case File #{}: {}", case_number, target_account)),
+            description: Some("Investigation in progress...".to_string()),
+            media: Some(DEFAULT_NFT_IMAGE_URL.to_string()),
             media_hash: None,
             copies: Some(1),
-            issued_at: Some(current_timestamp.clone()),
+            issued_at: Some(env::block_timestamp().to_string()),
             expires_at: None,
             starts_at: None,
-            updated_at: Some(current_timestamp.clone()),
-            extra: Some(json!({
-                "case_number": case_number,
-                "investigated_account": request.target_account.to_string(),
-                "investigator": request.requester.to_string(),
-                "investigation_date": current_timestamp,
-                "summaries": {
-                    "robust_summary": robust_summary,
-                    "short_summary": short_summary
+            updated_at: Some(env::block_timestamp().to_string()),
+            extra: Some(serde_json::to_string(&InvestigationMetadata {
+                case_number,
+                target_account: target_account.clone(),
+                requester: env::predecessor_account_id(),
+                investigation_date: U64(env::block_timestamp()),
+                last_updated: U64(env::block_timestamp()),
+                status: InvestigationStatus::Pending,
+                financial_summary: FinancialSummary {
+                    total_usd_value: "0".to_string(),
+                    near_balance: "0".to_string(),
+                    defi_value: "0".to_string(),
                 },
-                "parsed_data": parsed_metadata
-            }).to_string()),
+                analysis_summary: AnalysisSummary {
+                    robust_summary: None,
+                    short_summary: None,
+                    transaction_count: 0,
+                    is_bot: false,
+                },
+            }).unwrap()),
             reference: None,
             reference_hash: None,
         };
 
-        // Store NFT data
+        // Directly call internal_mint
         self.tokens.internal_mint(
             token_id.clone(),
-            request.target_account.clone(),
-            Some(token_metadata),
+            target_account.clone(),
+            Some(metadata.clone())
         );
 
-        // Create investigation data from parsed fields
-        let investigation_data = InvestigationData {
-            subject_account: request.target_account.clone(),
-            investigator: request.requester,
-            creation_date: env::block_timestamp(),
-            last_updated: env::block_timestamp(),
-            transaction_count: clean_count(
-                parsed_metadata["parsed_fields"]["transaction_count"]
-                    .as_str()
-                    .unwrap_or("0")
-            ),
-            total_usd_value: clean_currency(
-                parsed_metadata["parsed_fields"]["total_usd_value"]
-                    .as_str()
-                    .unwrap_or("0.0")
-            ),
-            defi_value: Some(clean_currency(
-                parsed_metadata["parsed_fields"]["defi_value"]
-                    .as_str()
-                    .unwrap_or("0.0")
-            )),
-            near_balance: Some(clean_currency(
-                parsed_metadata["parsed_fields"]["near_balance"]
-                    .as_str()
-                    .unwrap_or("0.0")
-            )),
-            reputation_score: None,
-            eth_address: Some(
-                parsed_metadata["parsed_fields"]["eth_address"]
-                    .as_str()
-                    .unwrap_or("N/A")
-                    .to_string()
-            ),
-            summary: short_summary.clone(),
-        };
+        // Update tracking
+        self.investigated_accounts.insert(&target_account, &token_id);
+        self.investigation_status.insert(&token_id, &InvestigationStatus::Pending);
 
-        self.investigation_data_by_id.insert(&token_id, &investigation_data);
-        self.investigated_accounts.insert(&request.target_account, &token_id);
-        self.pending_investigations.remove(&request_id);
+        // Log event
+        InvestigationEvent::Started {
+            target_account: target_account.to_string(),
+            token_id: token_id.clone(),
+            case_number,
+            timestamp: U64(env::block_timestamp()),
+        }.log();
 
-        env::log_str(&format!(
-            "Investigation successfully completed - Account: {}, Token ID: {}, Case #{}",
-            request.target_account, token_id, case_number
-        ));
-
-        (token_id, robust_summary)
+        Ok(InvestigationResponse {
+            request_id: token_id,
+            status: InvestigationStatus::Pending,
+            message: None,
+        })
     }
 
-    // View methods
-    pub fn get_investigation_status(&self, request_id: String) -> Option<InvestigationStatus> {
-        self.pending_investigations.get(&request_id).map(|req| req.status)
-    }
-
-    pub fn get_investigation_result(&self, target_account: AccountId) -> Option<(String, String)> {
-        if let Some(token_id) = self.investigated_accounts.get(&target_account) {
-            if let Some(token) = self.nft_token(token_id) {
-                if let Some(metadata) = token.metadata {
-                    return Some((
-                        metadata.description.unwrap_or_default(),
-                        metadata.extra.unwrap_or_default(),
-                    ));
-                }
-            }
-        }
-        None
-    }
-    
-    // Fix for update_investigation_status method
-    pub fn update_investigation_status(
+    pub fn update_investigation_metadata(
         &mut self,
-        request_id: String,
-        status: InvestigationStatus,
-    ) {
+        token_id: TokenId,
+        metadata_update: MetadataUpdate,
+        webhook_type: WebhookType,
+    ) -> bool {
+        // Only owner can update metadata
         assert_eq!(
             env::predecessor_account_id(),
             self.owner_id,
-            "Only owner can update status"
+            "Only contract owner can update metadata"
         );
-    
-        let mut request = self.pending_investigations.get(&request_id)
-            .expect("Investigation request not found");
+
+        let token = self.tokens.nft_token(token_id.clone())
+            .expect("Token not found");
         
-        // Clone status for the log message
-        let status_clone = status.clone();
-        request.status = status;
-        self.pending_investigations.insert(&request_id, &request);
-    
-        env::log_str(&format!(
-            "Investigation status updated: {} -> {:?}",
-            request_id, status_clone
-        ));
+        let mut token_metadata = token.metadata
+            .expect("No metadata found");
+
+        // Update metadata
+        if let Some(description) = metadata_update.description {
+            token_metadata.description = Some(description);
+        }
+
+        // Parse and update extra data
+        if let Some(current_extra) = token_metadata.extra.as_ref() {
+            let mut extra: InvestigationMetadata = serde_json::from_str(current_extra)
+                .expect("Invalid metadata format");
+
+            // Update with new data
+            let update_data: InvestigationMetadata = serde_json::from_str(&metadata_update.extra)
+                .expect("Invalid update data format");
+
+            extra.last_updated = U64(env::block_timestamp());
+            extra.status = InvestigationStatus::from(webhook_type.clone());  // Update status based on webhook
+            extra.financial_summary = update_data.financial_summary;
+            extra.analysis_summary = update_data.analysis_summary;
+
+            token_metadata.extra = Some(serde_json::to_string(&extra).unwrap());
+            token_metadata.updated_at = Some(env::block_timestamp().to_string());
+        }
+
+        // Update token metadata
+        self.tokens.token_metadata_by_id.as_mut()
+            .unwrap()
+            .insert(&token_id, &token_metadata);
+
+        // Update status
+        self.investigation_status.insert(&token_id, &InvestigationStatus::Completed);
+
+        // Log event
+        InvestigationEvent::MetadataUpdated {
+            token_id: token_id.clone(),
+            timestamp: U64(env::block_timestamp()),
+        }.log();
+
+        true
+    }
+
+    #[payable]
+    #[handle_result]
+    pub fn retry_investigation(&mut self, token_id: TokenId) -> Result<bool, near_sdk::Abort> {
+        // Only owner can retry
+        if env::predecessor_account_id() != self.owner_id {
+            return Err(panic_str("Only contract owner can retry investigations"));
+        }
+
+        let failed_metadata = self.failed_mints.get(&token_id)
+            .expect("No failed mint found for retry");
+
+        // Create token metadata
+        let token_metadata = TokenMetadata {
+            title: Some(format!("Case File #{}: {}", failed_metadata.case_number, failed_metadata.target_account)),
+            description: Some("Investigation in progress...".to_string()),
+            media: Some(DEFAULT_NFT_IMAGE_URL.to_string()),
+            media_hash: None,
+            copies: Some(1),
+            issued_at: Some(env::block_timestamp().to_string()),
+            expires_at: None,
+            starts_at: None,
+            updated_at: Some(env::block_timestamp().to_string()),
+            extra: Some(serde_json::to_string(&failed_metadata).unwrap()),
+            reference: None,
+            reference_hash: None,
+        };
+
+        // Directly call internal_mint
+        self.tokens.internal_mint(
+            token_id.clone(),
+            failed_metadata.target_account.clone(),
+            Some(token_metadata)
+        );
+
+        // Update tracking
+        self.investigated_accounts.insert(&failed_metadata.target_account, &token_id);
+        self.investigation_status.insert(&token_id, &InvestigationStatus::Pending);
+        self.failed_mints.remove(&token_id);
+
+        // Log event
+        InvestigationEvent::RetryAttempted {
+            token_id: token_id.clone(),
+            attempt: 1, // Could track multiple attempts if needed
+            timestamp: U64(env::block_timestamp()),
+        }.log();
+
+        Ok(true)
+    }
+
+    // View methods
+    pub fn get_investigation_status(&self, token_id: TokenId) -> Option<InvestigationStatus> {
+        self.investigation_status.get(&token_id)
+    }
+
+    pub fn get_investigation_by_account(&self, account_id: AccountId) -> Option<Token> {
+        if let Some(token_id) = self.investigated_accounts.get(&account_id) {
+            self.tokens.nft_token(token_id)
+        } else {
+            None
+        }
     }
 
     pub fn nft_metadata(&self) -> NFTContractMetadata {
         self.metadata.get().unwrap()
     }
-
-    pub fn get_token_full_metadata(&self, token_id: TokenId) -> Option<(TokenMetadata, InvestigationData)> {
-        if let Some(token) = self.tokens.nft_token(token_id.clone()) {
-            if let Some(metadata) = token.metadata {
-                if let Some(investigation_data) = self.investigation_data_by_id.get(&token_id) {
-                    return Some((metadata, investigation_data));
-                }
-            }
-        }
-        None
-    }
-
-    pub fn nft_contract_metadata(&self) -> NFTContractMetadata {
-        self.metadata.get().unwrap()
-    }
-
-    pub fn nft_mint_info(&self, token_id: TokenId) -> Option<(String, String, String)> {
-        if let Some(token) = self.nft_token(token_id) {
-            if let Some(metadata) = token.metadata {
-                return Some((
-                    metadata.title.unwrap_or_default(),
-                    metadata.description.unwrap_or_default(),
-                    metadata.extra.unwrap_or_default()
-                ));
-            }
-        }
-        None
-    }
-
-    pub fn get_investigation_details(&self, token_id: TokenId) -> Option<(TokenMetadata, InvestigationData)> {
-        if let Some(token) = self.nft_token(token_id.clone()) {
-            if let Some(metadata) = token.metadata {
-                if let Some(investigation_data) = self.investigation_data_by_id.get(&token_id) {
-                    return Some((metadata, investigation_data));
-                }
-            }
-        }
-        None
-    }
-
-    pub fn update_icon_url(&mut self, new_url: String) {
-        assert_eq!(
-            env::predecessor_account_id(),
-            self.owner_id,
-            "Only the owner can update the icon URL"
-        );
-        self.icon_url = new_url;
-    }
-
-    pub fn update_nft_image_url(&mut self, new_url: String) {
-        assert_eq!(
-            env::predecessor_account_id(),
-            self.owner_id,
-            "Only the owner can update the NFT image URL"
-        );
-        self.nft_image_url = new_url;
-    }
-
-    // View method to check contract version and state
-    pub fn get_contract_info(&self) -> Value {
-        json!({
-            "version": self.version,
-            "owner_id": self.owner_id,
-            "total_cases": self.case_number_counter,
-            "metadata": self.metadata.get().unwrap()
-        })
-    }
-
-    pub fn update_investigation_progress(
-        &mut self,
-        request_id: String,
-        status: InvestigationStatus,
-        message: Option<String>
-    ) {
-        let request = self.pending_investigations.get(&request_id)
-            .expect("Investigation not found");
-            
-        assert!(
-            env::predecessor_account_id() == self.owner_id || 
-            env::predecessor_account_id() == request.requester,
-            "Unauthorized to update progress"
-        );
-        
-        let progress = InvestigationProgress {
-            status,
-            start_time: request.timestamp,
-            last_updated: U64(env::block_timestamp()),
-            progress_message: message
-        };
-        
-        self.investigation_progress.insert(&request_id, &progress);
-
-        env::log_str(&format!(
-            "Investigation progress updated - Request ID: {}, Status: {:?}",
-            request_id, status
-        ));
-    }
-
-    pub fn get_investigation_progress(&self, request_id: String) -> Option<InvestigationProgress> {
-        self.investigation_progress.get(&request_id)
-    }
-
-    pub fn list_pending_investigations(&self) -> Vec<(String, InvestigationProgress)> {
-        self.investigation_progress
-            .iter()
-            .collect()
-    }
 }
 
-#[near_bindgen]
-impl NonFungibleTokenCore for Contract {
-    #[payable]
-    fn nft_transfer(
-        &mut self,
-        receiver_id: AccountId,
-        token_id: TokenId,
-        approval_id: Option<u64>,
-        memo: Option<String>,
-    ) {
-        self.tokens.nft_transfer(receiver_id, token_id, approval_id, memo)
+    #[near_bindgen]
+    impl NonFungibleTokenCore for Contract {
+        #[payable]
+        fn nft_transfer(
+            &mut self,
+            receiver_id: AccountId,
+            token_id: TokenId,
+            approval_id: Option<u64>,
+            memo: Option<String>,
+        ) {
+            self.tokens.nft_transfer(receiver_id, token_id, approval_id, memo)
+        }
+    
+        #[payable]
+        fn nft_transfer_call(
+            &mut self,
+            receiver_id: AccountId,
+            token_id: TokenId,
+            approval_id: Option<u64>,
+            memo: Option<String>,
+            msg: String,
+        ) -> PromiseOrValue<bool> {
+            self.tokens.nft_transfer_call(receiver_id, token_id, approval_id, memo, msg)
+        }
+    
+        fn nft_token(&self, token_id: TokenId) -> Option<Token> {
+            self.tokens.nft_token(token_id)
+        }
     }
 
-    #[payable]
-    fn nft_transfer_call(
-        &mut self,
-        receiver_id: AccountId,
-        token_id: TokenId,
-        approval_id: Option<u64>,
-        memo: Option<String>,
-        msg: String,
-    ) -> PromiseOrValue<bool> {
-        self.tokens.nft_transfer_call(receiver_id, token_id, approval_id, memo, msg)
+#[cfg(test)]
+#[cfg(feature = "test-utils")]
+mod tests {
+    use super::*;
+    use near_sdk::test_utils::accounts;
+    use near_sdk::test_utils::VMContextBuilder;
+    use near_sdk::testing_env;
+
+    fn get_context() -> VMContextBuilder {
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id(accounts(0))
+            .signer_account_id(accounts(0))
+            .predecessor_account_id(accounts(0));
+        builder
     }
 
-    fn nft_token(&self, token_id: TokenId) -> Option<Token> {
-        self.tokens.nft_token(token_id)
-    }
-}
+    #[test]
+    fn test_new() {
+        let context = get_context();
+        testing_env!(context.build());
 
-#[near_bindgen]
-impl NonFungibleTokenResolver for Contract {
-    #[private]
-    fn nft_resolve_transfer(
-        &mut self,
-        previous_owner_id: AccountId,
-        receiver_id: AccountId,
-        token_id: TokenId,
-        approved_account_ids: Option<std::collections::HashMap<AccountId, u64>>,
-    ) -> bool {
-        self.tokens.nft_resolve_transfer(
-            previous_owner_id,
-            receiver_id,
-            token_id,
-            approved_account_ids
-        )
+        let contract = Contract::new(accounts(0));
+        assert_eq!(contract.owner_id, accounts(0));
+        assert_eq!(contract.case_number_counter, 0);
     }
+
+    // Additional tests can be added here
 }
 
