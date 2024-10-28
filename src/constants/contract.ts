@@ -24,8 +24,11 @@ export const DEFAULT_NFT_IMAGE = process.env.NEXT_PUBLIC_DEFAULT_NFT_IMAGE_URL |
 
 // Contract methods
 export const CONTRACT_METHODS = {
-  START_INVESTIGATION: 'start_investigation',
-  UPDATE_INVESTIGATION_METADATA: 'update_investigation_metadata',
+    START_INVESTIGATION: 'start_investigation',
+    UPDATE_INVESTIGATION_METADATA: 'update_investigation_metadata',
+    NFT_TOKEN: 'nft_token',
+    NFT_TOKENS_FOR_OWNER: 'nft_tokens_for_owner',
+    NFT_TOTAL_SUPPLY: 'nft_total_supply'
 } as const;
 
 // Contract interface
@@ -60,7 +63,11 @@ export function initInvestigationContract(
         account,
         contractId,
         {
-            viewMethods: ['nft_token'],
+            viewMethods: [
+                CONTRACT_METHODS.NFT_TOKEN,
+                CONTRACT_METHODS.NFT_TOKENS_FOR_OWNER,
+                CONTRACT_METHODS.NFT_TOTAL_SUPPLY
+            ],
             changeMethods: [
                 CONTRACT_METHODS.START_INVESTIGATION,
                 CONTRACT_METHODS.UPDATE_INVESTIGATION_METADATA
@@ -140,4 +147,4 @@ console.log('[CONTRACT] Exported CONTRACT_ID:', CONTRACT_ID);
 console.log('[CONTRACT] Exported NETWORK_ID:', NETWORK_ID);
 
 // Placeholder for contract constants
-export const DEFAULT_METHOD_NAMES = {};
+export const DEFAULT_METHOD_NAMES = Object.values(CONTRACT_METHODS);

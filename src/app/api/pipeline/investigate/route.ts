@@ -1,36 +1,21 @@
 // src/app/api/pipeline/investigate/route.ts
 
 import { NextResponse } from 'next/server';
-import { Contract, connect, Account } from 'near-api-js';  // Added Account import
+import { connect } from 'near-api-js';  // Simplified import
 import { Redis } from 'ioredis';
 import { PipelineService } from '@/services/pipelineService';
-import { createLogger } from '@/utils/logger';  // Add logger if you want error logging
+import { createLogger } from '@/utils/logger';
+import { 
+    initInvestigationContract, 
+    InvestigationContract,  // Import the interface
+    CONTRACT_METHODS 
+} from '@/constants/contract';
 
 const pipelineService = new PipelineService();
 const redis = new Redis(process.env.REDIS_URL || '');
 const logger = createLogger('pipeline-route');
 
-// Add type for contract methods
-interface InvestigationContract {
-    start_investigation: (args: {
-        args: {
-            target_account: string;
-        };
-        gas: string;
-    }) => Promise<{ taskId: string }>;
-    update_investigation_metadata: (args: {
-        args: {
-            task_id: string;
-            metadata_update: {
-                description?: string;
-                extra?: string;
-            };
-        };
-        gas: string;
-    }) => Promise<void>;
-}
-
-// Add type for ProcessingResponse from PipelineService
+// Only keep the ProcessingResponse interface
 interface ProcessingResponse {
     taskId: string;
     statusLink: string;
@@ -43,26 +28,15 @@ interface ProcessingResponse {
 export async function POST(request: Request) {
     try {
         const { accountId } = await request.json() as { accountId: string };
-        
-        // Get token for API calls
         const token = await pipelineService.getToken();
 
-        // Start the investigation on NEAR contract first
         const near = await connect({
             networkId: process.env.NEAR_NETWORK_ID!,
             nodeUrl: `https://rpc.${process.env.NEAR_NETWORK_ID}.near.org`
         });
         
         const nearAccount = await near.account(process.env.NEAR_CONTRACT_ID!);
-        const contract = new Contract(
-            nearAccount,
-            process.env.NEAR_CONTRACT_ID!,
-            {
-                viewMethods: ['nft_token'],
-                changeMethods: ['start_investigation'],
-                useLocalViewExecution: false // or true, depending on your requirement
-            }
-        ) as unknown as InvestigationContract;
+        const contract = initInvestigationContract(nearAccount);
 
         // This will mint placeholder NFT and return taskId
         const { taskId } = await contract.start_investigation({

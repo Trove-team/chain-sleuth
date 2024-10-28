@@ -52,7 +52,7 @@ export const WalletSelectorContextProvider: React.FC<{ children: React.ReactNode
       
       const _modal = setupModal(_selector, {
         contractId: CONTRACT_ID,
-        methodNames: DEFAULT_METHOD_NAMES,
+        methodNames: DEFAULT_METHOD_NAMES, // This will now be properly typed as string[]
       });
 
       const state = _selector.store.getState();
