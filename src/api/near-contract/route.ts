@@ -1,158 +1,153 @@
-// File: src/api/near-contract/route.ts
+// src/api/near-contract/route.ts
 
 import { Elysia, t } from "elysia";
-import { connect, keyStores, Contract, Account } from "near-api-js";
+import { Redis } from 'ioredis';
+import { InvestigationWorkflow } from '../../services/investigationWorkflow';
+import { createLogger } from '../../utils/logger';
 
-const CONTRACT_ID = process.env.NEAR_CONTRACT_ID || "";
-const NETWORK_ID = process.env.NEAR_NETWORK || "testnet";
-
-const config = {
-  networkId: NETWORK_ID,
-  keyStore: new keyStores.InMemoryKeyStore(),
-  nodeUrl: `https://rpc.${NETWORK_ID}.near.org`,
-  walletUrl: `https://wallet.${NETWORK_ID}.near.org`,
-  helperUrl: `https://helper.${NETWORK_ID}.near.org`,
-  explorerUrl: `https://explorer.${NETWORK_ID}.near.org`,
+// Configuration
+const RATE_LIMIT = {
+  WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+  MAX_REQUESTS: 100
 };
 
-// Define types for metadata and NFT token
-interface NFTMetadata {
-  title: string;
-  description: string;
-  media: string;
-  summary: string;
-  queried_name: string;
-  querier: string;
-  reputation_score: number;
-}
+// Setup
+const redis = new Redis(process.env.REDIS_URL || '');
+const logger = createLogger('near-contract-routes');
+const workflow = new InvestigationWorkflow();
 
-interface NFTToken {
-  token_id: string;
-  owner_id: string;
-  metadata: NFTMetadata;
-}
-
-// Define a custom type for our contract
-interface NFTContract extends Omit<Contract, 'account'> {
-  mint_nft: (args: { token_id: string; metadata: NFTMetadata; recipient: string }, gas?: string, deposit?: string) => Promise<void>;
-  nft_token: (args: { token_id: string }) => Promise<NFTToken | null>;
-  nft_tokens_for_owner: (args: { account_id: string }) => Promise<string[]>;
-  get_mint_price: () => Promise<string>;
-  nft_total_supply: () => Promise<number>;
-}
-
-const getContract = async (account: Account): Promise<NFTContract> => {
-  return new Contract(
-    account,
-    CONTRACT_ID,
-    {
-      viewMethods: ["nft_token", "nft_tokens_for_owner", "get_mint_price", "nft_total_supply"],
-      changeMethods: ["mint_nft"],
-      useLocalViewExecution: false
+// Rate limiting middleware
+const rateLimit = async (context: any) => {
+  const clientIp = context.request.headers.get('x-forwarded-for') || 'unknown';
+  const key = `ratelimit:${clientIp}`;
+  
+  try {
+    const current = await redis.incr(key);
+    if (current === 1) {
+      await redis.pexpire(key, RATE_LIMIT.WINDOW_MS);
     }
-  ) as unknown as NFTContract;
-};
 
-const GENERIC_NFT_IMAGE_URL = 'ipfs://QmSNycrd5gWH7QAFKBVvKaT58c5S6B1tq9ScHP7thxvLWM';
+    if (current > RATE_LIMIT.MAX_REQUESTS) {
+      context.set.status = 429;
+      return {
+        success: false,
+        error: 'Too Many Requests',
+        timestamp: new Date().toISOString()
+      };
+    }
+  } catch (error) {
+    logger.error('Rate limiting error:', error);
+  }
+};
 
 const nearContractRoutes = new Elysia({ prefix: "/near-contract" })
-  .post("/mint-nft", async ({ body }) => {
-    const { token_id, queried_name, querier, summary } = body;
-    try {
-      const near = await connect(config);
-      const account = await near.account(CONTRACT_ID);
-      const contract = await getContract(account);
+  // Error handler
+  .onError(({ code, error }) => {
+    logger.error(`Error [${code}]:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    };
+  })
 
-      const metadata: NFTMetadata = {
-        title: `Reputation NFT for ${queried_name}`,
-        description: `Reputation NFT minted by ${querier}`,
-        media: "https://example.com/generic-nft-image.jpg", // Replace with your generic image URL
-        summary,
-        queried_name,
-        querier,
-        reputation_score: 10 // Default score as requested
-      };
+  // Main investigation endpoint (for AI plugin)
+  .post("/investigate", 
+    async ({ body }) => {
+      logger.info('Starting investigation:', body);
+      
+      try {
+        const result = await workflow.executeFullInvestigation(
+          body.target_account,
+          body.deposit
+        );
 
-      await contract.mint_nft({
-        token_id,
-        metadata,
-        recipient: querier,
-      }, "300000000000000", // 0.3 NEAR as attached deposit
-      );
+        return {
+          success: true,
+          data: result,
+          timestamp: new Date().toISOString()
+        };
+      } catch (error) {
+        logger.error('Investigation failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        };
+      }
+    },
+    {
+      beforeHandle: [rateLimit],
+      body: t.Object({
+        target_account: t.String({
+          description: "NEAR account to investigate",
+          examples: ["example.near"]
+        }),
+        deposit: t.String({
+          description: "Deposit amount in NEAR",
+          examples: ["1"]
+        })
+      })
+    }
+  )
 
-      return {
-        success: true,
-        message: "NFT minted successfully",
-        token_id,
-        metadata
-      };
-    } catch (error) {
-      console.error("Error minting NFT:", error);
-      return { success: false, error: "Failed to mint NFT" };
+  // Status check endpoint (for frontend)
+  .get("/status/:requestId", 
+    async ({ params }) => {
+      logger.info('Checking status for:', params.requestId);
+      
+      try {
+        const status = await workflow.getInvestigationStatus(params.requestId);
+        return {
+          success: true,
+          data: status,
+          timestamp: new Date().toISOString()
+        };
+      } catch (error) {
+        logger.error('Status check failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        };
+      }
+    },
+    {
+      beforeHandle: [rateLimit]
     }
-  }, {
-    body: t.Object({
-      token_id: t.String(),
-      queried_name: t.String(),
-      querier: t.String(),
-      summary: t.String()
-    }),
-  })
-  .get("/nft/:tokenId", async ({ params: { tokenId } }) => {
-    try {
-      const near = await connect(config);
-      const account = await near.account(CONTRACT_ID);
-      const contract = await getContract(account);
-      const nftToken = await contract.nft_token({ token_id: tokenId });
-      return nftToken || { error: "NFT not found" };
-    } catch (error) {
-      console.error("Error fetching NFT:", error);
-      return { error: "Failed to fetch NFT" };
+  )
+
+  // Health check endpoint (required for AI plugin)
+  .get("/health", 
+    async () => {
+      try {
+        const redisStatus = redis.status === 'ready' ? 'connected' : 'disconnected';
+        logger.info('Health check:', { redis: redisStatus });
+        
+        return {
+          success: true,
+          data: {
+            status: 'healthy',
+            redis: redisStatus,
+            timestamp: Date.now()
+          }
+        };
+      } catch (error) {
+        logger.error('Health check failed:', error);
+        return {
+          success: false,
+          error: 'Health check failed',
+          timestamp: new Date().toISOString()
+        };
+      }
     }
-  }, {
-    params: t.Object({
-      tokenId: t.String()
-    })
-  })
-  .get("/nfts/:accountId", async ({ params: { accountId } }) => {
-    try {
-      const near = await connect(config);
-      const account = await near.account(CONTRACT_ID);
-      const contract = await getContract(account);
-      const tokens = await contract.nft_tokens_for_owner({ account_id: accountId });
-      return tokens;
-    } catch (error) {
-      console.error("Error fetching NFTs for account:", error);
-      return { error: "Failed to fetch NFTs for account" };
-    }
-  }, {
-    params: t.Object({
-      accountId: t.String()
-    })
-  })
-  .get("/mint-price", async () => {
-    try {
-      const near = await connect(config);
-      const account = await near.account(CONTRACT_ID);
-      const contract = await getContract(account);
-      const mintPrice = await contract.get_mint_price();
-      return { mintPrice };
-    } catch (error) {
-      console.error("Error fetching mint price:", error);
-      return { error: "Failed to fetch mint price" };
-    }
-  })
-  .get("/total-supply", async () => {
-    try {
-      const near = await connect(config);
-      const account = await near.account(CONTRACT_ID);
-      const contract = await getContract(account);
-      const totalSupply = await contract.nft_total_supply();
-      return { totalSupply };
-    } catch (error) {
-      console.error("Error fetching total supply:", error);
-      return { error: "Failed to fetch total supply" };
-    }
-  });
+  );
+
+// Cleanup
+process.on('SIGTERM', async () => {
+  logger.info('Shutting down...');
+  await redis.quit();
+  process.exit(0);
+});
 
 export default nearContractRoutes;

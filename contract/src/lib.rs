@@ -19,7 +19,7 @@ use near_contract_standards::non_fungible_token::NonFungibleTokenResolver;
 use near_contract_standards::non_fungible_token::metadata::{NFTContractMetadata, TokenMetadata};
 
 //pub use crate::metadata::*;
-pub use crate::investigation::*;
+pub use crate::investigation::{InvestigationRequest, InvestigationStatus, InvestigationData, InvestigationResponse};
 pub use crate::enumeration::*;
 pub use crate::events::*;
 
@@ -35,6 +35,48 @@ pub const DEFAULT_NFT_IMAGE_URL: &str = "https://gateway.pinata.cloud/ipfs/QmSNy
 pub const QUERY_COST: NearToken = NearToken::from_yoctonear(1_000_000_000_000_000_000_000_000); // 1 NEAR
 
 pub type TokenId = String;
+
+// Update the InvestigationStatus enum
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub enum InvestigationStatus {
+    Queued,
+    Processing,
+    Complete,
+    Error
+}
+
+// Update the InvestigationProgress struct
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct InvestigationProgress {
+    pub status: InvestigationStatus,
+    pub progress: u8,
+    pub current_step: String,
+    pub start_time: U64,
+    pub last_updated: U64,
+}
+
+// Update the InvestigationRequest struct
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct InvestigationRequest {
+    pub requester: AccountId,
+    pub target_account: AccountId,
+    pub timestamp: U64,
+    pub status: InvestigationStatus,
+    pub task_id: Option<String>,
+    pub webhook_url: Option<String>,
+}
+
+// Add InvestigationResponse struct
+#[derive(Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct InvestigationResponse {
+    pub request_id: String,
+    pub is_existing: bool,
+    pub status_link: Option<String>,
+}
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
@@ -186,29 +228,30 @@ impl Contract {
         }
     }
 
+    // Update the request_investigation method
     #[payable]
-    pub fn request_investigation(&mut self, target_account: AccountId) -> String {
+    pub fn request_investigation(&mut self, target_account: AccountId) -> InvestigationResponse {
         // Validate input
         assert!(
             env::is_valid_account_id(target_account.as_bytes()),
             "Invalid target account ID"
         );
 
-        let request_id = format!("{}:{}", env::block_timestamp(), target_account);
+        let request_id = format!("inv-{}-{}", env::block_timestamp(), target_account);
         
-        // Check for existing investigation with detailed error
+        // Check for existing investigation
         if let Some(token_id) = self.investigated_accounts.get(&target_account) {
             if env::attached_deposit() > NearToken::from_yoctonear(0) {
                 Promise::new(env::predecessor_account_id()).transfer(env::attached_deposit());
             }
-            env::log_str(&format!(
-                "Existing investigation found for account: {}. Token ID: {}",
-                target_account, token_id
-            ));
-            return token_id;
+            return InvestigationResponse {
+                request_id: token_id,
+                is_existing: true,
+                status_link: None
+            };
         }
 
-        // Verify payment with detailed error
+        // Verify payment
         assert!(
             env::attached_deposit() >= QUERY_COST,
             "Insufficient deposit. Required: {} NEAR, Provided: {} NEAR",
@@ -216,26 +259,79 @@ impl Contract {
             env::attached_deposit().as_near()
         );
 
-        // Create new investigation request with validation
+        // Create new investigation request
         let request = InvestigationRequest {
             requester: env::predecessor_account_id(),
             target_account: target_account.clone(),
             timestamp: U64(env::block_timestamp()),
-            status: InvestigationStatus::Pending,
+            status: InvestigationStatus::Queued,
+            task_id: None,
+            webhook_url: None,
         };
 
-        match self.pending_investigations.insert(&request_id, &request) {
-            Some(_) => env::panic_str("Request ID collision detected"),
-            None => {
-                env::log_str(&format!(
-                    "New investigation requested - Account: {}, Request ID: {}",
-                    target_account, request_id
-                ));
-                request_id
-            }
+        self.pending_investigations.insert(&request_id, &request);
+        
+        // Initialize progress tracking
+        self.investigation_progress.insert(&request_id, &InvestigationProgress {
+            status: InvestigationStatus::Queued,
+            progress: 0,
+            current_step: "Investigation queued".to_string(),
+            start_time: U64(env::block_timestamp()),
+            last_updated: U64(env::block_timestamp()),
+        });
+
+        InvestigationResponse {
+            request_id: request_id.clone(),
+            is_existing: false,
+            status_link: Some(format!("/api/near-contract/status/{}", request_id))
         }
     }
 
+    // Add the update_investigation_progress method
+    pub fn update_investigation_progress(
+        &mut self,
+        request_id: String,
+        task_id: Option<String>,
+        status: InvestigationStatus,
+        progress: u8,
+        current_step: String
+    ) {
+        // Only contract owner can update progress
+        assert_eq!(
+            env::predecessor_account_id(),
+            self.owner_id,
+            "Only owner can update progress"
+        );
+
+        // Update request task_id if provided
+        if let Some(task_id) = task_id {
+            if let Some(mut request) = self.pending_investigations.get(&request_id) {
+                request.task_id = Some(task_id);
+                self.pending_investigations.insert(&request_id, &request);
+            }
+        }
+
+        // Update progress
+        let progress_update = InvestigationProgress {
+            status: status.clone(),
+            progress,
+            current_step,
+            start_time: self.investigation_progress
+                .get(&request_id)
+                .map(|p| p.start_time)
+                .unwrap_or(U64(env::block_timestamp())),
+            last_updated: U64(env::block_timestamp()),
+        };
+
+        self.investigation_progress.insert(&request_id, &progress_update);
+
+        env::log_str(&format!(
+            "Investigation progress updated - Request ID: {}, Status: {:?}, Progress: {}%",
+            request_id, status, progress
+        ));
+    }
+
+    // Update the complete_investigation method
     #[payable]
     pub fn complete_investigation(
         &mut self,
@@ -243,22 +339,27 @@ impl Contract {
         robust_summary: String,
         short_summary: String,
     ) -> (TokenId, String) {
-        // Only owner can complete investigations
-        assert_eq!(
-            env::predecessor_account_id(),
-            self.owner_id,
-            "Unauthorized: Only owner can complete investigations"
+        // Only allow completion if status is Complete
+        let progress = self.investigation_progress.get(&request_id)
+            .expect("Investigation not found");
+        
+        assert!(
+            matches!(progress.status, InvestigationStatus::Complete),
+            "Investigation is not ready for completion"
+        );
+
+        let request = self.pending_investigations.get(&request_id)
+            .expect("Investigation request not found");
+
+        // Allow either the contract owner or the original requester to complete the investigation
+        assert!(
+            env::predecessor_account_id() == self.owner_id || env::predecessor_account_id() == request.requester,
+            "Unauthorized: Only owner or original requester can complete investigations"
         );
 
         // Validate summaries
         assert!(!robust_summary.is_empty(), "Robust summary cannot be empty");
         assert!(!short_summary.is_empty(), "Short summary cannot be empty");
-
-        // Get request with detailed error
-        let request = self.pending_investigations.get(&request_id)
-            .unwrap_or_else(|| env::panic_str(&format!(
-                "Investigation request not found: {}", request_id
-            )));
 
         // Check for existing token
         assert!(

@@ -1,8 +1,8 @@
-# Ref Finance DeFi Swap Agent
+# Chain-Sleuth Agent
 
 <img src="https://github.com/user-attachments/assets/aa54bac4-30ef-49bb-bac7-732ff561bd95" alt="cover_image" width="0"/>
 
-Ref Finance Agent is a template for creating a Bitte.ai Plugin for facilitating DeFi swaps using Ref Finance. Built using Next.js 14 + Elysia.
+Chain Sleuth is a a comprehnsive data querying tool that uses a Bitte.ai Plugin for facilitating near blockchain investigations and general blockchain data queries.
 
 [![Demo](https://img.shields.io/badge/Demo-Visit%20Demo-brightgreen)](https://ref-finance-agent-next.vercel.app/)
 [![Deploy](https://img.shields.io/badge/Deploy-on%20Vercel-blue)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FMintbase%2Fref-finance-agent-next)
@@ -14,11 +14,11 @@ Ref Finance Agent is a template for creating a Bitte.ai Plugin for facilitating 
 
 ## Project Walkthrough
 
-Ref Finance Agent facilitates the development of AI-powered DeFi swap agents. The template supports creating, managing, and deploying DeFi swap functionalities. [Build your own agent](https://docs.mintbase.xyz/ai/assistant-plugins)
+Chain sleuth agent facilitates the development of AI-powered blockchain investigation agents. 
 
 #### API Base URL
 
-https://ref-finance-agent.vercel.app
+https://chain-sleuth.vercel.app/
 
 #### Endpoints
 

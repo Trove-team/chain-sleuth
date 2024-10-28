@@ -35,3 +35,10 @@ pub struct InvestigationData {
     pub eth_address: Option<String>,
     pub summary: String,
 }
+
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct InvestigationResponse {
+    pub request_id: String,
+    pub is_existing: bool,
+}
