@@ -9,7 +9,7 @@ const getContractId = () => {
   
   if (!contractId) {
     console.warn('[CONTRACT] No contract ID found in env, using default');
-    return 'chainsleuth2.testnet';
+    return 'chainsleuth-testing.near';
   }
   
   return contractId;
