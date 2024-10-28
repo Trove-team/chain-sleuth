@@ -76,7 +76,7 @@ export class InvestigationWorkflow {
   async handleWebhookUpdate(taskId: string, data: WebhookData): Promise<void> {
     const metadata = await this.prepareMetadataUpdate(data);
     await this.updateContractMetadata(data.data.requestId, data.data.accountId, metadata);
-  }
+}
 
   private async prepareMetadataUpdate(data: WebhookData): Promise<{
     description: string;

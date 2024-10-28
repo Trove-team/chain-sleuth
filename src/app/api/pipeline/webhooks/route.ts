@@ -13,7 +13,7 @@ export async function POST(request: Request) {
         const webhook: WebhookData = await request.json();
         logger.info('Received webhook', webhook);
         
-        await workflow.handleWebhookUpdate(webhook.data.taskId, webhook.data);
+        await workflow.handleWebhookUpdate(webhook.data.taskId, webhook);
         
         return NextResponse.json({ success: true });
     } catch (error) {
