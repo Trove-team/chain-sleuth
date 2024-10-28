@@ -38,17 +38,17 @@ export async function POST(request: Request) {
         const nearAccount = await near.account(process.env.NEAR_CONTRACT_ID!);
         const contract = initInvestigationContract(nearAccount);
 
-        // This will mint placeholder NFT and return taskId
-        const { taskId } = await contract.start_investigation({
+        // This will mint placeholder NFT and return request_id
+        const { request_id } = await contract.start_investigation({
             args: { target_account: accountId },
             gas: '300000000000000'
         });
-
+        
         // Start pipeline processing
-        const processingResponse = await pipelineService.startProcessing(accountId, token);
+        const processingResponse = await pipelineService.startProcessing(accountId, request_id);
         
         // Store initial state in Redis
-        await redis.hset(`task:${taskId}`, {
+        await redis.hset(`task:${processingResponse.taskId}`, {
             status: 'processing',
             accountId,
             progress: 0,
@@ -57,15 +57,12 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             success: true,
-            taskId: taskId,
-            statusLink: `/api/pipeline/status/${taskId}`
+            taskId: processingResponse.taskId,
+            statusLink: `/api/pipeline/status/${processingResponse.taskId}`
         });
 
     } catch (error) {
-        logger.error('Investigation start failed:', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined
-        });
+        logger.error('Investigation failed:', error);
         return NextResponse.json(
             { error: 'Failed to start investigation' },
             { status: 500 }
