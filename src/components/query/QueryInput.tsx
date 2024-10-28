@@ -2,173 +2,120 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
-import { WalletSelector } from "@near-wallet-selector/core";
 import { useWalletSelector } from "@/context/WalletSelectorContext";
-import { 
-  InvestigationStage,
-  InvestigationProgress,
-  requestInvestigation,
-  checkInvestigationStatus,
-  completeInvestigation,
-  pollInvestigationStatus
-} from '@/services/testInvestigationWorkflow';
+import { PipelineService } from '@/services/pipelineService';
+import { initInvestigationContract, createInitialMetadata, DEFAULT_GAS, DEFAULT_DEPOSIT } from '@/constants/contract';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+type InvestigationStage = 'idle' | 'requesting' | 'processing' | 'complete' | 'error' | 'existing';
+
+interface InvestigationState {
+  stage: InvestigationStage;
+  message: string;
+  taskId?: string;
+  token?: string;
+}
+
+const pipelineService = new PipelineService();
+
 export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
-  const [status, setStatus] = useState<InvestigationProgress>({ stage: 'idle', message: '' });
-  const [requestId, setRequestId] = useState<string | null>(null);
+  const [status, setStatus] = useState<InvestigationState>({ stage: 'idle', message: '' });
   const { selector } = useWalletSelector();
-  const [isExisting, setIsExisting] = useState(false);
-
-  useEffect(() => {
-    const storedState = localStorage.getItem('investigationState');
-    if (storedState) {
-      const { address, requestId, stage } = JSON.parse(storedState);
-      setNearAddress(address);
-      setRequestId(requestId);
-      setStatus({ stage, message: 'Resuming investigation...' });
-      handleInvestigationContinuation(address, requestId, stage);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selector) {
+      toast.error('Please connect your wallet first');
+      return;
     }
-  }, []);
 
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+    setStatus({ stage: 'requesting', message: 'Starting investigation...' });
 
-    const pollStatus = async () => {
-      if (!requestId || status.stage === 'complete' || status.stage === 'error') {
-        return;
+    try {
+      // 1. Get the active account from the context
+      const activeAccount = selector.store.getState().accounts.find(
+        (account) => account.active
+      );
+
+      if (!activeAccount) {
+        throw new Error('No active account found');
       }
 
-      try {
-        const progress = await checkInvestigationStatus(requestId);
-        setStatus(progress);
+      // 2. Start contract interaction (mint placeholder NFT)
+      const wallet = await selector.wallet();
+      const contractResponse = await fetch('/api/near-contract/investigate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          target_account: nearAddress,
+          deposit: "1" // or whatever deposit amount you want to use
+        })
+      });
 
-        if (progress.stage === 'complete') {
-          clearInterval(intervalId);
-          localStorage.removeItem('investigationState');
+      const { data: contractResult } = await contractResponse.json();
+      
+      if (!contractResult?.taskId) {
+        throw new Error('Failed to start contract investigation');
+      }
+
+      setStatus({ 
+        stage: 'processing', 
+        message: 'Investigation started, analyzing on-chain data...',
+        taskId: contractResult.taskId 
+      });
+
+      // 3. Start polling for status
+      startStatusPolling(contractResult.taskId);
+
+    } catch (error) {
+      console.error('Error starting investigation:', error);
+      setStatus({
+        stage: 'error',
+        message: error instanceof Error ? error.message : 'Failed to start investigation'
+      });
+      toast.error('Failed to start investigation');
+    }
+  };
+
+  const startStatusPolling = async (taskId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/near-contract/investigate/status?taskId=${taskId}`);
+        const status = await response.json();
+        
+        if (status.stage === 'investigation-complete') {
+          clearInterval(pollInterval);
+          setStatus({
+            stage: 'complete',
+            message: 'Investigation complete! NFT has been minted with results.',
+            taskId
+          });
+          toast.success('Investigation completed successfully!');
+        } else if (status.stage === 'error') {
+          clearInterval(pollInterval);
+          setStatus({
+            stage: 'error',
+            message: status.message || 'Investigation failed',
+            taskId
+          });
+          toast.error('Investigation failed');
         }
       } catch (error) {
         console.error('Error checking status:', error);
+        clearInterval(pollInterval);
         setStatus({
           stage: 'error',
           message: 'Failed to check investigation status'
         });
-        clearInterval(intervalId);
       }
-    };
+    }, 5000); // Poll every 5 seconds
 
-    if (requestId && status.stage !== 'complete' && status.stage !== 'error') {
-      intervalId = setInterval(pollStatus, 3000); // Poll every 3 seconds
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [requestId, status.stage]);
-
-  const handleInvestigationContinuation = async (
-    address: string, 
-    reqId: string, 
-    stage: InvestigationStage
-  ) => {
-    if (!selector) {
-      toast.error('Wallet selector is not initialized');
-      return;
-    }
-
-    if (stage === 'investigation-started') {
-      try {
-        await completeInvestigation(reqId, selector as WalletSelector);
-        setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
-        toast.success('Investigation completed and NFT minted successfully!');
-        localStorage.removeItem('investigationState');
-      } catch (error) {
-        console.error('Error completing investigation:', error);
-        setStatus({ stage: 'error', message: 'Failed to complete investigation' });
-        toast.error('Failed to complete investigation. Please try again later.');
-      }
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus({ stage: 'requesting', message: 'Requesting investigation...' });
-
-    try {
-      if (!selector) {
-        throw new Error('Wallet selector is not initialized');
-      }
-
-      const response = await requestInvestigation(nearAddress, selector);
-      setRequestId(response.request_id);
-
-      if (response.is_existing) {
-        setStatus({ stage: 'existing', message: 'Existing investigation found.' });
-        toast.info('Existing investigation found.');
-      } else {
-        setStatus({ stage: 'investigation-started', message: 'Investigation started', requestId: response.request_id });
-        toast.success('Investigation request successful.');
-        
-        // Store the state in localStorage
-        localStorage.setItem('investigationState', JSON.stringify({
-          address: nearAddress,
-          requestId: response.request_id,
-          stage: 'investigation-started'
-        }));
-
-        // Wait for a short period before attempting to complete the investigation
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        try {
-          setStatus({ stage: 'wallet-signing', message: 'Please confirm the completion transaction in your wallet...' });
-          await completeInvestigation(response.request_id, selector);
-          setStatus({ stage: 'complete', message: 'Investigation completed and NFT minted' });
-          toast.success('Investigation completed and NFT minted successfully!');
-          localStorage.removeItem('investigationState');
-        } catch (completionError) {
-          console.error('Error completing investigation:', completionError);
-          setStatus({ stage: 'investigation-started', message: 'Investigation started, waiting for completion...' });
-          toast.info('Investigation started. Please wait for completion or refresh the page if redirected.');
-        }
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setStatus({ stage: 'error', message: 'An error occurred: ' + (error instanceof Error ? error.message : String(error)) });
-      toast.error('Failed to start investigation. Please try again.');
-    }
-  };
-
-  const proceedWithCompletion = async (reqId: string) => {
-    try {
-      setStatus({
-        stage: 'wallet-signing',
-        message: 'Please confirm the transaction in your wallet...'
-      });
-
-      if (!selector) {
-        throw new Error('Wallet selector is not initialized');
-      }
-
-      await completeInvestigation(reqId, selector);
-
-      setStatus({
-        stage: 'complete',
-        message: 'Investigation completed successfully!'
-      });
-      toast.success('Transaction successful!');
-    } catch (error) {
-      console.error('Completion error:', error);
-      toast.error('Transaction failed. Please try again.');
-      setStatus({
-        stage: 'error',
-        message: 'Failed to complete investigation. Please try again.'
-      });
-    }
+    return () => clearInterval(pollInterval);
   };
 
   const getStatusColor = (stage: InvestigationStage) => {
@@ -184,7 +131,7 @@ export default function QueryInput() {
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
-     <form onSubmit={handleSubmit} className="space-y-4 bg-transparent p-6 rounded-lg">
+      <form onSubmit={handleSubmit} className="space-y-4 bg-transparent p-6 rounded-lg">
         <div className="flex flex-col space-y-2">
           <label htmlFor="nearAddress" className="text-lg font-medium">
             Enter NEAR Address to Investigate
@@ -195,15 +142,15 @@ export default function QueryInput() {
               type="text"
               value={nearAddress}
               onChange={(e) => setNearAddress(e.target.value)}
-              placeholder="e.g. example.testnet"
+              placeholder="e.g. example.near"
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black bg-white"
-              disabled={!!requestId && status.stage !== 'error'}
+              disabled={status.stage === 'processing'}
             />
             <button
               type="submit"
-              disabled={!selector || (!!requestId && status.stage !== 'error')}
+              disabled={!selector || status.stage === 'processing'}
               className={`px-6 py-2 bg-blue-600 text-white rounded-lg transition-colors
-                ${(!selector || (!!requestId && status.stage !== 'error'))
+                ${(!selector || status.stage === 'processing')
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-blue-700'}
               `}
@@ -217,7 +164,7 @@ export default function QueryInput() {
       {status.stage !== 'idle' && (
         <div className="bg-white shadow-md rounded-lg p-4 mt-4">
           <div className="flex items-center space-x-3">
-            {status.stage !== 'error' && status.stage !== 'complete' && (
+            {status.stage === 'processing' && (
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500"></div>
             )}
             <div className="flex flex-col">
@@ -227,24 +174,6 @@ export default function QueryInput() {
               </span>
             </div>
           </div>
-        </div>
-      )}
-
-      {isExisting && requestId && (
-        <div className="mt-4">
-          <p>This address has already been investigated. Would you like to:</p>
-          <button
-            onClick={() => {/* Logic to view existing results */}}
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2"
-          >
-            View Existing Results
-          </button>
-          <button
-            onClick={() => proceedWithCompletion(requestId)}
-            className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            Proceed with New Investigation
-          </button>
         </div>
       )}
     </div>

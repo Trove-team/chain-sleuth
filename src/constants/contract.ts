@@ -138,3 +138,6 @@ export function createInitialMetadata(accountId: string): Partial<InvestigationN
 // For debugging
 console.log('[CONTRACT] Exported CONTRACT_ID:', CONTRACT_ID);
 console.log('[CONTRACT] Exported NETWORK_ID:', NETWORK_ID);
+
+// Placeholder for contract constants
+export const DEFAULT_METHOD_NAMES = {};
