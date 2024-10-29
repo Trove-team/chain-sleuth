@@ -17,7 +17,7 @@ const getContractId = () => {
 
 // Constants
 export const CONTRACT_ID = getContractId();
-export const NETWORK_ID = process.env.NEXT_PUBLIC_NETWORK_ID || 'testnet';
+export const NETWORK_ID = process.env.NEXT_PUBLIC_NETWORK_ID || 'mainnet';
 export const DEFAULT_GAS = '300000000000000'; // 300 TGas
 export const DEFAULT_DEPOSIT = '1000000000000000000000000'; // 1 NEAR
 export const DEFAULT_NFT_IMAGE = process.env.NEXT_PUBLIC_DEFAULT_NFT_IMAGE_URL || 
