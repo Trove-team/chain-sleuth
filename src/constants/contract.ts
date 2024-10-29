@@ -3,6 +3,37 @@ import { Account, Contract } from "near-api-js";
 import { AccountMetadata, InvestigationSummaries, InvestigationNFTMetadata } from "../types/investigation";
 import { WebhookType } from '../types/webhook';
 
+// Add NFT types
+export interface NFTContractMetadata {
+    spec: string;           // required, essentially a version like "nft-1.0.0"
+    name: string;           // required, ex. "Chain Sleuth"
+    symbol: string;         // required, ex. "CSI"
+    icon?: string;         // optional, data URL
+    base_uri?: string;     // optional, Centralized gateway known to have reliable access to decentralized storage assets referenced by `reference` or `media` URLs
+    reference?: string;    // optional, URL to a JSON file with more info
+    reference_hash?: string; // optional, base64-encoded sha256 hash of JSON from reference field
+}
+
+export interface Token {
+    token_id: string;
+    owner_id: string;
+    metadata?: {
+        title?: string;
+        description?: string;
+        media?: string;
+        media_hash?: string;
+        copies?: number;
+        issued_at?: string;
+        expires_at?: string;
+        starts_at?: string;
+        updated_at?: string;
+        extra?: string;
+        reference?: string;
+        reference_hash?: string;
+    };
+    approved_account_ids?: Record<string, number>;
+}
+
 const getContractId = () => {
   const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID;
   console.log('[CONTRACT] Loading contract ID from env:', contractId);
@@ -27,9 +58,13 @@ export const DEFAULT_NFT_IMAGE = process.env.NEXT_PUBLIC_DEFAULT_NFT_IMAGE_URL |
 export const CONTRACT_METHODS = {
     START_INVESTIGATION: 'start_investigation',
     UPDATE_INVESTIGATION_METADATA: 'update_investigation_metadata',
-    NFT_TOKEN: 'nft_token',
-    NFT_TOKENS_FOR_OWNER: 'nft_tokens_for_owner',
-    NFT_TOTAL_SUPPLY: 'nft_total_supply'
+    RETRY_INVESTIGATION: 'retry_investigation',
+    NFT_TRANSFER: 'nft_transfer',
+    NFT_TRANSFER_CALL: 'nft_transfer_call',
+    GET_INVESTIGATION_STATUS: 'get_investigation_status',
+    GET_INVESTIGATION_BY_ACCOUNT: 'get_investigation_by_account',
+    NFT_METADATA: 'nft_metadata',
+    NFT_TOKEN: 'nft_token'
 } as const;
 
 // Contract interface
@@ -37,11 +72,10 @@ export interface InvestigationContract extends Contract {
     start_investigation(args: {
         args: {
             target_account: string;
-            initial_metadata?: Partial<InvestigationNFTMetadata>;
         };
         gas: string;
         deposit?: string;
-    }): Promise<{ request_id: string }>;
+    }): Promise<{ request_id: string; status: string; message?: string }>;
 
     update_investigation_metadata(args: {
         args: {
@@ -53,7 +87,12 @@ export interface InvestigationContract extends Contract {
             webhook_type: WebhookType;
         };
         gas: string;
-    }): Promise<void>;
+    }): Promise<boolean>;
+
+    get_investigation_status(args: { token_id: string }): Promise<string>;
+    get_investigation_by_account(args: { account_id: string }): Promise<Token>;
+    nft_metadata(): Promise<NFTContractMetadata>;
+    nft_token(args: { token_id: string }): Promise<Token>;
 }
 
 // Contract initialization helper
@@ -66,13 +105,17 @@ export function initInvestigationContract(
         contractId,
         {
             viewMethods: [
-                CONTRACT_METHODS.NFT_TOKEN,
-                CONTRACT_METHODS.NFT_TOKENS_FOR_OWNER,
-                CONTRACT_METHODS.NFT_TOTAL_SUPPLY
+                CONTRACT_METHODS.GET_INVESTIGATION_STATUS,
+                CONTRACT_METHODS.GET_INVESTIGATION_BY_ACCOUNT,
+                CONTRACT_METHODS.NFT_METADATA,
+                CONTRACT_METHODS.NFT_TOKEN
             ],
             changeMethods: [
                 CONTRACT_METHODS.START_INVESTIGATION,
-                CONTRACT_METHODS.UPDATE_INVESTIGATION_METADATA
+                CONTRACT_METHODS.UPDATE_INVESTIGATION_METADATA,
+                CONTRACT_METHODS.RETRY_INVESTIGATION,
+                CONTRACT_METHODS.NFT_TRANSFER,
+                CONTRACT_METHODS.NFT_TRANSFER_CALL
             ],
             useLocalViewExecution: false
         }

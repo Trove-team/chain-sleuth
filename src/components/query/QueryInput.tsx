@@ -1,14 +1,14 @@
 // components/query/QueryInput.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useWalletSelector } from "@/context/WalletSelectorContext";
 import { PipelineService } from '@/services/pipelineService';
-import { DEFAULT_GAS, DEFAULT_DEPOSIT } from '@/constants/contract';
+import { DEFAULT_GAS, DEFAULT_DEPOSIT, CONTRACT_METHODS } from '@/constants/contract';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-type WebhookType = 'progress' | 'completion' | 'error' | 'metadata_ready' | 'log';
+import { AccountState } from "@near-wallet-selector/core";
+import type { Wallet } from "@near-wallet-selector/core";
 
 interface InvestigationState {
   stage: 'idle' | 'requesting' | 'processing' | 'complete' | 'error' | 'existing';
@@ -18,6 +18,38 @@ interface InvestigationState {
   progress?: number;
   requestId?: string;
 }
+
+interface TransactionResult {
+  response?: {
+    status: {
+      SuccessValue?: string;
+      Failure?: any;
+    };
+  };
+}
+
+interface InvestigationResponse {
+  request_id: string;
+  status: 'Pending' | 'Processing' | 'Completed' | 'Failed';
+  message?: string;
+}
+
+interface PipelineStatus {
+  status: 'processing' | 'complete' | 'failed';
+  data: {
+    accountId: string;
+    taskId: string;
+    progress?: number;
+    message?: string;
+    error?: string;
+    status: 'processing' | 'complete' | 'failed';
+  };
+}
+
+interface ContractStatus {
+  status: 'complete' | 'processing' | 'failed';
+}
+
 
 const pipelineService = new PipelineService();
 
@@ -46,61 +78,60 @@ export default function QueryInput() {
     setStatus({ stage: 'requesting', message: 'Starting investigation...' });
 
     try {
-      const wallet = await selector.wallet();
+      const wallet = (await selector.wallet()) as Wallet;
       const activeAccount = selector.store.getState().accounts.find(
-        account => account.active
+        (account: AccountState) => account.active
       );
 
       if (!activeAccount) {
         throw new Error('No active account found');
       }
 
-      // Start investigation - maps to test_start_investigation in test.rs (lines 31-53)
+      // Start contract investigation
       const contractResult = await wallet.signAndSendTransaction({
         signerId: activeAccount.accountId,
         receiverId: process.env.NEXT_PUBLIC_CONTRACT_ID!,
         actions: [{
           type: 'FunctionCall',
           params: {
-            methodName: 'start_investigation',
+            methodName: CONTRACT_METHODS.START_INVESTIGATION,
             args: { target_account: nearAddress },
             gas: DEFAULT_GAS,
             deposit: DEFAULT_DEPOSIT
           }
         }]
-      });
+      }) as TransactionResult;
 
-      if (!contractResult || !contractResult.status) {
-        throw new Error('Contract call failed');
+      if (!contractResult.response?.status.SuccessValue) {
+        throw new Error('Transaction failed or returned no value');
       }
 
-      // Start pipeline processing
-      const { transactionOutcome } = contractResult.status as { transactionOutcome: { outcome: { status: { SuccessValue: string } } } };
-      const outcomeValue = JSON.parse(Buffer.from(transactionOutcome.outcome.status.SuccessValue, 'base64').toString());
-      const requestId = outcomeValue.request_id;
+      // Parse contract response
+      const resultJson = Buffer.from(contractResult.response.status.SuccessValue, 'base64').toString();
+      const response = JSON.parse(resultJson) as InvestigationResponse;
 
-      const { taskId, token } = await pipelineService.startProcessing(
+      // Start pipeline processing
+      const { taskId } = await pipelineService.startProcessing(
         nearAddress,
-        requestId
+        response.request_id
       );
 
       setStatus({ 
-        stage: 'processing',
+        stage: 'processing', 
         message: 'Investigation started, analyzing on-chain data...',
         taskId,
-        token,
-        requestId,
+        requestId: response.request_id,
         progress: 0
       });
 
-      // Start polling for status updates
-      startStatusPolling(taskId, requestId);
+      // Start polling
+      startStatusPolling(taskId, response.request_id);
 
     } catch (error) {
-      console.error('Error starting investigation:', error);
-      setStatus({
-        stage: 'error',
-        message: error instanceof Error ? error.message : 'Failed to start investigation'
+      console.error('Investigation failed:', error);
+      setStatus({ 
+        stage: 'error', 
+        message: error instanceof Error ? error.message : 'Unknown error occurred' 
       });
       toast.error('Failed to start investigation');
     }
@@ -109,46 +140,48 @@ export default function QueryInput() {
   const startStatusPolling = async (taskId: string, requestId: string) => {
     const pollInterval = setInterval(async () => {
       try {
+        // Check pipeline status
         const pipelineResponse = await fetch(`/api/pipeline/status/${taskId}`);
-        const pipelineStatus = await pipelineResponse.json();
+        const pipelineStatus = await pipelineResponse.json() as PipelineStatus;
         
-        setStatus(prev => ({
-          ...prev,
-          progress: pipelineStatus.progress || prev.progress
-        }));
+        // Update progress if available
+        if (pipelineStatus.data?.progress !== undefined) {
+          setStatus(prev => ({
+            ...prev,
+            progress: pipelineStatus.data.progress
+          }));
+        }
 
-        switch (pipelineStatus.status) {
-          case 'complete':
-            const contractResponse = await fetch(`/api/near-contract/status/${requestId}`);
-            const contractStatus = await contractResponse.json();
-            
-            if (contractStatus.status === 'complete') {
-              clearInterval(pollInterval);
-              setStatus(prev => ({
-                ...prev,
-                stage: 'complete',
-                message: 'Investigation complete! View your NFT in the gallery.',
-                progress: 100
-              }));
-            }
-            break;
-
-          case 'failed':
+        if (pipelineStatus.status === 'complete') {
+          // Check contract status
+          const contractResponse = await fetch(`/api/near-contract/status/${requestId}`);
+          const contractStatus = await contractResponse.json() as ContractStatus;
+          
+          if (contractStatus.status === 'complete') {
             clearInterval(pollInterval);
             setStatus(prev => ({
               ...prev,
-              stage: 'error',
-              message: pipelineStatus.error || 'Investigation failed',
-              progress: 0
+              stage: 'complete',
+              message: 'Investigation complete! View your NFT in the gallery.',
+              progress: 100
             }));
-            break;
+            toast.success('Investigation completed successfully!');
+          }
+        } else if (pipelineStatus.status === 'failed') {
+          clearInterval(pollInterval);
+          setStatus(prev => ({
+            ...prev,
+            stage: 'error',
+            message: pipelineStatus.data?.error || 'Investigation failed',
+            progress: 0
+          }));
+          toast.error('Investigation failed');
         }
       } catch (error) {
         console.error('Status polling failed:', error);
       }
-    }, 5000); // Poll every 5 seconds
+    }, 5000);
 
-    // Cleanup interval on component unmount
     return () => clearInterval(pollInterval);
   };
 
