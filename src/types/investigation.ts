@@ -1,28 +1,34 @@
-// src/types/investigation.ts
-export interface WebhookData {
-    type: 'Progress' | 'Completion' | 'Error' | 'MetadataReady' | 'Log';
-    status: 'processing' | 'complete' | 'failed';
-    data: {
-        accountId: string;
-        taskId: string;
-        requestId: string;
-        progress?: number;
-        message?: string;
-        result?: {
-            robustSummary: string;
-            shortSummary: string;
-            transactionCount: number;
-            isBot: boolean;
-            financialData: {
-                totalUsdValue: string;
-                nearBalance: string;
-                defiValue: string;
-            }
-        };
-        error?: string;
-        timestamp: string;
+// Import WebhookType from webhook.ts
+import { WebhookType } from './webhook';
+
+// Define valid status types
+export type InvestigationStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
+
+// Define timestamp type to match contract's U64
+export type NearTimestamp = string | number;
+
+// Core metadata structure matching the contract
+export interface InvestigationMetadata {
+    case_number: number;
+    target_account: string;
+    requester: string;
+    investigation_date: NearTimestamp;
+    last_updated: NearTimestamp;
+    status: InvestigationStatus;
+    financial_summary: {
+        total_usd_value: string;
+        near_balance: string;
+        defi_value: string;
+    };
+    analysis_summary: {
+        robust_summary: string | null;
+        short_summary: string | null;
+        transaction_count: number;
+        is_bot: boolean;
     };
 }
+
+// Account metadata from external sources
 export interface AccountMetadata {
     // Core account info
     accountId: string;
@@ -58,75 +64,26 @@ export interface AccountMetadata {
     taskId: string;
 }
 
+// Investigation summaries interface
 export interface InvestigationSummaries {
     robustSummary: string | null;
     shortSummary: string | null;
 }
 
-// Updated NFT metadata structure
+// NFT metadata structure that matches the contract
 export interface InvestigationNFTMetadata {
     title: string;
-    description: string; // Contains robust summary
-    media: string;      // Will always be DEFAULT_NFT_IMAGE_URL
-    media_hash?: null;  
-    copies?: number;    // Will be 1
+    description: string;
+    media: string;
+    media_hash?: string | null;
+    copies?: number;
     issued_at: string;
-    extra: {
-        accountId: string;
-        created: string;
-        last_updated: string;
-        transaction_count: number;
-        financial_summary: {
-            total_usd_value: string;
-            near_balance: string;
-            defi_value: string;
-        };
-        bot_analysis: {
-            is_bot: boolean;
-        };
-        investigation_details: {
-            task_id: string;
-            completion_date: string;
-        };
-        view_url?: string; // We can add this later when queries page is ready
-    };
+    extra: InvestigationMetadata;
 }
 
-// Helper function to ensure consistent metadata structure
-export function formatInvestigationMetadata(
-    accountMetadata: AccountMetadata,
-    summaries: InvestigationSummaries
-): InvestigationNFTMetadata {
-    return {
-        title: `Investigation: ${accountMetadata.accountId}`,
-        description: summaries.robustSummary || "Investigation in progress...",
-        media: process.env.NEXT_PUBLIC_DEFAULT_NFT_IMAGE_URL!, // From contract DEFAULT_NFT_IMAGE_URL
-        issued_at: new Date().toISOString(),
-        copies: 1,
-        extra: {
-            accountId: accountMetadata.accountId,
-            created: accountMetadata.created,
-            last_updated: accountMetadata.last_updated,
-            transaction_count: accountMetadata.tx_count,
-            financial_summary: {
-                total_usd_value: accountMetadata.wealth.totalUSDValue,
-                near_balance: accountMetadata.wealth.balance.items
-                    .find(item => item.symbol === "NEAR")?.amount.toString() || "0",
-                defi_value: accountMetadata.wealth.defi.totalUSDValue
-            },
-            bot_analysis: {
-                is_bot: accountMetadata.bot_detection.isPotentialBot
-            },
-            investigation_details: {
-                task_id: accountMetadata.taskId,
-                completion_date: accountMetadata.last_updated
-            }
-        }
-    };
-}
-
+// Webhook data structure (moved from webhook.ts if you want to consolidate)
 export interface WebhookData {
-    type: 'Progress' | 'Completion' | 'Error' | 'MetadataReady' | 'Log';
+    type: WebhookType;
     status: 'processing' | 'complete' | 'failed';
     data: {
         accountId: string;
@@ -147,5 +104,45 @@ export interface WebhookData {
         };
         error?: string;
         timestamp: string;
+    };
+}
+
+// Updated helper function to ensure consistent metadata structure
+export function formatInvestigationMetadata(
+    accountMetadata: AccountMetadata,
+    summaries: InvestigationSummaries,
+    caseNumber: number = 0,  // You'll need to pass this from the contract
+    requester: string = ''   // You'll need to pass this from the contract
+): InvestigationNFTMetadata {
+    return {
+        title: `Case File #${caseNumber}: ${accountMetadata.accountId}`,
+        description: summaries.robustSummary || "Investigation in progress...",
+        media: process.env.NEXT_PUBLIC_DEFAULT_NFT_IMAGE_URL!,
+        media_hash: null,
+        copies: 1,
+        issued_at: new Date().toISOString(),
+        extra: {
+            case_number: caseNumber,
+            target_account: accountMetadata.accountId,
+            requester: requester,
+            investigation_date: accountMetadata.created,
+            last_updated: accountMetadata.last_updated,
+            status: accountMetadata.status === 'completed' ? 'Completed' 
+                 : accountMetadata.status === 'processing' ? 'Processing'
+                 : accountMetadata.status === 'failed' ? 'Failed'
+                 : 'Pending',
+            financial_summary: {
+                total_usd_value: accountMetadata.wealth.totalUSDValue,
+                near_balance: accountMetadata.wealth.balance.items
+                    .find(item => item.symbol === "NEAR")?.amount.toString() || "0",
+                defi_value: accountMetadata.wealth.defi.totalUSDValue
+            },
+            analysis_summary: {
+                robust_summary: summaries.robustSummary,
+                short_summary: summaries.shortSummary,
+                transaction_count: accountMetadata.tx_count,
+                is_bot: accountMetadata.bot_detection.isPotentialBot
+            }
+        }
     };
 }

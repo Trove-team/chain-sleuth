@@ -13,32 +13,38 @@ use near_sdk::{
     require,
 };
 
-#[macro_use]
-extern crate near_sdk_macros;
 
 // Import abort from env
 use near_sdk::env::panic_str;
-
 use near_sdk::serde::{Serialize, Deserialize};
 use near_sdk::serde_json;
-
 use near_contract_standards::non_fungible_token::metadata::{
     NFTContractMetadata, TokenMetadata,
 };
 use near_contract_standards::non_fungible_token::{Token, NonFungibleToken, TokenId};
 use near_contract_standards::non_fungible_token::core::NonFungibleTokenCore;
 
-
-pub use crate::investigation::*;
-
-pub use crate::events::*;
-pub use crate::webhook_mappings::*;
+#[near_bindgen]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+pub struct Contract {
+    pub owner_id: AccountId,
+    pub tokens: NonFungibleToken,
+    pub metadata: LazyOption<NFTContractMetadata>,
+    pub case_number_counter: u64,
+    pub investigated_accounts: LookupMap<AccountId, TokenId>,
+    pub investigation_status: UnorderedMap<TokenId, InvestigationStatus>,
+    pub failed_mints: UnorderedMap<TokenId, InvestigationMetadata>,
+}
 
 mod metadata;
 mod investigation;
 mod enumeration;
 mod events;
 mod webhook_mappings;
+
+pub use crate::investigation::*;
+pub use crate::events::*;
+pub use crate::webhook_mappings::*;
 
 // Constants
 pub const NFT_METADATA_SPEC: &str = "nft-1.0.0";
@@ -86,24 +92,13 @@ impl StorageKey {
 }
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Contract {
-    pub owner_id: AccountId,
-    pub tokens: NonFungibleToken,
-    pub metadata: LazyOption<NFTContractMetadata>,
-    pub case_number_counter: u64,
-    pub investigated_accounts: LookupMap<AccountId, TokenId>,
-    pub investigation_status: UnorderedMap<TokenId, InvestigationStatus>,
-    pub failed_mints: UnorderedMap<TokenId, InvestigationMetadata>,
-}
-
-#[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new(owner_id: AccountId) -> Self {
-        require!(!env::state_exists(), "Already initialized");
-        
-        let metadata = NFTContractMetadata {
+    pub fn new_default_meta(owner_id: AccountId) -> Self {
+    env::log_str(&format!("Initializing contract with owner: {}", owner_id));
+    Self::new(
+        owner_id,
+        NFTContractMetadata {
             spec: NFT_METADATA_SPEC.to_string(),
             name: "Chain Sleuth".to_string(),
             symbol: "CSI".to_string(),
@@ -111,10 +106,17 @@ impl Contract {
             base_uri: None,
             reference: None,
             reference_hash: None,
-        };
-        metadata.assert_valid();
+        },
+    )
+}
 
-        Self {
+    #[init]
+    pub fn new(owner_id: AccountId, metadata: NFTContractMetadata) -> Self {
+        require!(!env::state_exists(), "Already initialized");
+        metadata.assert_valid();
+        
+        // Initialize the contract
+        let this = Self {
             tokens: NonFungibleToken::new(
                 StorageKey::NonFungibleToken,
                 owner_id.clone(),
@@ -128,22 +130,13 @@ impl Contract {
             ),
             owner_id,
             case_number_counter: 0,
-            investigated_accounts: LookupMap::new(
-                StorageKey::InvestigatedAccounts { 
-                    hash: vec![] 
-                }
-            ),
-            investigation_status: UnorderedMap::new(
-                StorageKey::InvestigationStatus { 
-                    hash: vec![] 
-                }
-            ),
-            failed_mints: UnorderedMap::new(
-                StorageKey::FailedMints { 
-                    hash: vec![] 
-                }
-            ),
-        }
+            investigated_accounts: LookupMap::new(StorageKey::InvestigatedAccounts { hash: vec![] }),
+            investigation_status: UnorderedMap::new(StorageKey::InvestigationStatus { hash: vec![] }),
+            failed_mints: UnorderedMap::new(StorageKey::FailedMints { hash: vec![] }),
+        };
+
+        // Return the initialized contract
+        this
     }
 
     #[payable]
@@ -287,7 +280,7 @@ impl Contract {
     pub fn retry_investigation(&mut self, token_id: TokenId) -> Result<bool, near_sdk::Abort> {
         // Only owner can retry
         if env::predecessor_account_id() != self.owner_id {
-            return Err(panic_str("Only contract owner can retry investigations"));
+            panic_str("Only contract owner can retry investigations");
         }
 
         let failed_metadata = self.failed_mints.get(&token_id)

@@ -3,59 +3,75 @@
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 import QueryResults from '@/components/query/QueryResults';
-import type { NFTMetadata, NFTToken, NFTExtraData } from '@/types/nft';
+import { InvestigationNFTMetadata, InvestigationStatus, NearTimestamp } from '@/types/investigation';
 
 const ITEMS_PER_PAGE = 10;
 
-const transformNFTToken = (token: NFTToken): NFTMetadata => {
+const convertNearTimestamp = (timestamp: NearTimestamp): string => {
+  if (typeof timestamp === 'string') {
+    // If already a string, ensure it's a valid date or return current date
+    return new Date(timestamp).toISOString();
+  }
+  // Convert NEAR U64 nanoseconds to milliseconds
+  return new Date(Number(timestamp) / 1_000_000).toISOString();
+};
+
+const transformNFTToken = (token: any): InvestigationNFTMetadata => {
   console.log('Raw token data:', token);
   
-  let parsedExtra: NFTExtraData = {
-    subject_account: 'Unknown',
-    investigator: 'Unknown',
-    creation_date: 'Unknown',
-    last_updated: 'Unknown',
-    transaction_count: 0,
-    total_usd_value: 0,
-    defi_value: 0,
-    near_balance: 0,
-    reputation_score: null,
-    eth_address: 'Unknown'
-  };
-
   try {
     if (token.metadata.extra) {
       const extraData = JSON.parse(token.metadata.extra);
       console.log('Parsed extra data:', extraData);
-
-      // Access the nested parsed fields
-      const parsedFields = extraData.parsed_data?.parsed_fields || {};
       
-      parsedExtra = {
-        ...parsedExtra,
-        subject_account: extraData.investigated_account || 'Unknown',
-        investigator: extraData.investigator || 'Unknown',
-        creation_date: extraData.investigation_date || 'Unknown',
-        transaction_count: Number(parsedFields.transaction_count?.replace(/,/g, '')) || 0,
-        total_usd_value: Number(parsedFields.total_usd_value?.replace(/[^0-9.-]+/g, '')) || 0,
-        defi_value: Number(parsedFields.defi_value?.replace(/[^0-9.-]+/g, '')) || 0,
-        near_balance: Number(parsedFields.near_balance?.replace(/[^0-9.-]+/g, '')) || 0,
-        eth_address: parsedFields.eth_address || 'Unknown'
+      return {
+        title: token.metadata.title || 'Untitled',
+        description: token.metadata.description || 'No description available',
+        media: token.metadata.media || '',
+        media_hash: token.metadata.media_hash,
+        copies: token.metadata.copies,
+        issued_at: convertNearTimestamp(token.metadata.issued_at || Date.now()),
+        extra: {
+          ...extraData,
+          investigation_date: convertNearTimestamp(extraData.investigation_date),
+          last_updated: convertNearTimestamp(extraData.last_updated),
+          status: extraData.status as InvestigationStatus
+        }
       };
-
-      console.log('Transformed data:', parsedExtra);
     }
+    throw new Error('No extra metadata found');
   } catch (error) {
+    const now = Date.now().toString();
     console.error('Error parsing extra data:', error);
+    
+    return {
+      title: token.metadata.title || 'Untitled',
+      description: token.metadata.description || 'No description available',
+      media: token.metadata.media || '',
+      media_hash: null,
+      copies: 1,
+      issued_at: convertNearTimestamp(now),
+      extra: {
+        case_number: 0,
+        target_account: 'Unknown',
+        requester: 'Unknown',
+        investigation_date: now,
+        last_updated: now,
+        status: 'Failed' as InvestigationStatus,
+        financial_summary: {
+          total_usd_value: '0',
+          near_balance: '0',
+          defi_value: '0'
+        },
+        analysis_summary: {
+          robust_summary: null,
+          short_summary: null,
+          transaction_count: 0,
+          is_bot: false
+        }
+      }
+    };
   }
-
-  return {
-    id: token.token_id,
-    title: token.metadata.title || 'Untitled',
-    description: token.metadata.description || 'No description available',
-    timestamp: token.metadata.issued_at || 'Unknown',
-    extra: parsedExtra
-  };
 };
 
 export default function QueriesPage(): JSX.Element {
@@ -73,7 +89,7 @@ export default function QueriesPage(): JSX.Element {
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-      const tokens: NFTToken[] = await response.json();
+      const tokens = await response.json();
       return tokens.map(transformNFTToken);
     },
     initialPageParam: 0,
@@ -123,19 +139,11 @@ export default function QueriesPage(): JSX.Element {
                       disabled={isFetchingNextPage}
                       className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-opacity"
                     >
-                      {isFetchingNextPage
-                        ? 'Loading more...'
-                        : 'Load More'}
+                      {isFetchingNextPage ? 'Loading more...' : 'Load More'}
                     </button>
                   </div>
                 )}
               </>
-            )}
-
-            {isFetchingNextPage && (
-              <div className="flex justify-center mt-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
-              </div>
             )}
           </div>
         )}
