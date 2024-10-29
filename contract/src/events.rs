@@ -2,6 +2,7 @@ use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::json_types::U64;
 use std::prelude::v1::*;
 
+/// Events emitted by the investigation contract
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub enum InvestigationEvent {
@@ -24,16 +25,28 @@ pub enum InvestigationEvent {
         token_id: String,
         error: String,
         timestamp: U64,
+    },
+    // Add new event types
+    StatusChanged {
+        token_id: String,
+        old_status: String,
+        new_status: String,
+        timestamp: U64,
+    },
+    AnalysisCompleted {
+        token_id: String,
+        timestamp: U64,
+        has_summary: bool,
     }
 }
 
 impl InvestigationEvent {
     pub fn log(&self) {
-        near_sdk::env::log_str(&near_sdk::serde_json::to_string(self).unwrap());
+        near_sdk::env::log_str(&format!("EVENT_JSON:{}", near_sdk::serde_json::to_string(self).unwrap()));
     }
 }
 
-// Keep original NFTMintLog for standard NFT events
+// Standard NFT events
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct NftMintLog {
@@ -44,6 +57,6 @@ pub struct NftMintLog {
 
 impl NftMintLog {
     pub fn log(&self) {
-        near_sdk::env::log_str(&near_sdk::serde_json::to_string(self).unwrap());
+        near_sdk::env::log_str(&format!("NFT_MINT:{}", near_sdk::serde_json::to_string(self).unwrap()));
     }
 }

@@ -1,7 +1,8 @@
 use std::prelude::v1::*;
-use crate::*;
+use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::serde::{Deserialize, Serialize};
 
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, Debug)]
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
 pub enum WebhookType {
     Progress,
@@ -11,14 +12,48 @@ pub enum WebhookType {
     Log
 }
 
-impl From<WebhookType> for InvestigationStatus {
-    fn from(webhook_type: WebhookType) -> Self {
-        match webhook_type {
-            WebhookType::Progress => InvestigationStatus::Processing,
-            WebhookType::Completion => InvestigationStatus::Completed,
-            WebhookType::Error => InvestigationStatus::Failed,
-            WebhookType::MetadataReady => InvestigationStatus::Processing,
-            WebhookType::Log => InvestigationStatus::Processing,
+impl WebhookType {
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, WebhookType::Completion | WebhookType::Error)
+    }
+
+    pub fn requires_metadata_update(&self) -> bool {
+        matches!(
+            self,
+            WebhookType::Completion | WebhookType::MetadataReady | WebhookType::Progress
+        )
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            WebhookType::Progress => "progress",
+            WebhookType::Completion => "completion",
+            WebhookType::Error => "error",
+            WebhookType::MetadataReady => "metadata_ready",
+            WebhookType::Log => "log",
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct WebhookResponse {
+    pub success: bool,
+    pub message: Option<String>,
+}
+
+impl WebhookResponse {
+    pub fn success() -> Self {
+        Self {
+            success: true,
+            message: None,
+        }
+    }
+
+    pub fn error(message: String) -> Self {
+        Self {
+            success: false,
+            message: Some(message),
         }
     }
 }
