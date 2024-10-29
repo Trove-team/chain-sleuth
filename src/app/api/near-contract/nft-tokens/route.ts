@@ -1,9 +1,15 @@
 // src/app/api/near-contract/nft-tokens/route.ts
 import { NextResponse } from 'next/server';
 import { connect, keyStores, Contract } from 'near-api-js';
-import type { NFTContract } from '@/types/nft';
+import type { InvestigationContract } from '@/constants/contract';
+import type { InvestigationNFTMetadata } from '@/types/investigation';
 
 const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID || 'chainsleuth2.testnet';
+
+interface NFTTokensResponse {
+  tokens: InvestigationNFTMetadata[];
+  total: number;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -27,11 +33,11 @@ export async function GET(request: Request) {
       account,
       CONTRACT_ID,
       {
-        viewMethods: ['nft_tokens', 'nft_total_supply', 'nft_tokens_for_owner', 'nft_token'],
+        viewMethods: ['nft_tokens'],
         changeMethods: [],
         useLocalViewExecution: false,
       }
-    ) as NFTContract;
+    ) as InvestigationContract;
 
     const tokens = await contract.nft_tokens({
       from_index: (page * limit).toString(),

@@ -1,6 +1,6 @@
 // src/constants/contract.ts
 import { Account, Contract } from "near-api-js";
-import { AccountMetadata, InvestigationSummaries, InvestigationNFTMetadata } from "../types/investigation";
+import { AccountMetadata, InvestigationSummaries, InvestigationNFTMetadata, InvestigationMetadata } from "../types/investigation";
 import { WebhookType } from '../types/webhook';
 
 // Add NFT types
@@ -96,6 +96,7 @@ export interface InvestigationContract extends Contract {
     get_investigation_status(args: { token_id: string }): Promise<string>;
     get_investigation_metadata(args: { token_id: string }): Promise<InvestigationNFTMetadata>;
     nft_token(args: { token_id: string }): Promise<Token>;
+    nft_tokens(args: { from_index: string; limit: number }): Promise<InvestigationNFTMetadata[]>;
 }
 
 // Contract initialization helper
@@ -132,36 +133,40 @@ export function formatNFTMetadata(
     caseNumber: number,
     requester: string
 ): InvestigationNFTMetadata {
+    // Format the core investigation data
+    const investigationData: InvestigationMetadata = {
+        case_number: caseNumber,
+        target_account: accountMetadata.accountId,
+        requester: requester,
+        investigation_date: accountMetadata.created,
+        last_updated: accountMetadata.last_updated,
+        status: accountMetadata.status === 'completed' ? 'Completed' 
+             : accountMetadata.status === 'processing' ? 'Processing'
+             : accountMetadata.status === 'failed' ? 'Failed'
+             : 'Pending',
+        financial_summary: {
+            total_usd_value: accountMetadata.wealth.totalUSDValue,
+            near_balance: accountMetadata.wealth.balance.items
+                .find(item => item.symbol === "NEAR")?.amount.toString() || "0",
+            defi_value: accountMetadata.wealth.defi.totalUSDValue
+        },
+        analysis_summary: {
+            robust_summary: summaries.robustSummary,
+            short_summary: summaries.shortSummary,
+            transaction_count: accountMetadata.tx_count,
+            is_bot: accountMetadata.bot_detection.isPotentialBot
+        }
+    };
+
+    // Format the NFT metadata
     return {
         title: `Case File #${caseNumber}: ${accountMetadata.accountId}`,
         description: summaries.robustSummary || "Investigation in progress...",
-        media: DEFAULT_NFT_IMAGE,
+        media: process.env.NEXT_PUBLIC_DEFAULT_NFT_IMAGE_URL!,
         media_hash: null,
         copies: 1,
         issued_at: new Date().toISOString(),
-        extra: {
-            case_number: caseNumber,
-            target_account: accountMetadata.accountId,
-            requester: requester,
-            investigation_date: accountMetadata.created,
-            last_updated: accountMetadata.last_updated,
-            status: accountMetadata.status === 'completed' ? 'Completed' 
-                 : accountMetadata.status === 'processing' ? 'Processing'
-                 : accountMetadata.status === 'failed' ? 'Failed'
-                 : 'Pending',
-            financial_summary: {
-                total_usd_value: accountMetadata.wealth.totalUSDValue,
-                near_balance: accountMetadata.wealth.balance.items
-                    .find(item => item.symbol === "NEAR")?.amount.toString() || "0",
-                defi_value: accountMetadata.wealth.defi.totalUSDValue
-            },
-            analysis_summary: {
-                robust_summary: summaries.robustSummary,
-                short_summary: summaries.shortSummary,
-                transaction_count: accountMetadata.tx_count,
-                is_bot: accountMetadata.bot_detection.isPotentialBot
-            }
-        }
+        extra: investigationData
     };
 }
 

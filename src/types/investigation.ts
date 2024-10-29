@@ -7,7 +7,7 @@ export type InvestigationStatus = 'Pending' | 'Processing' | 'Completed' | 'Fail
 // Define timestamp type to match contract's U64
 export type NearTimestamp = string | number;
 
-// Core metadata structure matching the contract
+// Core investigation data (stored in 'extra' field of NFT)
 export interface InvestigationMetadata {
     case_number: number;
     target_account: string;
@@ -70,11 +70,11 @@ export interface InvestigationSummaries {
     shortSummary: string | null;
 }
 
-// NFT metadata structure that matches the contract
+// The actual NFT metadata structure
 export interface InvestigationNFTMetadata {
-    title: string;
-    description: string;
-    media: string;
+    title: string;          // Displayed as NFT title
+    description: string;    // Displayed as NFT description
+    media: string;         // NFT image URL
     media_hash?: string | null;
     copies?: number;
     issued_at: string;
