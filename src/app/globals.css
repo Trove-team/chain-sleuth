@@ -50,11 +50,11 @@ body {
   .text-blue-100 {
     color: #dbeafe;
   }
-  .text-white {
-    color: #ffffff;
+  .text-black {
+    color: #000;
   }
-  .bg-white {
-    background-color: #ffffff;
+  .bg-transparent-grey {
+    background-color: rgba(255, 255, 255, 0.1);
   }
   .rounded-lg {
     border-radius: 0.5rem;

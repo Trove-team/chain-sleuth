@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-use std::prelude::v1::*;  // Brings in String, Vec, etc.
+use std::prelude::v1::*;
+
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap};
 use near_sdk::json_types::U64;
@@ -13,44 +14,33 @@ use near_sdk::{
     require,
 };
 
-
-// Import abort from env
 use near_sdk::env::panic_str;
 use near_sdk::serde::{Serialize, Deserialize};
 use near_sdk::serde_json;
+
 use near_contract_standards::non_fungible_token::metadata::{
-    NFTContractMetadata, TokenMetadata,
+    NFTContractMetadata, TokenMetadata, NFT_METADATA_SPEC,
 };
 use near_contract_standards::non_fungible_token::{Token, NonFungibleToken, TokenId};
 use near_contract_standards::non_fungible_token::core::NonFungibleTokenCore;
+use near_contract_standards::non_fungible_token::enumeration::NonFungibleTokenEnumeration;
 
-#[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Contract {
-    pub owner_id: AccountId,
-    pub tokens: NonFungibleToken,
-    pub metadata: LazyOption<NFTContractMetadata>,
-    pub case_number_counter: u64,
-    pub investigated_accounts: LookupMap<AccountId, TokenId>,
-    pub investigation_status: UnorderedMap<TokenId, InvestigationStatus>,
-    pub failed_mints: UnorderedMap<TokenId, InvestigationMetadata>,
-}
+// Constants
+pub const NFT_STANDARD_NAME: &str = "nep171";
+pub const DEFAULT_ICON_URL: &str = "https://gateway.pinata.cloud/ipfs/QmYkT5eNLePKnvw9vLXNdLxFynp8amKUPaPZ74LhQxxdpu";
+pub const DEFAULT_NFT_IMAGE_URL: &str = "https://gateway.pinata.cloud/ipfs/QmSNycrd5gWH7QAFKBVvKaT58c5S6B1tq9ScHP7thxvLWM";
 
+// Module declarations
 mod metadata;
 mod investigation;
 mod enumeration;
 mod events;
 mod webhook_mappings;
 
+// Re-exports
 pub use crate::investigation::*;
 pub use crate::events::*;
 pub use crate::webhook_mappings::*;
-
-// Constants
-pub const NFT_METADATA_SPEC: &str = "nft-1.0.0";
-pub const NFT_STANDARD_NAME: &str = "nep171";
-pub const DEFAULT_ICON_URL: &str = "https://gateway.pinata.cloud/ipfs/QmYkT5eNLePKnvw9vLXNdLxFynp8amKUPaPZ74LhQxxdpu";
-pub const DEFAULT_NFT_IMAGE_URL: &str = "https://gateway.pinata.cloud/ipfs/QmSNycrd5gWH7QAFKBVvKaT58c5S6B1tq9ScHP7thxvLWM";
 
 #[derive(BorshSerialize, BorshDeserialize, BorshStorageKey)]
 pub enum StorageKey {
@@ -92,13 +82,23 @@ impl StorageKey {
 }
 
 #[near_bindgen]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+pub struct Contract {
+    pub owner_id: AccountId,
+    pub tokens: NonFungibleToken,
+    pub metadata: LazyOption<NFTContractMetadata>,
+    pub case_number_counter: u64,
+    pub investigated_accounts: LookupMap<AccountId, TokenId>,
+    pub investigation_status: UnorderedMap<TokenId, InvestigationStatus>,
+    pub failed_mints: UnorderedMap<TokenId, InvestigationMetadata>,
+}
+
+#[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new_default_meta(owner_id: AccountId) -> Self {
-    env::log_str(&format!("Initializing contract with owner: {}", owner_id));
-    Self::new(
-        owner_id,
-        NFTContractMetadata {
+    pub fn new(owner_id: AccountId) -> Self {
+        env::log_str(&format!("Initializing Chain Sleuth contract for owner: {}", owner_id));
+        let metadata = NFTContractMetadata {
             spec: NFT_METADATA_SPEC.to_string(),
             name: "Chain Sleuth".to_string(),
             symbol: "CSI".to_string(),
@@ -106,43 +106,38 @@ impl Contract {
             base_uri: None,
             reference: None,
             reference_hash: None,
-        },
-    )
-}
-
-    #[init]
-    pub fn new(owner_id: AccountId, metadata: NFTContractMetadata) -> Self {
-        require!(!env::state_exists(), "Already initialized");
+        };
         metadata.assert_valid();
-        
-        // Initialize the contract
-        let this = Self {
-            tokens: NonFungibleToken::new(
-                StorageKey::NonFungibleToken,
-                owner_id.clone(),
-                Some(StorageKey::TokenMetadata),
-                Some(StorageKey::TokenEnumeration),
-                Some(StorageKey::Approvals),
-            ),
-            metadata: LazyOption::new(
-                StorageKey::ContractMetadata,
-                Some(&metadata)
-            ),
+
+        // Initialize storage first
+        let tokens = NonFungibleToken::new(
+            StorageKey::NonFungibleToken,
+            owner_id.clone(),
+            Some(StorageKey::TokenMetadata),
+            Some(StorageKey::TokenEnumeration),
+            Some(StorageKey::Approvals),
+        );
+
+        let mut this = Self {
+            tokens,
             owner_id,
+            metadata: LazyOption::new(StorageKey::ContractMetadata, None),
             case_number_counter: 0,
             investigated_accounts: LookupMap::new(StorageKey::InvestigatedAccounts { hash: vec![] }),
             investigation_status: UnorderedMap::new(StorageKey::InvestigationStatus { hash: vec![] }),
             failed_mints: UnorderedMap::new(StorageKey::FailedMints { hash: vec![] }),
         };
 
-        // Return the initialized contract
+        // Set metadata after initialization
+        this.metadata.set(&metadata);
+
         this
     }
 
     #[payable]
     #[handle_result]
     pub fn start_investigation(&mut self, target_account: AccountId) -> Result<InvestigationResponse, near_sdk::Abort> {
-        // Check if investigation already exists
+        // Your existing implementation...
         if let Some(token_id) = self.investigated_accounts.get(&target_account) {
             return Ok(InvestigationResponse {
                 request_id: token_id.clone(),
@@ -342,36 +337,61 @@ impl Contract {
     }
 }
 
-    #[near_bindgen]
-    impl NonFungibleTokenCore for Contract {
-        #[payable]
-        fn nft_transfer(
-            &mut self,
-            receiver_id: AccountId,
-            token_id: TokenId,
-            approval_id: Option<u64>,
-            memo: Option<String>,
-        ) {
-            self.tokens.nft_transfer(receiver_id, token_id, approval_id, memo)
-        }
-    
-        #[payable]
-        fn nft_transfer_call(
-            &mut self,
-            receiver_id: AccountId,
-            token_id: TokenId,
-            approval_id: Option<u64>,
-            memo: Option<String>,
-            msg: String,
-        ) -> PromiseOrValue<bool> {
-            self.tokens.nft_transfer_call(receiver_id, token_id, approval_id, memo, msg)
-        }
-    
-        fn nft_token(&self, token_id: TokenId) -> Option<Token> {
-            self.tokens.nft_token(token_id)
-        }
+#[near_bindgen]
+impl NonFungibleTokenCore for Contract {
+    #[payable]
+    fn nft_transfer(
+        &mut self,
+        receiver_id: AccountId,
+        token_id: TokenId,
+        approval_id: Option<u64>,
+        memo: Option<String>,
+    ) {
+        self.tokens.nft_transfer(receiver_id, token_id, approval_id, memo)
     }
 
+    #[payable]
+    fn nft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        token_id: TokenId,
+        approval_id: Option<u64>,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<bool> {
+        self.tokens.nft_transfer_call(receiver_id, token_id, approval_id, memo, msg)
+    }
+
+    fn nft_token(&self, token_id: TokenId) -> Option<Token> {
+        self.tokens.nft_token(token_id)
+    }
+}
+
+#[near_bindgen]
+impl NonFungibleTokenEnumeration for Contract {
+    fn nft_total_supply(&self) -> near_sdk::json_types::U128 {
+        self.tokens.nft_total_supply()
+    }
+
+    fn nft_tokens(&self, from_index: Option<near_sdk::json_types::U128>, limit: Option<u64>) -> Vec<Token> {
+        self.tokens.nft_tokens(from_index, limit)
+    }
+
+    fn nft_supply_for_owner(&self, account_id: AccountId) -> near_sdk::json_types::U128 {
+        self.tokens.nft_supply_for_owner(account_id)
+    }
+
+    fn nft_tokens_for_owner(
+        &self,
+        account_id: AccountId,
+        from_index: Option<near_sdk::json_types::U128>,
+        limit: Option<u64>,
+    ) -> Vec<Token> {
+        self.tokens.nft_tokens_for_owner(account_id, from_index, limit)
+    }
+}
+
+// Keep your test module at the bottom
 #[cfg(test)]
 #[cfg(feature = "test-utils")]
 mod tests {

@@ -8,8 +8,6 @@ interface Node {
   id: string;
   label: string;
   properties: Record<string, any>;
-  x?: number;
-  y?: number;
   color?: string;
 }
 
@@ -24,15 +22,7 @@ interface GraphData {
   links: Link[];
 }
 
-const NODE_R = 8;
-const RELEVANT_PROPERTIES = [
-  'total_usd_value',
-  'probable_eth_addresses',
-  'transaction_counts',
-  'bot_detection',
-  'last_updated',
-  'id'
-];
+const NODE_R = 8; // Node radius
 
 function Neo4jGraph() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -43,7 +33,6 @@ function Neo4jGraph() {
 
   const fetchGraphData = useCallback(async () => {
     try {
-      console.log('Fetching graph data with searchTerm:', searchTerm);
       const query = `
         MATCH (a:Account)-[r]-(b:Account)
         WHERE a.id CONTAINS $searchTerm OR b.id CONTAINS $searchTerm
@@ -51,16 +40,15 @@ function Neo4jGraph() {
         LIMIT 100
       `;
       const result = await runQuery(query, { searchTerm });
-      console.log('Query result:', result);
-      
+
       const nodes = new Map<string, Node>();
       const links: Link[] = [];
-  
+
       result.forEach(record => {
         const a = record.get('a');
         const b = record.get('b');
         const relationship = record.get('r');
-  
+
         [a, b].forEach(node => {
           if (!nodes.has(node.identity.toString())) {
             nodes.set(node.identity.toString(), {
@@ -70,17 +58,14 @@ function Neo4jGraph() {
             });
           }
         });
-  
+
         links.push({
           source: a.properties.id,
           target: b.properties.id,
           label: relationship.type
         });
       });
-  
-      console.log('Processed nodes:', nodes);
-      console.log('Processed links:', links);
-  
+
       setGraphData({
         nodes: Array.from(nodes.values()),
         links: links
@@ -131,21 +116,15 @@ function Neo4jGraph() {
           ctx.beginPath();
           ctx.arc(node.x!, node.y!, NODE_R, 0, 2 * Math.PI, false);
           ctx.fill();
-          const fontSize = 12/globalScale;
+          const fontSize = 12 / globalScale;
           ctx.font = `${fontSize}px Sans-Serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillStyle = 'black';
-          
+
           const maxLength = NODE_R * 2 / (fontSize / 2);
           let truncatedLabel = label.length > maxLength ? label.substring(0, maxLength) + '...' : label;
           ctx.fillText(truncatedLabel, node.x!, node.y!);
-        }}
-        nodePointerAreaPaint={(node, color, ctx) => {
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(node.x!, node.y!, NODE_R, 0, 2 * Math.PI, false);
-          ctx.fill();
         }}
       />
     );
@@ -160,14 +139,14 @@ function Neo4jGraph() {
   }
 
   return (
-    <div className="h-[600px] w-full bg-white bg-opacity-30 backdrop-filter backdrop-custom rounded-lg overflow-hidden">
+    <div className="h-[600px] w-full bg-transparent-grey backdrop-filter backdrop-custom rounded-lg overflow-hidden">
       <div className="absolute top-4 left-4 z-10">
         <input
           type="text"
           placeholder="Search account IDs..."
           value={searchTerm}
           onChange={handleSearch}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
         />
       </div>
       {graph}
