@@ -9,9 +9,9 @@ import { setupSender } from "@near-wallet-selector/sender";
 import { setupHereWallet } from "@near-wallet-selector/here-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupNightly } from "@near-wallet-selector/nightly";
-import type { WalletSelector, AccountState } from "@near-wallet-selector/core";
+import type { WalletSelector, AccountState, NetworkId } from "@near-wallet-selector/core";
 import type { WalletSelectorModal } from "@near-wallet-selector/modal-ui";
-import { CONTRACT_ID, DEFAULT_METHOD_NAMES } from '@/constants/contract';
+import { CONTRACT_ID, DEFAULT_METHOD_NAMES, NETWORK_ID } from '@/constants/contract';
 
 declare global {
   interface Window {
@@ -39,7 +39,7 @@ export const WalletSelectorContextProvider: React.FC<{ children: React.ReactNode
       console.log('Initializing wallet selector with contract:', CONTRACT_ID);
       
       const _selector = await setupWalletSelector({
-        network: "testnet",
+        network: NETWORK_ID as NetworkId,
         debug: true,
         modules: [
           setupMyNearWallet(),
