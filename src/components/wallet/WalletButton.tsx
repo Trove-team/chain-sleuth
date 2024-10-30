@@ -66,7 +66,7 @@ const WalletButton = () => {
           <div className="py-1">
             <button
               onClick={handleSignOut}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors"
             >
               Disconnect Wallet
             </button>

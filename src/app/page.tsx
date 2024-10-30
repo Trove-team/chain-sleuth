@@ -10,7 +10,7 @@ export default function Home() {
       <QueryInput />
 
       {/* Links Section */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 mt-8">
+      <div className="bg-white/20 backdrop-blur-sm rounded-lg p-6 mt-8">
         <h2 className="text-xl font-semibold mb-4 text-black">Resources</h2>
         <ul className="space-y-3">
           <li>

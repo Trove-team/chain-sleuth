@@ -10,19 +10,17 @@ const Header = () => {
   const pathname = usePathname();
 
   const isActivePath = (path: string) => {
-    return pathname === path ? 'text-white' : 'text-blue-100 hover:text-white';
+    return pathname === path ? 'text-black' : 'text-black hover:text-gray-700';
   };
-
+  
   return (
-    <header className="bg-white bg-opacity-30 backdrop-filter backdrop-custom text-white">
+    <header className="bg-white/20 backdrop-blur-lg text-black">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo/Brand */}
-          <Link href="/" className="text-2xl font-bold">
+          <Link href="/" className="text-2xl font-bold text-black">
             Chain Sleuth
           </Link>
-
-          {/* Navigation */}
+  
           <nav className="flex items-center space-x-8">
             <Link 
               href="/queries" 
@@ -36,8 +34,8 @@ const Header = () => {
             >
               Graph
             </Link>
-
-            {/* Wallet Button */}
+  
+            {/* Wallet Button with black styling */}
             <WalletButton />
           </nav>
         </div>
