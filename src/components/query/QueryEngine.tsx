@@ -24,39 +24,55 @@ export function QueryEngine() {
     
     try {
       const accountMatch = query.match(/\b[\w-]+\.near\b/);
-      const targetAccount = accountMatch ? accountMatch[0] : accountId;
+      const targetAccount = accountMatch ? accountMatch[0] : 'trovelabs.near';
 
-      console.log('Making API request to /api/query');
-      console.log('Request payload:', { query, accountId: targetAccount });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
       const result = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          query,
+          query: query.trim(),
           accountId: targetAccount
-        })
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       const responseText = await result.text();
-      console.log('Response:', responseText);
       
-      setResponse({
-        success: result.ok,
-        results: [responseText],
-        message: result.ok ? 'Query executed successfully' : 'Query failed'
-      });
-      
-      if (result.ok) {
-        toast.success('Query executed successfully');
+      if (responseText.includes('FUNCTION_INVOCATION_TIMEOUT')) {
+        toast.error('Query took too long to complete. Please try a simpler query.');
+        setResponse({
+          success: false,
+          results: ['Query timeout - please try a simpler query or try again later'],
+          message: 'Query timed out'
+        });
       } else {
-        toast.error('Query failed');
+        setResponse({
+          success: result.ok,
+          results: [responseText],
+          message: result.ok ? 'Query executed successfully' : 'Query failed'
+        });
       }
 
     } catch (error) {
       console.error('Query Error:', error);
-      toast.error('Failed to execute query');
-      setResponse(null);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('aborted')) {
+        toast.error('Query timed out. Please try again.');
+      } else {
+        toast.error('Failed to execute query');
+      }
+      
+      setResponse({
+        success: false,
+        results: [`Error: ${errorMessage}`],
+        message: 'Query failed'
+      });
     } finally {
       setLoading(false);
     }
