@@ -14,9 +14,9 @@ import debounce from 'lodash/debounce';
 import { ForceLink, ForceManyBody, ForceCenter } from 'd3-force';
 
 const NODE_LABEL_DISTANCE = 0;
-const FORCE_STRENGTH = -2000;
-const LINK_DISTANCE = 200;
-const CENTER_STRENGTH = 0.03;
+const FORCE_STRENGTH = -3500;
+const LINK_DISTANCE = 300;
+const CENTER_STRENGTH = 0.02;
 
 function Neo4jGraph() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -131,8 +131,8 @@ function Neo4jGraph() {
             case 'charge':
               (force as ForceManyBody<any>)
                 .strength(FORCE_STRENGTH)
-                .distanceMin(100)
-                .distanceMax(400);
+                .distanceMin(200)
+                .distanceMax(600);
               break;
             case 'link':
               (force as ForceLink<any, any>)
@@ -159,18 +159,18 @@ function Neo4jGraph() {
           ctx.lineWidth = 2;
           ctx.stroke();
 
-          // Draw node label with larger font
+          // Draw node label with smaller font
           const label = node.properties?.id || node.label;
           if (!label) return;
 
-          const fontSize = Math.min(NODE_R * 0.7, 16); // Increased font size
+          const fontSize = Math.min(NODE_R * 0.5, 12); // Reduced font size multiplier and max size
           ctx.font = `${fontSize}px Arial`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillStyle = '#000';
           
           // Improved text truncation
-          const maxLength = Math.floor(NODE_R * 2 / (fontSize * 0.6));
+          const maxLength = Math.floor(NODE_R * 2.5 / (fontSize * 0.6));
           const truncatedLabel = label.toString().length > maxLength 
             ? `${label.toString().slice(0, maxLength)}...`
             : label.toString();
