@@ -10,48 +10,16 @@ export async function POST(request: Request) {
   const requestId = uuidv4();
   
   try {
-    // Pino structured logging
-    logger.info({
-      requestId,
-      msg: 'Environment check',
-      hasApiKey: !!process.env.NEO4J_API_KEY,
-      hasApiUrl: !!process.env.NEO4J_API_URL,
-      apiUrl: process.env.NEO4J_API_URL
-    });
-
-    const { query, accountId } = await request.json();
-    logger.info({
-      requestId,
-      msg: 'Request parsed',
-      query,
-      accountId
-    });
-    
-    let token;
-    try {
-      token = await pipelineService.getToken();
-      logger.info({ requestId, msg: 'Token acquired successfully' });
-    } catch (tokenError) {
-      logger.error({
-        requestId,
-        msg: 'Token acquisition failed',
-        error: tokenError instanceof Error ? tokenError.message : 'Unknown error'
-      });
-      throw tokenError;
-    }
-
-    if (!process.env.NEO4J_API_URL) {
-      throw new Error('NEO4J_API_URL environment variable is not set');
-    }
+    const { query } = await request.json();
+    const token = await pipelineService.getToken();
 
     logger.info({
       requestId,
-      msg: 'Making Neo4j request',
-      url: `${process.env.NEO4J_API_URL}/query`,
-      hasToken: !!token
+      msg: 'Making query request',
+      query
     });
 
-    const response = await fetch(`${process.env.NEO4J_API_URL}/query`, {
+    const response = await fetch(`${process.env.NEO4J_API_URL}/api/v1/query`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -61,22 +29,15 @@ export async function POST(request: Request) {
       body: JSON.stringify({ query })
     });
 
-    logger.info({
-      requestId,
-      msg: 'Neo4j response received',
-      status: response.status,
-      ok: response.ok
-    });
-
     if (!response.ok) {
       const errorText = await response.text();
       logger.error({
         requestId,
-        msg: 'Neo4j error response',
+        msg: 'Query error response',
         status: response.status,
         error: errorText
       });
-      throw new Error(`Neo4j API responded with ${response.status}: ${errorText}`);
+      throw new Error(`Query failed: ${errorText}`);
     }
 
     const data = await response.json();
@@ -91,10 +52,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { 
-        error: 'Failed to process query',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to process query' },
       { status: 500 }
     );
   }
