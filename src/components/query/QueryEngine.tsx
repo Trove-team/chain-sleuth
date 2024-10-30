@@ -19,9 +19,12 @@ export function QueryEngine() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    logger.info('Form submitted');
+    console.group('Query Submission');
+    console.log('Query submitted:', query);
     
     if (!query.trim()) {
+      console.warn('Empty query submitted');
+      console.groupEnd();
       toast.error('Please enter a query');
       return;
     }
@@ -29,22 +32,21 @@ export function QueryEngine() {
     setLoading(true);
     
     try {
-      logger.info('Submitting query', { query });
+      console.log('Making API request to /api/query');
+      console.log('Request payload:', { query });
 
       const result = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          query,
-          accountId: undefined
-        })
+        body: JSON.stringify({ query })
       });
 
-      logger.info('Response received', { status: result.status });
+      console.log('Response status:', result.status);
+      console.log('Response headers:', Object.fromEntries(result.headers.entries()));
 
       if (!result.ok) {
         const errorData = await result.json();
-        logger.error('API Error', {
+        console.error('API Error Response:', {
           status: result.status,
           error: errorData,
           query
@@ -53,17 +55,28 @@ export function QueryEngine() {
       }
 
       const data = await result.json();
-      setResponse(data);
+      console.log('API Response data:', data);
+      
+      setResponse({
+        success: true,
+        results: Array.isArray(data) ? data : [data],
+        message: 'Query executed successfully'
+      });
+      
       toast.success('Query executed successfully');
-      logger.info('Query completed successfully', { data });
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Query failed';
-      logger.error('Query error:', { error: errorMessage });
+      console.error('Query Error:', {
+        message: errorMessage,
+        error,
+        query
+      });
       toast.error(errorMessage);
       setResponse(null);
     } finally {
       setLoading(false);
+      console.groupEnd();
     }
   };
 
