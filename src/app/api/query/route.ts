@@ -12,14 +12,15 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    if (!body.query || typeof body.query !== 'string') {
+    if (!body.query || typeof body.query !== 'string' || !body.accountId) {
       return NextResponse.json(
-        { error: 'Invalid query format. Expected {"query": "your query string"}' },
+        { error: 'Invalid query format. Expected {"query": "your query string", "accountId": "account.near"}' },
         { status: 400 }
       );
     }
 
     const query = body.query;
+    const accountId = body.accountId;
     const token = await pipelineService.getToken();
 
     logger.info({
@@ -28,13 +29,16 @@ export async function POST(request: Request) {
       query
     });
 
-    const response = await fetch('/api/query', {
+    const response = await fetch(`${process.env.NEO4J_API_URL}/api/v1/query`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Request-ID': requestId
       },
       body: JSON.stringify({ 
-        query: query 
+        query: query,
+        accountId: accountId
       })
     });
 
@@ -50,6 +54,12 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
+    logger.info({
+      requestId,
+      msg: 'Query completed successfully',
+      status: response.status
+    });
+    
     return NextResponse.json(data);
 
   } catch (error) {
