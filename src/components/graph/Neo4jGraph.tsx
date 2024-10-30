@@ -163,13 +163,13 @@ function Neo4jGraph() {
           const label = node.properties?.id || node.label;
           if (!label) return;
 
-          const fontSize = Math.min(NODE_R * 0.5, 12); // Reduced font size multiplier and max size
+          const fontSize = Math.min(NODE_R * 0.6, 10); // Adjusted for smaller nodes
           ctx.font = `${fontSize}px Arial`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillStyle = '#000';
           
-          // Improved text truncation
+          // Adjusted text truncation for smaller nodes
           const maxLength = Math.floor(NODE_R * 2.5 / (fontSize * 0.6));
           const truncatedLabel = label.toString().length > maxLength 
             ? `${label.toString().slice(0, maxLength)}...`
