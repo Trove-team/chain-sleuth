@@ -2,6 +2,7 @@
 'use client';
 
 import { useInfiniteQuery } from '@tanstack/react-query';
+import QueryInput from '@/components/query/QueryInput';
 import QueryResults from '@/components/query/QueryResults';
 import { InvestigationNFTMetadata, InvestigationStatus, NearTimestamp } from '@/types/investigation';
 
@@ -105,49 +106,56 @@ export default function QueriesPage(): JSX.Element {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Query Results</h1>
-      <h1 className="text-3xl font-bold mb-8 text-black">Query Results</h1>
+      <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6 mb-8">
+        <h1 className="text-3xl font-bold text-black">Query Results</h1>
+      </div>
 
-      <div className="space-y-6">
-              {status === 'pending' ? (
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
-          </div>
-        ) : status === 'error' ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            <p>Error fetching queries: {error instanceof Error ? error.message : 'Unknown error'}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-2 px-4 py-2 bg-red-100 hover:bg-red-200 rounded"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {flattenedData.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <p className="text-gray-600">No queries found</p>
-              </div>
-            ) : (
-              <>
-                <QueryResults queries={flattenedData} />
-                
-                {hasNextPage && (
-                  <div className="flex justify-center mt-8">
-                    <button
-                      onClick={() => fetchNextPage()}
-                      disabled={isFetchingNextPage}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-opacity"
-                    >
-                      {isFetchingNextPage ? 'Loading more...' : 'Load More'}
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
+      <div className="mb-8">
+        <QueryInput />
+      </div>
+
+      <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6">
+        <div className="space-y-6">
+          {status === 'pending' ? (
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
+            </div>
+          ) : status === 'error' ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              <p>Error fetching queries: {error instanceof Error ? error.message : 'Unknown error'}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-2 px-4 py-2 bg-red-100 hover:bg-red-200 rounded"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {flattenedData.length === 0 ? (
+                <div className="text-center py-12 bg-white/10 backdrop-blur-sm rounded-lg">
+                  <p className="text-black">No queries found</p>
+                </div>
+              ) : (
+                <>
+                  <QueryResults queries={flattenedData} />
+                  
+                  {hasNextPage && (
+                    <div className="flex justify-center mt-8">
+                      <button
+                        onClick={() => fetchNextPage()}
+                        disabled={isFetchingNextPage}
+                        className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-opacity"
+                      >
+                        {isFetchingNextPage ? 'Loading more...' : 'Load More'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
