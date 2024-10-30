@@ -19,29 +19,38 @@ export function QueryEngine() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    logger.info('Form submitted');
+    
+    if (!query.trim()) {
+      toast.error('Please enter a query');
+      return;
+    }
+
     setLoading(true);
     
     try {
       logger.info('Submitting query', { query });
 
-      const result = await fetch('/api/query-engine/query', {
+      const result = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query,
-          accountId: undefined // Optional, can be added if needed
+          accountId: undefined
         })
       });
 
-      const data = await result.json();
-      
+      logger.info('Response received', { status: result.status });
+
       if (!result.ok) {
-        throw new Error(data.error || 'Failed to process query');
+        const errorData = await result.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server responded with ${result.status}`);
       }
 
+      const data = await result.json();
       setResponse(data);
       toast.success('Query executed successfully');
-      logger.info('Query completed successfully');
+      logger.info('Query completed successfully', { data });
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Query failed';
@@ -53,38 +62,48 @@ export function QueryEngine() {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      handleSubmit(e);
+    }
+  };
+
   return (
     <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6 space-y-4">
       <h2 className="text-xl font-semibold text-black">Natural Language Query</h2>
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-800">
         Enter your query in natural language (e.g., &quot;analyze transactions coming from near.wallet&quot;)
+        <br />
+        <span className="text-xs">(Press Ctrl + Enter to submit)</span>
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <textarea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyPress}
           placeholder="Enter your query here..."
-          className="w-full h-32 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+          className="w-full h-32 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+          disabled={loading}
         />
         
         <button
           type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+          disabled={loading || !query.trim()}
+          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Processing...' : 'Submit Query'}
         </button>
       </form>
 
       {response && (
-        <div className="mt-6 bg-white/40 rounded-lg p-4">
+        <div className="mt-6 bg-white/80 rounded-lg p-4">
           <h3 className="text-lg font-medium text-black mb-2">Results</h3>
-          <pre className="whitespace-pre-wrap overflow-x-auto">
+          <pre className="whitespace-pre-wrap overflow-x-auto text-gray-800 bg-white p-4 rounded-lg">
             {JSON.stringify(response.results, null, 2)}
           </pre>
           {response.message && (
-            <p className="mt-2 text-sm text-gray-600">{response.message}</p>
+            <p className="mt-2 text-sm text-gray-800">{response.message}</p>
           )}
         </div>
       )}
