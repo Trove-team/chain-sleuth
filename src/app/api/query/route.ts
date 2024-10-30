@@ -26,7 +26,8 @@ export async function POST(request: Request) {
     logger.info({
       requestId,
       msg: 'Making query request',
-      query
+      query,
+      accountId
     });
 
     const response = await fetch(`${process.env.NEO4J_API_URL}/api/v1/query`, {
@@ -37,92 +38,34 @@ export async function POST(request: Request) {
         'X-Request-ID': requestId
       },
       body: JSON.stringify({ 
-        query: query,
-        accountId: accountId
+        query,
+        accountId
       })
     });
 
-    if (!response.ok) {
-      let errorMessage;
-      try {
-        const errorText = await response.text();
-        // Try to parse as JSON first
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorText;
-        } catch (parseError) {
-          // If JSON parsing fails, log the parse error without referencing undefined 'error'
-          logger.error({
-            requestId,
-            msg: 'Failed to parse error response',
-            status: response.status,
-            parseError,
-            rawResponse: errorText  // Include the raw response instead of undefined error
-          });
-          
-          errorMessage = errorText; // Use the raw error text
-        }
-        
-        logger.error({
-          requestId,
-          msg: 'Query error response',
-          status: response.status,
-          error: errorMessage,
-          rawResponse: errorText
-        });
-        
-        return NextResponse.json(
-          { error: errorMessage },
-          { status: response.status }
-        );
-      } catch (fetchError) {
-        logger.error({
-          requestId,
-          msg: 'Failed to read error response',
-          status: response.status,
-          error: fetchError instanceof Error ? fetchError.message : 'Unknown error'
-        });
-        
-        return NextResponse.json(
-          { error: 'An unexpected error occurred' },
-          { status: 500 }
-        );
-      }
-    }
+    const responseText = await response.text();
+    
+    logger.info({
+      requestId,
+      msg: 'Query response received',
+      status: response.status,
+      response: responseText
+    });
 
-    try {
-      const data = await response.json();
-      logger.info({
-        requestId,
-        msg: 'Query completed successfully',
-        status: response.status
-      });
-      
-      return NextResponse.json(data);
-    } catch (parseError) {
-      logger.error({
-        requestId,
-        msg: 'Failed to parse successful response',
-        error: parseError
-      });
-      
-      return NextResponse.json(
-        { error: 'Failed to parse API response' },
-        { status: 500 }
-      );
-    }
+    return new Response(responseText, {
+      status: response.status,
+      headers: {
+        'Content-Type': 'text/plain'
+      }
+    });
 
   } catch (error) {
     logger.error({
       requestId,
       msg: 'Error processing query',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
 
-    return NextResponse.json(
-      { error: 'Failed to process query' },
-      { status: 500 }
-    );
+    return new Response('Failed to process query', { status: 500 });
   }
 }

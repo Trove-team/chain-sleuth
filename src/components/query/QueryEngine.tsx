@@ -20,16 +20,6 @@ export function QueryEngine() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.group('Query Submission');
-    console.log('Query submitted:', query);
-    
-    if (!query.trim()) {
-      console.warn('Empty query submitted');
-      console.groupEnd();
-      toast.error('Please enter a query');
-      return;
-    }
-
     setLoading(true);
     
     try {
@@ -48,42 +38,27 @@ export function QueryEngine() {
         })
       });
 
-      console.log('Response status:', result.status);
-      console.log('Response headers:', Object.fromEntries(result.headers.entries()));
-
-      if (!result.ok) {
-        const errorData = await result.json();
-        console.error('API Error Response:', {
-          status: result.status,
-          error: errorData,
-          query
-        });
-        throw new Error(errorData.error || `Server responded with ${result.status}`);
-      }
-
-      const data = await result.json();
-      console.log('API Response data:', data);
+      const responseText = await result.text();
+      console.log('Response:', responseText);
       
       setResponse({
-        success: true,
-        results: Array.isArray(data) ? data : [data],
-        message: 'Query executed successfully'
+        success: result.ok,
+        results: [responseText],
+        message: result.ok ? 'Query executed successfully' : 'Query failed'
       });
       
-      toast.success('Query executed successfully');
+      if (result.ok) {
+        toast.success('Query executed successfully');
+      } else {
+        toast.error('Query failed');
+      }
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Query failed';
-      console.error('Query Error:', {
-        message: errorMessage,
-        error,
-        query
-      });
-      toast.error(errorMessage);
+      console.error('Query Error:', error);
+      toast.error('Failed to execute query');
       setResponse(null);
     } finally {
       setLoading(false);
-      console.groupEnd();
     }
   };
 
