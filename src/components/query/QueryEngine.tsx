@@ -43,7 +43,12 @@ export function QueryEngine() {
       logger.info('Response received', { status: result.status });
 
       if (!result.ok) {
-        const errorData = await result.json().catch(() => ({}));
+        const errorData = await result.json();
+        logger.error('API Error', {
+          status: result.status,
+          error: errorData,
+          query
+        });
         throw new Error(errorData.error || `Server responded with ${result.status}`);
       }
 

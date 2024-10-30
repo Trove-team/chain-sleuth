@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         'X-Request-ID': requestId
       },
-      body: JSON.stringify({ query, accountId })
+      body: JSON.stringify({ query })
     });
 
     logger.info({
