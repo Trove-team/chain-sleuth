@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { ForceGraph2D, ForceGraphMethods } from 'react-force-graph';
 import { runQuery } from '@/utils/neo4j';
 import { Node, Link, GraphData, GraphRef, Neo4jNode, Neo4jRelationship, GraphRecord, NodeType, GraphNode } from '@/types/graph';
-import { NODE_R, NODE_COLORS } from './constants';
+import { NODE_R, NODE_COLORS, NODE_BORDER_COLOR } from './constants';
 import { ZoomControls } from './controls/ZoomControls';
 import { SearchBar } from './controls/SearchBar';
 import { StatsPanel } from './controls/StatsPanel';
@@ -14,9 +14,9 @@ import debounce from 'lodash/debounce';
 import { ForceLink, ForceManyBody, ForceCenter } from 'd3-force';
 
 const NODE_LABEL_DISTANCE = 0;
-const FORCE_STRENGTH = -1000;
-const LINK_DISTANCE = 100;
-const CENTER_STRENGTH = 0.05;
+const FORCE_STRENGTH = -2000;
+const LINK_DISTANCE = 200;
+const CENTER_STRENGTH = 0.03;
 
 function Neo4jGraph() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -131,8 +131,8 @@ function Neo4jGraph() {
             case 'charge':
               (force as ForceManyBody<any>)
                 .strength(FORCE_STRENGTH)
-                .distanceMin(50)
-                .distanceMax(200);
+                .distanceMin(100)
+                .distanceMax(400);
               break;
             case 'link':
               (force as ForceLink<any, any>)
@@ -148,29 +148,29 @@ function Neo4jGraph() {
           const graphNode = node as unknown as GraphNode;
           if (typeof graphNode.x !== 'number' || typeof graphNode.y !== 'number') return;
 
-          // Draw larger node circle
+          // Draw node circle
           ctx.beginPath();
           ctx.arc(node.x, node.y, NODE_R, 0, 2 * Math.PI);
           ctx.fillStyle = node.color || '#999';
           ctx.fill();
 
-          // Draw node border
-          ctx.strokeStyle = '#fff';
+          // Draw darker blue border
+          ctx.strokeStyle = NODE_BORDER_COLOR;
           ctx.lineWidth = 2;
           ctx.stroke();
 
-          // Draw node label centered inside node
+          // Draw node label with larger font
           const label = node.properties?.id || node.label;
           if (!label) return;
 
-          const fontSize = Math.min(NODE_R * 0.8, 14); // Scale font size with node size
+          const fontSize = Math.min(NODE_R * 0.7, 16); // Increased font size
           ctx.font = `${fontSize}px Arial`;
           ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle'; // Center text vertically
+          ctx.textBaseline = 'middle';
           ctx.fillStyle = '#000';
           
-          // Truncate text if too long
-          const maxLength = Math.floor(NODE_R * 1.5 / (fontSize * 0.6));
+          // Improved text truncation
+          const maxLength = Math.floor(NODE_R * 2 / (fontSize * 0.6));
           const truncatedLabel = label.toString().length > maxLength 
             ? `${label.toString().slice(0, maxLength)}...`
             : label.toString();
