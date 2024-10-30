@@ -10,7 +10,16 @@ export async function POST(request: Request) {
   const requestId = uuidv4();
   
   try {
-    const { query } = await request.json();
+    const body = await request.json();
+    
+    if (!body.query || typeof body.query !== 'string') {
+      return NextResponse.json(
+        { error: 'Invalid query format. Expected {"query": "your query string"}' },
+        { status: 400 }
+      );
+    }
+
+    const query = body.query;
     const token = await pipelineService.getToken();
 
     logger.info({
@@ -19,14 +28,14 @@ export async function POST(request: Request) {
       query
     });
 
-    const response = await fetch(`${process.env.NEO4J_API_URL}/api/v1/query`, {
+    const response = await fetch('/api/query', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-Request-ID': requestId
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ 
+        query: query 
+      })
     });
 
     if (!response.ok) {
