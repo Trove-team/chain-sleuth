@@ -48,8 +48,8 @@ const WalletButton = () => {
         onClick={handleClick}
         className={`px-6 py-2 rounded-lg transition-colors duration-200 ${
           accountId 
-            ? 'bg-red-500 hover:bg-red-600 text-white'
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+            ? 'bg-black text-white hover:bg-gray-800' 
+            : 'bg-black text-white hover:bg-gray-800'
         }`}
       >
         {accountId ? (
