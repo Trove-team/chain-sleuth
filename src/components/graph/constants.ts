@@ -1,6 +1,6 @@
 import { NodeType } from '@/types/graph';
 
-export const NODE_R = 25; // Increased from 8 to 25 for bigger nodes
+export const NODE_R = 10; // Increased from 8 to 25 for bigger nodes
 export const LABEL_THRESHOLD = 1.5; // Only show labels above this zoom level
 
 export const NODE_COLORS: Record<NodeType, string> = {
