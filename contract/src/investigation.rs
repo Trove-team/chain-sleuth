@@ -2,7 +2,7 @@ use std::prelude::v1::*;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{AccountId, json_types::U64, env};
-use crate::webhook_mappings::WebhookType;  // Add this import
+use crate::webhook_mappings::WebhookType;
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
@@ -27,15 +27,11 @@ impl From<WebhookType> for InvestigationStatus {
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, Debug)]
 #[serde(crate = "near_sdk::serde")]
-pub struct InvestigationMetadata {
-    pub case_number: u64,
-    pub target_account: AccountId,
-    pub requester: AccountId,
-    pub investigation_date: U64,
-    pub last_updated: U64,
-    pub status: InvestigationStatus,
-    pub financial_summary: FinancialSummary,
-    pub analysis_summary: AnalysisSummary,
+pub struct AnalysisSummary {
+    pub robust_summary: Option<String>,
+    pub short_summary: Option<String>,
+    pub transaction_count: u64,
+    pub is_bot: bool,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, Debug)]
@@ -48,40 +44,26 @@ pub struct FinancialSummary {
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, Debug)]
 #[serde(crate = "near_sdk::serde")]
-pub struct AnalysisSummary {
-    pub robust_summary: Option<String>,
-    pub short_summary: Option<String>,
-    pub transaction_count: u64,
-    pub is_bot: bool,
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct InvestigationResponse {
-    pub request_id: String,
+pub struct InvestigationMetadata {
+    pub case_number: u64,
+    pub target_account: AccountId,
+    pub requester: AccountId,
+    pub investigation_date: U64,
     pub status: InvestigationStatus,
-    pub message: Option<String>,
+    pub summary: Option<String>,         // Combined summary
+    pub transaction_count: u64,
+    pub total_value_usd: String,
+    pub near_balance: String,            // Keep NEAR balance separate
+    pub is_bot: bool,                    // Keep bot detection
+    pub last_updated: U64,              // For frontend compatibility
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct MetadataUpdate {
-    pub description: Option<String>,
-    pub extra: String,
-}
-
-// Enhance the implementation
 impl InvestigationMetadata {
-    pub fn from_webhook_data(
+    pub fn new(
         case_number: u64,
         target_account: AccountId,
         requester: AccountId,
-        webhook_data: &serde_json::Value
     ) -> Self {
-        // Try to parse financial data from webhook if available
-        let financial_data = webhook_data.get("financialData").and_then(|v| v.as_object());
-        let analysis_data = webhook_data.get("analysisData").and_then(|v| v.as_object());
-
         Self {
             case_number,
             target_account,
@@ -89,58 +71,48 @@ impl InvestigationMetadata {
             investigation_date: U64(env::block_timestamp()),
             last_updated: U64(env::block_timestamp()),
             status: InvestigationStatus::Pending,
-            financial_summary: FinancialSummary {
-                total_usd_value: financial_data
-                    .and_then(|d| d.get("totalUsdValue"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("0")
-                    .to_string(),
-                near_balance: financial_data
-                    .and_then(|d| d.get("nearBalance"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("0")
-                    .to_string(),
-                defi_value: financial_data
-                    .and_then(|d| d.get("defiValue"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("0")
-                    .to_string(),
-            },
-            analysis_summary: AnalysisSummary {
-                robust_summary: analysis_data
-                    .and_then(|d| d.get("robustSummary"))
-                    .and_then(|v| v.as_str())
-                    .map(String::from),
-                short_summary: analysis_data
-                    .and_then(|d| d.get("shortSummary"))
-                    .and_then(|v| v.as_str())
-                    .map(String::from),
-                transaction_count: analysis_data
-                    .and_then(|d| d.get("transactionCount"))
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0),
-                is_bot: analysis_data
-                    .and_then(|d| d.get("isBot"))
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false),
-            },
+            summary: None,
+            transaction_count: 0,
+            total_value_usd: "0".to_string(),
+            near_balance: "0".to_string(),
+            is_bot: false,
         }
     }
 
-    // Add method to update metadata from webhook data
     pub fn update_from_webhook(&mut self, webhook_data: &serde_json::Value) {
-        if let Some(financial_data) = webhook_data.get("financialData").and_then(|v| v.as_object()) {
-            if let Some(total_usd) = financial_data.get("totalUsdValue").and_then(|v| v.as_str()) {
-                self.financial_summary.total_usd_value = total_usd.to_string();
-            }
-            // Update other financial fields...
+        // Update status
+        if let Some(status) = webhook_data.get("status").and_then(|v| v.as_str()) {
+            self.status = match status {
+                "complete" => InvestigationStatus::Completed,
+                "processing" => InvestigationStatus::Processing,
+                "failed" => InvestigationStatus::Failed,
+                _ => self.status.clone(),
+            };
         }
 
-        if let Some(analysis_data) = webhook_data.get("analysisData").and_then(|v| v.as_object()) {
-            if let Some(robust_summary) = analysis_data.get("robustSummary").and_then(|v| v.as_str()) {
-                self.analysis_summary.robust_summary = Some(robust_summary.to_string());
+        if let Some(result) = webhook_data.get("result") {
+            // Update financial data
+            if let Some(financial) = result.get("financialData") {
+                if let Some(total_usd) = financial.get("totalUsdValue").and_then(|v| v.as_str()) {
+                    self.total_value_usd = total_usd.to_string();
+                }
+                if let Some(near_balance) = financial.get("nearBalance").and_then(|v| v.as_str()) {
+                    self.near_balance = near_balance.to_string();
+                }
             }
-            // Update other analysis fields...
+
+            // Update analysis data
+            if let Some(robust) = result.get("robustSummary").and_then(|v| v.as_str()) {
+                self.summary = Some(robust.to_string());
+            } else if let Some(short) = result.get("shortSummary").and_then(|v| v.as_str()) {
+                self.summary = Some(short.to_string());
+            }
+            if let Some(count) = result.get("transactionCount").and_then(|v| v.as_u64()) {
+                self.transaction_count = count;
+            }
+            if let Some(is_bot) = result.get("isBot").and_then(|v| v.as_bool()) {
+                self.is_bot = is_bot;
+            }
         }
 
         self.last_updated = U64(env::block_timestamp());

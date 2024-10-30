@@ -13,6 +13,27 @@ pub enum WebhookType {
 }
 
 impl WebhookType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            WebhookType::Progress => "progress",
+            WebhookType::Completion => "completion",
+            WebhookType::Error => "error",
+            WebhookType::MetadataReady => "metadata_ready",
+            WebhookType::Log => "log",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "progress" => Some(Self::Progress),
+            "completion" => Some(Self::Completion),
+            "error" => Some(Self::Error),
+            "metadata_ready" => Some(Self::MetadataReady),
+            "log" => Some(Self::Log),
+            _ => None,
+        }
+    }
+
     pub fn is_terminal(&self) -> bool {
         matches!(self, WebhookType::Completion | WebhookType::Error)
     }
@@ -22,16 +43,6 @@ impl WebhookType {
             self,
             WebhookType::Completion | WebhookType::MetadataReady | WebhookType::Progress
         )
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            WebhookType::Progress => "progress",
-            WebhookType::Completion => "completion",
-            WebhookType::Error => "error",
-            WebhookType::MetadataReady => "metadata_ready",
-            WebhookType::Log => "log",
-        }
     }
 }
 

@@ -10,14 +10,11 @@ use near_sdk::{
     AccountId, 
     BorshStorageKey, 
     PanicOnDefault,
-    Promise,
     PromiseOrValue,
+    Promise,
     require,
     NearToken,
 };
-
-use near_sdk::env::panic_str;
-use near_sdk::serde_json;
 
 use near_contract_standards::non_fungible_token::{
     NonFungibleToken,
@@ -31,118 +28,81 @@ use near_contract_standards::non_fungible_token::metadata::{
 };
 use near_contract_standards::non_fungible_token::core::NonFungibleTokenCore;
 
+// Local module imports
 mod metadata;
 mod investigation;
 mod enumeration;
 mod events;
 mod webhook_mappings;
 
-use crate::metadata::MetadataUpdate;
-use crate::investigation::{InvestigationMetadata, InvestigationResponse, InvestigationStatus, FinancialSummary, AnalysisSummary};
-use crate::events::InvestigationEvent;
-use crate::webhook_mappings::WebhookType;
+// Re-exports with explicit types
+pub use crate::metadata::{MetadataUpdate};
+pub use crate::investigation::{
+    InvestigationMetadata, 
+    InvestigationResponse, 
+    InvestigationStatus,
+    FinancialSummary,
+    AnalysisSummary
+};
+pub use crate::events::InvestigationEvent;
+pub use crate::webhook_mappings::WebhookType;
 
 // Constants
 pub const NFT_STANDARD_NAME: &str = "nep171";
 pub const DEFAULT_ICON_URL: &str = "https://gateway.pinata.cloud/ipfs/QmYkT5eNLePKnvw9vLXNdLxFynp8amKUPaPZ74LhQxxdpu";
 pub const DEFAULT_NFT_IMAGE_URL: &str = "https://gateway.pinata.cloud/ipfs/QmSNycrd5gWH7QAFKBVvKaT58c5S6B1tq9ScHP7thxvLWM";
 
-#[derive(BorshSerialize, BorshDeserialize, BorshStorageKey)]
+#[derive(BorshSerialize)]
 pub enum StorageKey {
     NonFungibleToken,
+    Metadata,
     TokenMetadata,
-    TokenEnumeration,
-    Approvals,
-    ContractMetadata,
-    InvestigationStatus { hash: Vec<u8> },
-    FailedMints { hash: Vec<u8> },
-    InvestigatedAccounts { hash: Vec<u8> },
-    PendingInvestigations { hash: Vec<u8> },
-}
-
-impl StorageKey {
-    pub fn for_investigation_status(account_id: &AccountId) -> Self {
-        Self::InvestigationStatus {
-            hash: env::sha256(account_id.as_bytes())
-        }
-    }
-
-    pub fn for_failed_mints(account_id: &AccountId) -> Self {
-        Self::FailedMints {
-            hash: env::sha256(account_id.as_bytes())
-        }
-    }
-
-    pub fn for_investigated_accounts(account_id: &AccountId) -> Self {
-        Self::InvestigatedAccounts {
-            hash: env::sha256(account_id.as_bytes())
-        }
-    }
-
-    pub fn for_pending_investigations(account_id: &AccountId) -> Self {
-        Self::PendingInvestigations {
-            hash: env::sha256(account_id.as_bytes())
-        }
-    }
+    Enumeration,
+    Approval,
+    InvestigatedAccounts,
+    InvestigationStatus,
+    InvestigationData,
+    FailedMints,
 }
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
-    pub owner_id: AccountId,
     pub tokens: NonFungibleToken,
     pub metadata: LazyOption<NFTContractMetadata>,
     pub case_number_counter: u64,
     pub investigated_accounts: LookupMap<AccountId, TokenId>,
     pub investigation_status: UnorderedMap<TokenId, InvestigationStatus>,
-    pub failed_mints: UnorderedMap<TokenId, InvestigationMetadata>,
+    pub investigation_data: UnorderedMap<TokenId, InvestigationMetadata>,
+    pub failed_mints: UnorderedMap<TokenId, String>,
 }
 
 #[near_bindgen]
 impl Contract {
     #[init]
     pub fn new(owner_id: AccountId) -> Self {
-        env::log_str(&format!("Initializing Chain Sleuth contract for owner: {}", owner_id));
-        let metadata = NFTContractMetadata {
-            spec: NFT_METADATA_SPEC.to_string(),
-            name: "Chain Sleuth".to_string(),
-            symbol: "CSI".to_string(),
-            icon: Some(DEFAULT_ICON_URL.to_string()),
-            base_uri: None,
-            reference: None,
-            reference_hash: None,
-        };
-        metadata.assert_valid();
-
-        // Initialize storage first
-        let tokens = NonFungibleToken::new(
-            StorageKey::NonFungibleToken,
-            owner_id.clone(),
-            Some(StorageKey::TokenMetadata),
-            Some(StorageKey::TokenEnumeration),
-            Some(StorageKey::Approvals),
-        );
-
-        let mut this = Self {
-            tokens,
+        Self {
+            tokens: NonFungibleToken::new(
+                StorageKey::NonFungibleToken,
+                owner_id.clone(),
+                Some(StorageKey::TokenMetadata),
+                Some(StorageKey::Enumeration),
+                Some(StorageKey::Approval),
+            ),
+            metadata: LazyOption::new(StorageKey::Metadata, None),
             owner_id,
-            metadata: LazyOption::new(StorageKey::ContractMetadata, None),
             case_number_counter: 0,
-            investigated_accounts: LookupMap::new(StorageKey::InvestigatedAccounts { hash: vec![] }),
-            investigation_status: UnorderedMap::new(StorageKey::InvestigationStatus { hash: vec![] }),
-            failed_mints: UnorderedMap::new(StorageKey::FailedMints { hash: vec![] }),
-        };
-
-        // Set metadata after initialization
-        this.metadata.set(&metadata);
-
-        this
+            investigated_accounts: LookupMap::new(StorageKey::InvestigatedAccounts),
+            investigation_status: UnorderedMap::new(StorageKey::InvestigationStatus),
+            investigation_data: UnorderedMap::new(StorageKey::InvestigationData),
+            failed_mints: UnorderedMap::new(StorageKey::FailedMints),
+        }
     }
 
     #[payable]
     #[handle_result]
     pub fn start_investigation(&mut self, target_account: AccountId) -> Result<InvestigationResponse, near_sdk::Abort> {
-        let initial_storage_usage = env::storage_usage();
+        let _initial_storage_usage = env::storage_usage();
 
     // Check for existing investigation
     if let Some(token_id) = self.investigated_accounts.get(&target_account) {
@@ -161,35 +121,34 @@ impl Contract {
     // Create initial metadata
     let metadata = TokenMetadata {
         title: Some(format!("Case File #{}: {}", case_number, target_account)),
-    description: Some("Investigation in progress...".to_string()),
-    media: Some(DEFAULT_NFT_IMAGE_URL.to_string()),
-    media_hash: None,
-    copies: Some(1),
-    issued_at: Some(env::block_timestamp().to_string()),
-    expires_at: None,
-    starts_at: None,
-    updated_at: Some(env::block_timestamp().to_string()),
-    extra: Some(serde_json::to_string(&InvestigationMetadata {
-        case_number,
-        target_account: target_account.clone(),
-        requester: env::predecessor_account_id(),
-        investigation_date: U64(env::block_timestamp()),
-        last_updated: U64(env::block_timestamp()),
-        status: InvestigationStatus::Pending,
-        financial_summary: FinancialSummary {
-            total_usd_value: "0".to_string(),
-            near_balance: "0".to_string(),
-            defi_value: "0".to_string(),
-        },
-        analysis_summary: AnalysisSummary {
-            robust_summary: None,
-            short_summary: None,
-            transaction_count: 0,
-            is_bot: false,
-        },
-    }).unwrap()),
-    reference: None,
-    reference_hash: None,
+        description: Some("Investigation in progress...".to_string()),
+        media: Some(DEFAULT_NFT_IMAGE_URL.to_string()),
+        media_hash: None,
+        copies: Some(1),
+        issued_at: Some(env::block_timestamp().to_string()),
+        expires_at: None,
+        starts_at: None,
+        updated_at: Some(env::block_timestamp().to_string()),
+        extra: Some(serde_json::to_string(&InvestigationMetadata {
+            case_number,
+            target_account: target_account.clone(),
+            requester: env::predecessor_account_id(),
+            investigation_date: U64(env::block_timestamp()),
+            status: InvestigationStatus::Pending,
+            financial_summary: Some(FinancialSummary {
+                total_usd_value: "0".to_string(),
+                near_balance: "0".to_string(),
+                defi_value: "0".to_string(),
+            }),
+            analysis_summary: Some(AnalysisSummary {
+                robust_summary: None,
+                short_summary: None,
+                transaction_count: 0,
+                is_bot: false,
+            }),
+        }).unwrap()),
+        reference: None,
+        reference_hash: None,
     };
 
         // Mint NFT
@@ -234,112 +193,93 @@ if deposit > required_deposit {
         })
     }
 
+    #[payable]
     pub fn update_investigation_metadata(
         &mut self,
         token_id: TokenId,
         metadata_update: MetadataUpdate,
-        webhook_type: WebhookType,
-    ) -> bool {
-        // Only owner can update metadata
-        assert_eq!(
-            env::predecessor_account_id(),
-            self.owner_id,
-            "Only contract owner can update metadata"
-        );
-
-        let token = self.tokens.nft_token(token_id.clone())
-            .expect("Token not found");
-        
-        let mut token_metadata = token.metadata
-            .expect("No metadata found");
-
-        // Update metadata
-        if let Some(description) = metadata_update.description {
-            token_metadata.description = Some(description);
+        webhook_type: WebhookType
+    ) -> Result<(), near_sdk::Abort> {
+        if env::predecessor_account_id() != self.owner_id {
+            let error_msg = format!(
+                "Unauthorized update attempt from: {}", 
+                env::predecessor_account_id()
+            );
+            env::log_str(&error_msg);
+            return Err(near_sdk::Abort);
         }
 
-        // Parse and update extra data
-        if let Some(current_extra) = token_metadata.extra.as_ref() {
-            let mut extra: InvestigationMetadata = serde_json::from_str(current_extra)
-                .expect("Invalid metadata format");
+        // Detailed deserialization error logging
+        let updated_metadata: InvestigationMetadata = match serde_json::from_str(&metadata_update.extra) {
+            Ok(metadata) => metadata,
+            Err(e) => {
+                InvestigationEvent::DeserializationError {
+                    context: format!("Token ID: {}", token_id),
+                    error: e.to_string(),
+                    timestamp: U64(env::block_timestamp()),
+                }.log();
+                env::panic_str(&format!("Metadata deserialization failed: {}", e));
+            }
+        };
 
-            // Update with new data
-            let update_data: InvestigationMetadata = serde_json::from_str(&metadata_update.extra)
-                .expect("Invalid update data format");
+        // Log the update attempt
+        env::log_str(&format!(
+            "Updating metadata for token {}: {:?}", 
+            token_id, 
+            webhook_type
+        ));
 
-            extra.last_updated = U64(env::block_timestamp());
-            extra.status = InvestigationStatus::from(webhook_type.clone());  // Update status based on webhook
-            extra.financial_summary = update_data.financial_summary;
-            extra.analysis_summary = update_data.analysis_summary;
+        // Update both storage locations
+        self.investigation_data.insert(&token_id, &updated_metadata);
+        self.investigation_status.insert(&token_id, &updated_metadata.status);
 
-            token_metadata.extra = Some(serde_json::to_string(&extra).unwrap());
-            token_metadata.updated_at = Some(env::block_timestamp().to_string());
-        }
-
-        // Update token metadata
-        self.tokens.token_metadata_by_id.as_mut()
-            .unwrap()
-            .insert(&token_id, &token_metadata);
-
-        // Update status
-        self.investigation_status.insert(&token_id, &InvestigationStatus::Completed);
-
-        // Log event
+        // Log the update
         InvestigationEvent::MetadataUpdated {
             token_id: token_id.clone(),
             timestamp: U64(env::block_timestamp()),
         }.log();
 
-        true
+        Ok(())
     }
 
     #[payable]
     #[handle_result]
-    pub fn retry_investigation(&mut self, token_id: TokenId) -> Result<bool, near_sdk::Abort> {
-        // Only owner can retry
-        if env::predecessor_account_id() != self.owner_id {
-            panic_str("Only contract owner can retry investigations");
-        }
+    pub fn retry_investigation(&mut self, token_id: TokenId) -> Result<(), near_sdk::Abort> {
+        let failed_metadata_str = self.failed_mints.get(&token_id)
+            .ok_or_else(|| env::panic_str("No failed mint found for this token"))?;
+        
+        let failed_metadata: InvestigationMetadata = serde_json::from_str(&failed_metadata_str)
+            .map_err(|_| env::panic_str("Invalid failed metadata format"))?;
 
-        let failed_metadata = self.failed_mints.get(&token_id)
-            .expect("No failed mint found for retry");
-
-        // Create token metadata
         let token_metadata = TokenMetadata {
-            title: Some(format!("Case File #{}: {}", failed_metadata.case_number, failed_metadata.target_account)),
+            title: Some(format!("Investigation #{}", token_id)),
             description: Some("Investigation in progress...".to_string()),
-            media: Some(DEFAULT_NFT_IMAGE_URL.to_string()),
+            media: None,
             media_hash: None,
             copies: Some(1),
             issued_at: Some(env::block_timestamp().to_string()),
             expires_at: None,
             starts_at: None,
-            updated_at: Some(env::block_timestamp().to_string()),
-            extra: Some(serde_json::to_string(&failed_metadata).unwrap()),
+            updated_at: None,
+            extra: None,
             reference: None,
             reference_hash: None,
         };
 
-        // Directly call internal_mint
-        self.tokens.internal_mint(
+        // Mint the token with metadata using internal_mint_with_refund
+        self.tokens.internal_mint_with_refund(
             token_id.clone(),
             failed_metadata.target_account.clone(),
-            Some(token_metadata)
+            Some(token_metadata),
+            None  
         );
 
-        // Update tracking
         self.investigated_accounts.insert(&failed_metadata.target_account, &token_id);
-        self.investigation_status.insert(&token_id, &InvestigationStatus::Pending);
+        
+        // Remove from failed mints
         self.failed_mints.remove(&token_id);
-
-        // Log event
-        InvestigationEvent::RetryAttempted {
-            token_id: token_id.clone(),
-            attempt: 1, // Could track multiple attempts if needed
-            timestamp: U64(env::block_timestamp()),
-        }.log();
-
-        Ok(true)
+        
+        Ok(())
     }
 
     // View methods
@@ -357,6 +297,72 @@ if deposit > required_deposit {
 
     pub fn nft_metadata(&self) -> NFTContractMetadata {
         self.metadata.get().unwrap()
+    }
+
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        // Enhanced logging for migration
+        env::log_str("Starting contract migration...");
+        
+        let old_state: Contract = env::state_read().map_err(|e| {
+            env::log_str(&format!("Failed to read old state: {:?}", e));
+            env::panic_str("State read failed during migration")
+        }).expect("Failed to read state");
+        
+        env::log_str(&format!(
+            "Old state loaded - Version: {}, Cases: {}", 
+            old_state.version, 
+            old_state.case_number_counter
+        ));
+
+        require!(
+            old_state.version == 1,
+            "Can only migrate from version 1"
+        );
+
+        let new_contract = Self {
+            version: old_state.version + 1,
+            tokens: old_state.tokens,
+            owner_id: old_state.owner_id.clone(),
+            metadata: old_state.metadata,
+            case_number_counter: old_state.case_number_counter,
+            investigated_accounts: LookupMap::new(StorageKey::InvestigatedAccounts),
+            investigation_status: UnorderedMap::new(StorageKey::InvestigationStatus),
+            investigation_data: UnorderedMap::new(StorageKey::InvestigationData),
+            failed_mints: UnorderedMap::new(StorageKey::FailedMints),
+        };
+
+        // Log successful migration
+        InvestigationEvent::ContractMigrated {
+            old_version: old_state.version,
+            new_version: new_contract.version,
+            timestamp: U64(env::block_timestamp()),
+        }.log();
+
+        new_contract
+    }
+
+    fn create_token_metadata(&self, investigation: &InvestigationMetadata) -> TokenMetadata {
+        TokenMetadata {
+            title: Some(format!("Case File #{}: {}", 
+                investigation.case_number, 
+                investigation.target_account
+            )),
+            description: Some(investigation.summary.clone()
+                .unwrap_or_else(|| "Investigation in progress...".to_string())),
+            media: Some(DEFAULT_NFT_IMAGE_URL.to_string()),
+            copies: Some(1),
+            issued_at: Some(env::block_timestamp().to_string()),
+            updated_at: Some(env::block_timestamp().to_string()),
+            extra: Some(serde_json::to_string(&investigation).unwrap_or_default()),
+            // Remove unused fields
+            media_hash: None,
+            expires_at: None,
+            starts_at: None,
+            reference: None,
+            reference_hash: None,
+        }
     }
 }
 

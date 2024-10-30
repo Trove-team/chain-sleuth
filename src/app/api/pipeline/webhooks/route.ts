@@ -11,15 +11,34 @@ const workflow = new InvestigationWorkflow();
 export async function POST(request: Request) {
     try {
         const webhook: WebhookData = await request.json();
-        logger.info('Received webhook', webhook);
+        
+        // Validate webhook structure
+        if (!webhook.type || !webhook.data?.taskId || !webhook.data?.accountId) {
+            return NextResponse.json(
+                { error: 'Invalid webhook format' },
+                { status: 400 }
+            );
+        }
+
+        logger.info('Received webhook', {
+            type: webhook.type,
+            taskId: webhook.data.taskId,
+            accountId: webhook.data.accountId
+        });
         
         await workflow.handleWebhookUpdate(webhook.data.taskId, webhook);
         
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ 
+            success: true,
+            message: `Successfully processed ${webhook.type} webhook`
+        });
     } catch (error) {
         logger.error('Webhook processing failed:', error);
         return NextResponse.json(
-            { error: 'Webhook processing failed' },
+            { 
+                error: 'Webhook processing failed',
+                details: error instanceof Error ? error.message : 'Unknown error'
+            },
             { status: 500 }
         );
     }

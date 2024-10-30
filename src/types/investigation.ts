@@ -89,21 +89,21 @@ export interface WebhookData {
         accountId: string;
         taskId: string;
         requestId: string;
+        timestamp: string;
         progress?: number;
         message?: string;
         result?: {
             robustSummary: string;
             shortSummary: string;
-            transactionCount: number;
-            isBot: boolean;
             financialData: {
                 totalUsdValue: string;
                 nearBalance: string;
                 defiValue: string;
-            }
+            };
+            transactionCount: number;
+            isBot: boolean;
         };
         error?: string;
-        timestamp: string;
     };
 }
 

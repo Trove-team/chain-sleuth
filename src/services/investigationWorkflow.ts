@@ -83,48 +83,79 @@ export class InvestigationWorkflow {
     extra: string;
     webhookType: WebhookType;
   }> {
-    switch (data.type) {
-      case 'Progress':
-        return {
-          description: data.data.message || "Processing...",
-          extra: JSON.stringify({
-            progress: data.data.progress,
-            timestamp: data.data.timestamp
-          }),
-          webhookType: 'Progress'
-        };
+    const baseMetadata = {
+        case_number: parseInt(data.data.requestId.split('#')[1], 10),
+        target_account: data.data.accountId,
+        requester: data.data.accountId,
+        investigation_date: data.data.timestamp,
+        last_updated: new Date().toISOString(),
+        status: data.status === 'complete' ? 'Completed' 
+             : data.status === 'processing' ? 'Processing'
+             : 'Failed'
+    };
 
-      case 'Completion':
-        return {
-          description: data.data.result?.shortSummary || "Complete",
-          extra: JSON.stringify({
-            financial_summary: {
-              total_usd_value: data.data.result?.financialData.totalUsdValue || "0",
-              near_balance: data.data.result?.financialData.nearBalance || "0",
-              defi_value: data.data.result?.financialData.defiValue || "0"
-            },
-            analysis_summary: {
-              robust_summary: data.data.result?.robustSummary,
-              short_summary: data.data.result?.shortSummary,
-              transaction_count: data.data.result?.transactionCount || 0,
-              is_bot: data.data.result?.isBot || false
-            }
-          }),
-          webhookType: 'Completion'
-        };
+    const defaultFinancialSummary = {
+        total_usd_value: "0",
+        near_balance: "0",
+        defi_value: "0"
+    };
 
-      case 'Error':
-        return {
-          description: data.data.error || "Investigation failed",
-          extra: JSON.stringify({
-            error: data.data.error,
-            timestamp: data.data.timestamp
-          }),
-          webhookType: 'Error'
-        };
+    const defaultAnalysisSummary = {
+        robust_summary: null,
+        short_summary: null,
+        transaction_count: 0,
+        is_bot: false
+    };
 
-      default:
-        throw new Error(`Unsupported webhook type: ${data.type}`);
+    switch (data.type.toLowerCase()) {
+        case 'progress':
+            return {
+                description: data.data.message || "Processing...",
+                extra: JSON.stringify({
+                    ...baseMetadata,
+                    financial_summary: defaultFinancialSummary,
+                    analysis_summary: {
+                        ...defaultAnalysisSummary,
+                        transaction_count: data.data.result?.transactionCount || 0
+                    }
+                }),
+                webhookType: 'Progress'
+            };
+
+        case 'completion':
+            return {
+                description: data.data.result?.shortSummary || "Investigation complete",
+                extra: JSON.stringify({
+                    ...baseMetadata,
+                    financial_summary: {
+                        total_usd_value: data.data.result?.financialData?.totalUsdValue || "0",
+                        near_balance: data.data.result?.financialData?.nearBalance || "0",
+                        defi_value: data.data.result?.financialData?.defiValue || "0"
+                    },
+                    analysis_summary: {
+                        robust_summary: data.data.result?.robustSummary || null,
+                        short_summary: data.data.result?.shortSummary || null,
+                        transaction_count: data.data.result?.transactionCount || 0,
+                        is_bot: data.data.result?.isBot || false
+                    }
+                }),
+                webhookType: 'Completion'
+            };
+
+        case 'error':
+            return {
+                description: data.data.error || "Investigation failed",
+                extra: JSON.stringify({
+                    ...baseMetadata,
+                    financial_summary: defaultFinancialSummary,
+                    analysis_summary: defaultAnalysisSummary,
+                    error: data.data.error
+                }),
+                webhookType: 'Error'
+            };
+
+        default:
+            throw new Error(`Unsupported webhook type: ${data.type}`);
     }
   }
 

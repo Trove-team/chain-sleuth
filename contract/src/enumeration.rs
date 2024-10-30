@@ -49,15 +49,17 @@ impl Contract {
     }
 
     pub fn get_investigation_metadata(&self, token_id: TokenId) -> Option<InvestigationMetadata> {
+        // First try to get from investigation_data
+        if let Some(metadata) = self.investigation_data.get(&token_id) {
+            return Some(metadata);
+        }
+        
+        // Fallback to token extra data
         if let Some(token) = self.tokens.nft_token(token_id.clone()) {
             if let Some(metadata) = token.metadata {
                 if let Some(extra) = metadata.extra {
-                    match serde_json::from_str(&extra) {
-                        Ok(investigation_metadata) => return Some(investigation_metadata),
-                        Err(_) => {
-                            env::log_str(&format!("Failed to parse metadata for token {}", token_id));
-                            return None;
-                        }
+                    if let Ok(investigation_metadata) = serde_json::from_str(&extra) {
+                        return Some(investigation_metadata);
                     }
                 }
             }

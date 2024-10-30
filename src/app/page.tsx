@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client';
 
 import Link from 'next/link';
@@ -11,26 +10,26 @@ export default function Home() {
       <QueryInput />
 
       {/* Links Section */}
-      <div className="space-y-4 mt-8">
-        <h2 className="text-xl font-semibold mb-2 text-gray-300">Resources</h2>
-        <ul className="space-y-2">
+      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 mt-8">
+        <h2 className="text-xl font-semibold mb-4 text-black">Resources</h2>
+        <ul className="space-y-3">
           <li>
-            <Link href="/queries" className="text-gray-300 hover:text-white">
+            <Link href="/queries" className="text-black hover:text-gray-700 transition-colors">
               View All Queries
             </Link>
           </li>
           <li>
-            <Link href="https://docs.mintbase.xyz/ai/mintbase-plugins" className="text-gray-300 hover:text-white">
+            <Link href="https://docs.mintbase.xyz/ai/mintbase-plugins" className="text-black hover:text-gray-700 transition-colors">
               Documentation
             </Link>
           </li>
           <li>
-            <Link href="/.well-known/ai-plugin.json" className="text-gray-300 hover:text-white">
+            <Link href="/.well-known/ai-plugin.json" className="text-black hover:text-gray-700 transition-colors">
               OpenAPI Spec
             </Link>
           </li>
           <li>
-            <Link href="/api/swagger" className="text-gray-300 hover:text-white">
+            <Link href="/api/swagger" className="text-black hover:text-gray-700 transition-colors">
               Swagger
             </Link>
           </li>

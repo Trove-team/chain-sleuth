@@ -29,6 +29,23 @@ body {
 }
 
 @layer utilities {
+  .text-default {
+    color: #000000;
+  }
+  
+  .text-primary {
+    color: #000000;
+  }
+  
+  .text-secondary {
+    color: #4B5563;
+  }
+
+  .text-heading {
+    color: #000000;
+    font-weight: 600;
+  }
+   
   .text-balance {
     text-wrap: balance;
   }

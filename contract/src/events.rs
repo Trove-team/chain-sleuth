@@ -37,6 +37,27 @@ pub enum InvestigationEvent {
         token_id: String,
         timestamp: U64,
         has_summary: bool,
+    },
+    ContractInitialized {
+        owner_id: String,
+        timestamp: U64,
+        version: String,
+        block_height: u64,
+    },
+    ContractMigrated {
+        old_version: u32,
+        new_version: u32,
+        timestamp: U64,
+    },
+    StorageError {
+        operation: String,
+        error: String,
+        timestamp: U64,
+    },
+    DeserializationError {
+        context: String,
+        error: String,
+        timestamp: U64,
     }
 }
 
