@@ -198,9 +198,9 @@ export default function QueryInput() {
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
-      <form onSubmit={handleSubmit} className="space-y-4 bg-transparent p-6 rounded-lg">
+      <form onSubmit={handleSubmit} className="space-y-4 bg-white/20 backdrop-blur-lg rounded-lg p-6">
         <div className="flex flex-col space-y-2">
-          <label htmlFor="nearAddress" className="text-lg font-medium">
+          <label htmlFor="nearAddress" className="text-lg font-medium text-black">
             Enter NEAR Address to Investigate
           </label>
           <div className="flex space-x-2">
@@ -210,16 +210,16 @@ export default function QueryInput() {
               value={nearAddress}
               onChange={(e) => setNearAddress(e.target.value)}
               placeholder="e.g. example.near"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black bg-white"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent text-black bg-white"
               disabled={status.stage === 'processing'}
             />
             <button
               type="submit"
               disabled={!selector || status.stage === 'processing'}
-              className={`px-6 py-2 bg-blue-600 text-white rounded-lg transition-colors
+              className={`px-6 py-2 bg-black text-white rounded-lg transition-colors
                 ${(!selector || status.stage === 'processing')
                   ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:bg-blue-700'}
+                  : 'hover:bg-gray-800'}
               `}
             >
               {!selector ? 'Connect Wallet First' : 'Investigate'}
@@ -229,14 +229,14 @@ export default function QueryInput() {
       </form>
 
       {status.stage !== 'idle' && (
-        <div className="bg-white shadow-md rounded-lg p-4 mt-4">
+        <div className="bg-white/20 backdrop-blur-lg rounded-lg p-4 mt-4">
           <div className="flex flex-col w-full">
             <div className="flex items-center space-x-3">
               {status.stage === 'processing' && (
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500" />
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-black" />
               )}
               <div className="flex flex-col">
-                <span className="font-medium">Investigation Status</span>
+                <span className="font-medium text-black">Investigation Status</span>
                 <span className={`text-sm ${getStatusColor(status.stage)}`}>
                   {status.message}
                 </span>
