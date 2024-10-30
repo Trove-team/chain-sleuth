@@ -10,23 +10,31 @@ export async function POST(request: Request) {
   const requestId = uuidv4();
   
   try {
-    logger.info('Environment check', {
+    // Pino structured logging
+    logger.info({
       requestId,
+      msg: 'Environment check',
       hasApiKey: !!process.env.NEO4J_API_KEY,
       hasApiUrl: !!process.env.NEO4J_API_URL,
       apiUrl: process.env.NEO4J_API_URL
     });
 
     const { query, accountId } = await request.json();
-    logger.info('Request parsed', { requestId, query, accountId });
+    logger.info({
+      requestId,
+      msg: 'Request parsed',
+      query,
+      accountId
+    });
     
     let token;
     try {
       token = await pipelineService.getToken();
-      logger.info('Token acquired successfully', { requestId });
+      logger.info({ requestId, msg: 'Token acquired successfully' });
     } catch (tokenError) {
-      logger.error('Token acquisition failed', {
+      logger.error({
         requestId,
+        msg: 'Token acquisition failed',
         error: tokenError instanceof Error ? tokenError.message : 'Unknown error'
       });
       throw tokenError;
@@ -36,8 +44,9 @@ export async function POST(request: Request) {
       throw new Error('NEO4J_API_URL environment variable is not set');
     }
 
-    logger.info('Making Neo4j request', {
+    logger.info({
       requestId,
+      msg: 'Making Neo4j request',
       url: `${process.env.NEO4J_API_URL}/query`,
       hasToken: !!token
     });
@@ -52,16 +61,18 @@ export async function POST(request: Request) {
       body: JSON.stringify({ query, accountId })
     });
 
-    logger.info('Neo4j response received', {
+    logger.info({
       requestId,
+      msg: 'Neo4j response received',
       status: response.status,
       ok: response.ok
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error('Neo4j error response', {
+      logger.error({
         requestId,
+        msg: 'Neo4j error response',
         status: response.status,
         error: errorText
       });
@@ -72,15 +83,15 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
 
   } catch (error) {
-    logger.error('Error processing query', {
+    logger.error({
       requestId,
+      msg: 'Error processing query',
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      service: 'query-engine-nextjs'
+      stack: error instanceof Error ? error.stack : undefined
     });
 
     return NextResponse.json(
-      {
+      { 
         error: 'Failed to process query',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
