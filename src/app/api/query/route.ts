@@ -10,17 +10,37 @@ export async function POST(request: Request) {
   const requestId = uuidv4();
   
   try {
-    logger.info('Starting query request', { requestId });
-    
+    logger.info('Environment check', {
+      requestId,
+      hasApiKey: !!process.env.NEO4J_API_KEY,
+      hasApiUrl: !!process.env.NEO4J_API_URL,
+      apiUrl: process.env.NEO4J_API_URL
+    });
+
     const { query, accountId } = await request.json();
     logger.info('Request parsed', { requestId, query, accountId });
     
-    const token = await pipelineService.getToken();
-    logger.info('Token acquired', { requestId });
+    let token;
+    try {
+      token = await pipelineService.getToken();
+      logger.info('Token acquired successfully', { requestId });
+    } catch (tokenError) {
+      logger.error('Token acquisition failed', {
+        requestId,
+        error: tokenError instanceof Error ? tokenError.message : 'Unknown error'
+      });
+      throw tokenError;
+    }
 
     if (!process.env.NEO4J_API_URL) {
       throw new Error('NEO4J_API_URL environment variable is not set');
     }
+
+    logger.info('Making Neo4j request', {
+      requestId,
+      url: `${process.env.NEO4J_API_URL}/query`,
+      hasToken: !!token
+    });
 
     const response = await fetch(`${process.env.NEO4J_API_URL}/query`, {
       method: 'POST',
@@ -32,13 +52,20 @@ export async function POST(request: Request) {
       body: JSON.stringify({ query, accountId })
     });
 
-    logger.info('Neo4j response received', { 
-      requestId, 
-      status: response.status 
+    logger.info('Neo4j response received', {
+      requestId,
+      status: response.status,
+      ok: response.ok
     });
 
     if (!response.ok) {
-      throw new Error(`Neo4j API responded with ${response.status}: ${await response.text()}`);
+      const errorText = await response.text();
+      logger.error('Neo4j error response', {
+        requestId,
+        status: response.status,
+        error: errorText
+      });
+      throw new Error(`Neo4j API responded with ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
@@ -53,7 +80,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to process query',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
