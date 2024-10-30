@@ -14,6 +14,7 @@ interface QueryResponse {
 
 export function QueryEngine() {
   const [query, setQuery] = useState('');
+  const [accountId, setAccountId] = useState('trovelabs.near');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<QueryResponse | null>(null);
 
@@ -32,13 +33,19 @@ export function QueryEngine() {
     setLoading(true);
     
     try {
+      const accountMatch = query.match(/\b[\w-]+\.near\b/);
+      const targetAccount = accountMatch ? accountMatch[0] : accountId;
+
       console.log('Making API request to /api/query');
-      console.log('Request payload:', { query });
+      console.log('Request payload:', { query, accountId: targetAccount });
 
       const result = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ 
+          query,
+          accountId: targetAccount
+        })
       });
 
       console.log('Response status:', result.status);
@@ -90,9 +97,9 @@ export function QueryEngine() {
     <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6 space-y-4">
       <h2 className="text-xl font-semibold text-black">Natural Language Query</h2>
       <p className="text-sm text-gray-800">
-        Enter your query in natural language (e.g., &quot;analyze transactions coming from near.wallet&quot;)
+        Enter your query in natural language (e.g., &quot;analyze transactions for trovelabs.near&quot;)
         <br />
-        <span className="text-xs">(Press Ctrl + Enter to submit)</span>
+        <span className="text-xs">Include a .near account in your query or it will default to trovelabs.near</span>
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-4">
