@@ -28,6 +28,11 @@ declare module 'react-force-graph' {
     onNodeClick?: (node: ForceGraphNodeObject) => void;
     width?: number;
     height?: number;
+    nodeCanvasObject?: (
+      node: ForceGraphNodeObject,
+      ctx: CanvasRenderingContext2D,
+      globalScale: number
+    ) => void;
   }
 
   export interface ForceGraphMethods {

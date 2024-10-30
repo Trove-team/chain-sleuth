@@ -1,4 +1,6 @@
-// Instead of importing from react-force-graph, define the interfaces we need
+import { ForceGraphNodeObject } from 'react-force-graph';
+
+
 interface BaseNode {
   id: string;
   label: string;
@@ -50,3 +52,16 @@ export interface GraphRef {
   zoomToFit: (duration?: number, padding?: number) => void;
   d3Force: (name: string, force?: any) => void;
 }
+
+export interface GraphNode extends ForceGraphNodeObject {
+    id: string;
+    label: string;
+    properties: Record<string, any>;
+    color?: string;
+    type?: string;
+    x?: number;
+    y?: number;
+    vx?: number;
+    vy?: number;
+    index?: number;
+  }
