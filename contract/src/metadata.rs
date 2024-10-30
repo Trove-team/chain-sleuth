@@ -1,27 +1,32 @@
-use near_sdk::require;
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_contract_standards::non_fungible_token::metadata::{
+    TokenMetadata,
+};
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::json_types::Base64VecU8;
+use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::env;
 
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone)]
 #[serde(crate = "near_sdk::serde")]
-pub struct NFTContractMetadata {
-    pub spec: String,
-    pub name: String,
-    pub symbol: String,
-    pub icon: Option<String>,
-    pub base_uri: Option<String>,
-    pub reference: Option<String>,
-    pub reference_hash: Option<Base64VecU8>,
+pub struct MetadataUpdate {
+    pub description: Option<String>,
+    pub extra: String,
 }
 
-impl NFTContractMetadata {
-    pub fn assert_valid(&self) {
-        require!(self.spec.len() < 32, "Spec is too long");
-        require!(self.name.len() < 32, "Name is too long");
-        require!(self.symbol.len() < 10, "Symbol is too long");
-        if let Some(ref icon) = self.icon {
-            require!(icon.len() < 2048, "Icon URL is too long");
-        }
+impl MetadataUpdate {
+    pub fn to_token_metadata(&self) -> Result<TokenMetadata, String> {
+        Ok(TokenMetadata {
+            title: None,
+            description: self.description.clone(),
+            media: None,
+            media_hash: None,
+            copies: None,
+            issued_at: None,
+            expires_at: None,
+            starts_at: None,
+            updated_at: Some(env::block_timestamp().to_string()),
+            extra: Some(self.extra.clone()),
+            reference: None,
+            reference_hash: None,
+        })
     }
 }
