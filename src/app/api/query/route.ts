@@ -43,24 +43,74 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      logger.error({
-        requestId,
-        msg: 'Query error response',
-        status: response.status,
-        error: errorText
-      });
-      throw new Error(`Query failed: ${errorText}`);
+      let errorMessage;
+      try {
+        const errorText = await response.text();
+        // Try to parse as JSON first
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorText;
+        } catch (parseError) {
+          // If JSON parsing fails, log the parse error without referencing undefined 'error'
+          logger.error({
+            requestId,
+            msg: 'Failed to parse error response',
+            status: response.status,
+            parseError,
+            rawResponse: errorText  // Include the raw response instead of undefined error
+          });
+          
+          errorMessage = errorText; // Use the raw error text
+        }
+        
+        logger.error({
+          requestId,
+          msg: 'Query error response',
+          status: response.status,
+          error: errorMessage,
+          rawResponse: errorText
+        });
+        
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: response.status }
+        );
+      } catch (fetchError) {
+        logger.error({
+          requestId,
+          msg: 'Failed to read error response',
+          status: response.status,
+          error: fetchError instanceof Error ? fetchError.message : 'Unknown error'
+        });
+        
+        return NextResponse.json(
+          { error: 'An unexpected error occurred' },
+          { status: 500 }
+        );
+      }
     }
 
-    const data = await response.json();
-    logger.info({
-      requestId,
-      msg: 'Query completed successfully',
-      status: response.status
-    });
-    
-    return NextResponse.json(data);
+    try {
+      const data = await response.json();
+      logger.info({
+        requestId,
+        msg: 'Query completed successfully',
+        status: response.status
+      });
+      
+      return NextResponse.json(data);
+    } catch (parseError) {
+      logger.error({
+        requestId,
+        msg: 'Failed to parse successful response',
+        error: parseError
+      });
+      
+      return NextResponse.json(
+        { error: 'Failed to parse API response' },
+        { status: 500 }
+      );
+    }
 
   } catch (error) {
     logger.error({
