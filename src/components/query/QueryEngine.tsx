@@ -57,7 +57,7 @@ export function QueryEngine() {
     <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6 space-y-4">
       <h2 className="text-xl font-semibold text-black">Natural Language Query</h2>
       <p className="text-sm text-gray-600">
-        Enter your query in natural language (e.g., "analyze transactions coming from near.wallet")
+        Enter your query in natural language (e.g., &quot;analyze transactions coming from near.wallet&quot;)
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-4">
