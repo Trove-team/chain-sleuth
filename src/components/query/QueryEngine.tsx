@@ -1,30 +1,53 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('query-engine-component');
+
+interface QueryResponse {
+  success: boolean;
+  results: any[];
+  message: string;
+}
 
 export function QueryEngine() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [response, setResponse] = useState<QueryResponse | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-
+    
     try {
-      const response = await fetch('/api/query-engine/route', {
+      logger.info('Submitting query', { query });
+
+      const result = await fetch('/api/query-engine/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ 
+          query,
+          accountId: undefined // Optional, can be added if needed
+        })
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Query failed');
-      setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const data = await result.json();
+      
+      if (!result.ok) {
+        throw new Error(data.error || 'Failed to process query');
+      }
+
+      setResponse(data);
+      toast.success('Query executed successfully');
+      logger.info('Query completed successfully');
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Query failed';
+      logger.error('Query error:', { error: errorMessage });
+      toast.error(errorMessage);
+      setResponse(null);
     } finally {
       setLoading(false);
     }
@@ -32,34 +55,37 @@ export function QueryEngine() {
 
   return (
     <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6 space-y-4">
-      <h2 className="text-xl font-semibold text-black">Query Engine</h2>
+      <h2 className="text-xl font-semibold text-black">Natural Language Query</h2>
+      <p className="text-sm text-gray-600">
+        Enter your query in natural language (e.g., "analyze transactions coming from near.wallet")
+      </p>
+      
       <form onSubmit={handleSubmit} className="space-y-4">
         <textarea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full h-32 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
           placeholder="Enter your query here..."
+          className="w-full h-32 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
         />
+        
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
         >
           {loading ? 'Processing...' : 'Submit Query'}
         </button>
       </form>
 
-      {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {result && (
-        <div className="p-4 bg-white/40 rounded-lg">
-          <pre className="whitespace-pre-wrap">
-            {JSON.stringify(result, null, 2)}
+      {response && (
+        <div className="mt-6 bg-white/40 rounded-lg p-4">
+          <h3 className="text-lg font-medium text-black mb-2">Results</h3>
+          <pre className="whitespace-pre-wrap overflow-x-auto">
+            {JSON.stringify(response.results, null, 2)}
           </pre>
+          {response.message && (
+            <p className="mt-2 text-sm text-gray-600">{response.message}</p>
+          )}
         </div>
       )}
     </div>
