@@ -1,59 +1,176 @@
-# Chain-Sleuth Agent
+# Chain Sleuth: Advanced NEAR Protocol Analytics & Investigation Platform
 
-<img src="https://github.com/user-attachments/assets/aa54bac4-30ef-49bb-bac7-732ff561bd95" alt="cover_image" width="0"/>
+Chain Sleuth is a comprehensive blockchain analytics platform designed specifically for the NEAR Protocol. It combines powerful data querying capabilities with AI-driven analysis to provide deep insights into account behavior, transaction patterns, and network trends.
 
-Chain Sleuth is a a comprehnsive data querying tool that uses a Bitte.ai Plugin for facilitating near blockchain investigations and general blockchain data queries.
+## Core Components
 
-[![Demo](https://img.shields.io/badge/Demo-Visit%20Demo-brightgreen)](https://ref-finance-agent-next.vercel.app/)
-[![Deploy](https://img.shields.io/badge/Deploy-on%20Vercel-blue)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FMintbase%2Fref-finance-agent-next)
+### 1. Pipeline Service
+The Pipeline Service is the backbone of Chain Sleuth's investigation capabilities:
 
-**Tooling:**
+- **Account Analysis**: Processes NEAR accounts to extract:
+  - Transaction history and patterns
+  - Token holdings and transfers
+  - DeFi interactions
+  - Smart contract interactions
+  - Wealth analysis and financial metrics
 
+- **State Management**: Uses Redis for real-time processing status:
+  - Progress tracking
+  - Metadata caching
+  - Investigation results storage
+  - Webhook handling for async updates
 
-[![Framework](https://img.shields.io/badge/Framework-Next.js%2014-blue)](#)
+### 2. Query Engine
+Our Query Engine interfaces with multiple data sources:
 
-## Project Walkthrough
+- **PikesPeak Integration**:
+  - Account transaction counts
+  - Balance tracking
+  - Token transfers (incoming/outgoing)
+  - Smart contract interactions
 
-Chain sleuth agent facilitates the development of AI-powered blockchain investigation agents. 
+- **NEAR RPC Node**:
+  - Real-time blockchain data
+  - Account state queries
+  - Contract state access
+  - Transaction validation
 
-#### API Base URL
+### 3. AI Analysis Layer
+Leverages the Bitte.ai Plugin system to:
+- Generate human-readable investigation summaries
+- Detect suspicious patterns
+- Identify potential bot activities
+- Analyze transaction behaviors
+- Track fund flows and relationships
 
-https://chain-sleuth.vercel.app/
+## Key Features
 
-#### Endpoints
+### Account Investigation
+- Initiates comprehensive account analysis
+- Tracks investigation progress
+- Stores results in Redis
+- Provides webhook updates
 
-- Token Metadata `GET` `/api/token/{token}`
+### Data Collection
+- Transaction history aggregation
+- Token balance tracking
+- DeFi protocol interaction analysis
+- Smart contract usage patterns
 
-- Swap Transactions `GET` `/api/swap/{tokenIn}/{tokenOut}/{quantity}`
+### Analysis & Reporting
+- Bot detection algorithms
+- Wealth analysis
+- Transaction pattern recognition
+- Relationship mapping
+- Risk scoring
 
-#### Usage
-Make LLM requests to the endpoints above. Refer to the full API documentation for detailed parameter and response information.
+## API Endpoints
 
+### Core Endpoints
+1. Pipeline Processing:
+   - `POST /api/pipeline` - Start new investigation
+   - `GET /api/pipeline/status/{taskId}` - Check investigation status
+   - `GET /api/pipeline/metadata/{accountId}` - Get account metadata
+
+2. Query Engine:
+   - `GET /api/query/transactions/{accountId}` - Get transaction history
+   - `GET /api/query/tokens/{accountId}` - Get token holdings
+   - `GET /api/query/defi/{accountId}` - Get DeFi interactions
+
+### PikesPeak Integration
+- Account Analysis:
+  - `GET /api/pikespeak/account/{accountId}` - Get account overview
+  - `GET /api/pikespeak/transactions/{accountId}` - Get transaction history
+  - `GET /api/pikespeak/tokens/{accountId}` - Get token holdings
+
+## Upcoming Features
+
+### 1. On-Chain Metadata Storage
+- NFT-based investigation records
+- Permanent investigation results storage
+- Decentralized access control
+- Cross-reference capabilities
+
+### 2. Smart Contract Implementation
+Features planned:
+- Investigation NFT minting
+- Result storage and retrieval
+- Access control and permissions
+- Investigation status tracking
+- Cross-platform integration
+
+### 3. Enhanced Analytics
+- Graph-based relationship mapping
+- Machine learning-based pattern detection
+- Advanced risk scoring
+- Automated investigation triggers
+- Custom investigation templates
+
+### 4. Integration Features
+- API key management
+- Webhook customization
+- Custom investigation parameters
+- Batch processing capabilities
+- Export functionality
+
+## Technical Architecture
+
+### Data Flow
+1. Investigation Request → Pipeline Service
+2. Pipeline → Query Engine
+3. Query Engine → Multiple Data Sources
+4. Data Aggregation → AI Analysis
+5. Results → Redis Cache & Blockchain Storage
+6. Webhook Updates → Client Application
+
+### Storage Strategy
+- Redis for real-time state
+- NEAR blockchain for permanent records
+- NFTs for investigation ownership
+- Distributed storage for large datasets
+
+## Development Roadmap
+
+### Phase 1 (Current)
+- Core pipeline implementation
+- Basic query engine
+- Redis integration
+- Webhook system
+
+### Phase 2 (In Progress)
+- Smart contract development
+- NFT-based storage
+- Enhanced AI analysis
+- Advanced querying capabilities
+
+### Phase 3 (Planned)
+- Graph database integration
+- Machine learning models
+- Custom investigation templates
+- API marketplace
 
 ## Getting Started
-[Docs to integrate](https://docs.mintbase.xyz/ai/assistant-plugins)  
+
+### Prerequisites
+- NEAR account and access keys
+- Redis instance
+- API keys (PikesPeak, etc.)
+- Node.js environment
 
 ### Installation
 
-Set `NEAR_ENV="mainnet"` in your `.env.local` file.
-
-```bash
-# install dependencies
-pnpm i
-
-# start the development server
+bash
+Install dependencies
+pnpm install
+Configure environment
+cp .env.example .env.local
+Start development server
 pnpm dev
-```
-
-## Demo
-https://github.com/Mintbase/ref-finance-agent-next/assets/838839/3291eaf9-aa79-4c95-8c5f-673a6d72dc96
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-
-<img src="https://i.imgur.com/fgFX6BS.png" alt="detail_image" width="0"/>
 
 
+## Contributing
+We welcome contributions! See our contributing guidelines for details on:
+- Code style
+- Pull request process
+- Development workflow
+- Testing requirements
