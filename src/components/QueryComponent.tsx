@@ -57,7 +57,7 @@ export default function QueryComponent() {
       <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="nearAddress" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="nearAddress" className="block text-sm font-medium text-black mb-1">
               NEAR Account Address
             </label>
             <input
@@ -66,7 +66,7 @@ export default function QueryComponent() {
               value={nearAddress}
               onChange={(e) => setNearAddress(e.target.value)}
               placeholder="example.near"
-              className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-black text-black"
               disabled={loading}
             />
           </div>
@@ -77,7 +77,7 @@ export default function QueryComponent() {
             className={`w-full py-2 px-4 rounded-md transition-colors ${
               loading || !nearAddress.trim() 
                 ? 'bg-gray-300 cursor-not-allowed' 
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                : 'bg-black hover:bg-gray-800 text-white'
             }`}
           >
             {loading ? 'Processing...' : 'Start Processing'}
@@ -86,8 +86,8 @@ export default function QueryComponent() {
 
         {result && (
           <div className="mt-4 p-4 bg-white/10 rounded-lg">
-            <h3 className="text-lg font-semibold">Response Data:</h3>
-            <pre className="mt-2 p-2 bg-black/20 rounded overflow-x-auto">
+            <h3 className="text-lg font-semibold text-black">Response Data:</h3>
+            <pre className="mt-2 p-2 bg-black/20 rounded overflow-x-auto text-black">
               {JSON.stringify(result, null, 2)}
             </pre>
           </div>
