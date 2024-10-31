@@ -172,6 +172,18 @@ export default function QueryPage() {
                         <QueryResults queries={queryResults} />
                     )}
                 </div>
+
+                {/* Existing Data Display */}
+                {result?.existingData && !queryResults.length && (
+                    <div className="mt-4 space-y-2">
+                        <h3 className="font-semibold">Existing Results:</h3>
+                        <p>{result.existingData.shortSummary}</p>
+                        <details>
+                            <summary>Detailed Analysis</summary>
+                            <p>{result.existingData.robustSummary}</p>
+                        </details>
+                    </div>
+                )}
             </div>
         </div>
     );

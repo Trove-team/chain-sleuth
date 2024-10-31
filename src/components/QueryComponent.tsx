@@ -124,6 +124,8 @@ export default function QueryComponent() {
     }
   };
 
+  console.log('Query Results:', queryResults);
+
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -155,8 +157,10 @@ export default function QueryComponent() {
       )}
 
       {/* Results Display */}
-      {queryResults.length > 0 && (
+      {queryResults.length > 0 ? (
         <QueryResults queries={queryResults} />
+      ) : (
+        <p className="text-gray-500">No results available yet</p>
       )}
 
       {/* Existing Data Display */}

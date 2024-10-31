@@ -52,31 +52,25 @@ export default function QueryResults({ queries }: QueryResultsProps) {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {queries.map((query, index) => (
-              <tr key={`${query.accountId}-${index}`}>
+              <tr key={index}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <a 
                     href={generateNearExplorerLink(query.accountId)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-900"
+                    className="text-blue-600 hover:text-blue-800"
                   >
                     {query.accountId}
                   </a>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    Ⓝ {query.financialSummary.nearBalance}
-                  </div>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {query.financialSummary.nearBalance}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    ${query.financialSummary.totalUsdValue}
-                  </div>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  ${query.financialSummary.totalUsdValue}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    ${query.financialSummary.defiValue}
-                  </div>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  ${query.financialSummary.defiValue}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
