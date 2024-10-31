@@ -6,12 +6,19 @@ import { PipelineService } from '@/services/pipelineService';
 const logger = createLogger('query-engine');
 const pipelineService = new PipelineService();
 
+// Define request body type
+interface QueryRequest {
+  query: string;
+  accountId?: string;
+}
+
 const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
   .post("/query", async ({ body }) => {
     const requestId = uuidv4();
     
     try {
-      const { query, accountId } = body;
+      // Type assertion for body
+      const { query, accountId } = body as QueryRequest;
       const token = await pipelineService.getToken();
 
       logger.info('Making request to Neo4j:', {
@@ -20,7 +27,6 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
         accountId
       });
 
-      // Direct request to Neo4j instead of proxying through Next.js
       const response = await fetch(`${process.env.NEO4J_API_URL}/api/v1/query`, {
         method: 'POST',
         headers: {
@@ -58,6 +64,17 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
 
       return new Response('Failed to process query', { status: 500 });
     }
+  }, {
+    body: t.Object({
+      query: t.String({
+        description: 'Natural language query about the account',
+        examples: ['analyze transaction patterns for account.near']
+      }),
+      accountId: t.Optional(t.String({
+        description: 'NEAR account ID to analyze',
+        pattern: '^[a-z0-9_-]+\\.near$'
+      }))
+    })
   });
 
 export default queryEngineRoutes;
