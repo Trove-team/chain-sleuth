@@ -21,8 +21,12 @@ export class PipelineService {
     private baseUrl: string;
 
     constructor() {
-        this.apiKey = process.env.NEXT_PUBLIC_NEO4J_API_KEY || 'development-key';
-        this.baseUrl = process.env.NEXT_PUBLIC_NEO4J_API_URL || 'http://localhost:3000';
+        this.apiKey = process.env.NEO4J_API_KEY || '';
+        this.baseUrl = process.env.NEO4J_API_URL || '';
+
+        if (!this.apiKey || !this.baseUrl) {
+            console.error('Missing API configuration');
+        }
     }
 
     async getToken(): Promise<string> {
@@ -32,25 +36,18 @@ export class PipelineService {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': this.apiKey
-                },
-                body: JSON.stringify({})
+                }
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Auth failed: ${response.status} - ${errorText}`);
+                throw new Error(`Auth failed: ${response.status}`);
             }
 
             const data = await response.json();
-            
-            if (!data.token) {
-                throw new Error('Token not found in response');
-            }
-
             return data.token;
         } catch (error) {
             console.error('Token fetch failed:', error);
-            throw new Error(error instanceof Error ? error.message : 'Failed to get authentication token');
+            throw new Error('Failed to get authentication token');
         }
     }
 
