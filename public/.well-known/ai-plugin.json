@@ -18,7 +18,7 @@
       "instructions": "You are an assistant that helps users interact with the Chainsleuth API. You can retrieve token metadata, generate swap transactions, analyze NEAR blockchain info from Pikespeak, and investigate NEAR Protocol wallet addresses.",
       "tools": [
         {
-          "type": "generate-transaction"
+          "type": "submit-query"
         }
       ]
     }
