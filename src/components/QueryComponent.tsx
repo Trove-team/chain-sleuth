@@ -87,6 +87,14 @@ export default function QueryComponent() {
       }
     } catch (error) {
       console.error('Error:', error);
+      setResult({
+        taskId: 'error',
+        status: 'failed',
+        error: {
+          code: 'PROCESSING_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to process account'
+        }
+      });
       toast.error(error instanceof Error ? error.message : 'Failed to process account');
     } finally {
       setLoading(false);

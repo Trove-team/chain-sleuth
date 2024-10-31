@@ -101,18 +101,14 @@ export class PipelineService {
 
         try {
             console.log('Starting processing for account:', accountId);
-            const token = await this.getToken();
-            
-            const response = await fetch(`${this.baseUrl}/api/v1/process`, {
+            const response = await fetch('/api/pipeline/start', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'x-api-key': this.apiKey
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
                     accountId: accountId.trim(),
-                    force: force || false
+                    force: force || false 
                 })
             });
 
@@ -125,7 +121,7 @@ export class PipelineService {
             return data;
         } catch (error) {
             console.error('Processing start failed:', error);
-            return this.createErrorResponse(error);
+            throw error;
         }
     }
 
