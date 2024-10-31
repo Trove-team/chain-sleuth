@@ -1,8 +1,6 @@
 // src/services/pipelineService.ts
 interface ProcessingResponse {
     taskId: string;
-    token: string;
-    statusLink: string;
     existingData?: {
         robustSummary: string;
         shortSummary: string;
@@ -41,39 +39,36 @@ export class PipelineService {
         return data.token;
     }
 
-    async startProcessing(accountId: string, token: string): Promise<ProcessingResponse> {
-        try {
-            const response = await fetch(`${this.baseUrl}/api/v1/account`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    accountId,
-                    forceReprocess: true,
-                    generateSummary: true
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            return {
-                taskId: data.data.taskId,
-                token,
-                statusLink: data.data.statusLink,
-                existingData: data.status === 'exists' ? {
-                    robustSummary: data.data.robustSummary,
-                    shortSummary: data.data.shortSummary
-                } : undefined
-            };
-        } catch (error) {
-            console.error('Pipeline processing error:', error);
-            throw error;
+    async startProcessing(accountId: string, token?: string): Promise<ProcessingResponse> {
+        if (!token) {
+            token = await this.getToken();
         }
+        
+        const response = await fetch(`${this.baseUrl}/api/v1/account`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                accountId,
+                forceReprocess: true,
+                generateSummary: true
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return {
+            taskId: data.data.taskId,
+            existingData: {
+                robustSummary: data.robustSummary,
+                shortSummary: data.shortSummary
+            }
+        };
     }
 
     async checkStatus(taskId: string, token: string): Promise<StatusResponse> {

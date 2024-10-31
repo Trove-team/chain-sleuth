@@ -4,26 +4,42 @@ import { PipelineService } from '@/services/pipelineService';
 
 const pipelineService = new PipelineService();
 
+interface PipelineStartRequest {
+  accountId: string;
+  requestId?: string;  // Made optional since we might not always need it
+}
+
+interface PipelineStartResponse {
+  taskId: string;
+  status: 'processing' | 'complete';
+  data?: {
+    robustSummary?: string;
+    shortSummary?: string;
+  };
+  statusLink: string;
+}
+
 export async function POST(request: Request) {
     try {
-        const { accountId, requestId } = await request.json();
+        const { accountId, requestId } = await request.json() as PipelineStartRequest;
         
-        // Get token and start processing
-        const token = await pipelineService.getToken();
-        const processingResult = await pipelineService.startProcessing(accountId, token);
+        const processingResult = await pipelineService.startProcessing(accountId);
         
-        // Link request ID with task ID in your database if needed
-        // await db.linkRequestToTask(requestId, processingResult.taskId);
-        
-        return NextResponse.json({
+        const response: PipelineStartResponse = {
             taskId: processingResult.taskId,
-            token,
-            statusLink: processingResult.statusLink
-        });
+            status: processingResult.existingData ? 'complete' : 'processing',
+            statusLink: `/api/pipeline/status/${processingResult.taskId}`,
+            ...(processingResult.existingData && { data: processingResult.existingData })
+        };
+
+        return NextResponse.json(response);
     } catch (error) {
         console.error('Pipeline start error:', error);
         return NextResponse.json(
-            { error: 'Failed to start pipeline' },
+            { 
+                error: 'Failed to start pipeline',
+                details: error instanceof Error ? error.message : 'Unknown error'
+            },
             { status: 500 }
         );
     }

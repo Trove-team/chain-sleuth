@@ -6,9 +6,7 @@ const pipelineService = new PipelineService();
 export async function POST(request: Request) {
     try {
         const { accountId } = await request.json();
-        
-        const token = await pipelineService.getToken();
-        const { taskId, existingData } = await pipelineService.startProcessing(accountId, token);
+        const { taskId, existingData } = await pipelineService.startProcessing(accountId);
         
         if (existingData) {
             return NextResponse.json({
@@ -19,8 +17,7 @@ export async function POST(request: Request) {
         
         return NextResponse.json({
             status: 'processing',
-            taskId,
-            token
+            taskId
         });
     } catch (error) {
         return NextResponse.json({ 
