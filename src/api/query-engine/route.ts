@@ -13,68 +13,64 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
     
     try {
       const { query, accountId } = body;
-      const token = await pipelineService.getToken();
-
-      logger.info('Query request received', {
-        requestId,
-        query,
-        accountId,
-        service: 'query-engine'
+      
+      // Forward to Next.js API route
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId
+        },
+        body: JSON.stringify({ query, accountId })
       });
 
-      if (!query || typeof query !== 'string') {
-        return new Response(
-          JSON.stringify({ error: 'Invalid query format. Query must be a non-empty string.' }), 
-          { status: 400 }
-        );
-      }
+      const data = await response.json();
 
-      const response = await axios.post(
-        `${process.env.NEO4J_API_URL}/query`,
-        { query, accountId },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'X-Request-ID': requestId
+      // Format response for AI plugin
+      return new Response(
+        JSON.stringify({
+          status: 'success',
+          data: {
+            synthesized_response: data.results?.[0] || data,
+            query,
+            accountId
           }
+        }),
+        { 
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
         }
       );
 
-      logger.info('Query executed successfully', {
-        requestId,
-        service: 'query-engine'
-      });
-
-      return response.data;
-
     } catch (error) {
-      logger.error('Error processing query', {
+      logger.error('Error in query-engine route:', {
         requestId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        service: 'query-engine'
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
-
-      if (axios.isAxiosError(error) && error.response?.data) {
-        return new Response(
-          JSON.stringify(error.response.data),
-          { status: error.response.status || 500 }
-        );
-      }
 
       return new Response(
-        JSON.stringify({ error: 'Failed to process query' }),
+        JSON.stringify({ 
+          status: 'error',
+          error: 'Failed to process query',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }),
         { status: 500 }
       );
     }
   }, {
     body: t.Object({
-      query: t.String(),
-      accountId: t.Optional(t.String())
+      query: t.String({
+        description: 'Natural language query about the account',
+        examples: ['analyze transaction patterns for account.near']
+      }),
+      accountId: t.Optional(t.String({
+        description: 'NEAR account ID to analyze',
+        pattern: '^[a-z0-9_-]+\\.near$'
+      }))
     }),
     detail: {
-      summary: 'Execute a natural language query',
+      summary: 'Execute a natural language query about NEAR accounts',
+      description: 'Analyzes NEAR blockchain accounts using natural language queries. Use "analyze" followed by your request.',
       tags: ['Query Engine']
     }
   });

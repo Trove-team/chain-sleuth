@@ -672,7 +672,7 @@
     "/api/query-engine/query": {
       "post": {
         "summary": "Execute a natural language query about NEAR accounts",
-        "description": "Analyzes NEAR blockchain accounts using natural language queries. Use 'analyze' followed by the analysis request and account ID.",
+        "description": "Analyzes NEAR blockchain accounts using natural language queries. Use 'analyze' or 'query' followed by the analysis request and account ID.",
         "operationId": "executeNaturalLanguageQuery",
         "parameters": [],
         "requestBody": {
@@ -685,7 +685,7 @@
                 "properties": {
                   "query": {
                     "type": "string",
-                    "description": "Natural language query about the account",
+                    "description": "analyze, or query an address on NEAR, this triggers natural language query of trends/realtionships for the respective address",
                     "example": "analyze transaction patterns for account.near"
                   },
                   "accountId": {
