@@ -12,6 +12,34 @@ interface QueryResponse {
   message: string;
 }
 
+const formatResponse = (responseText: string) => {
+  try {
+    // Parse the stringified JSON
+    const parsed = JSON.parse(responseText);
+    
+    // Extract the synthesized response which contains the readable text
+    const synthesizedResponse = parsed?.data?.data?.synthesized_response;
+    
+    if (synthesizedResponse) {
+      // Split into paragraphs for better readability
+      return synthesizedResponse.split('\n').map((paragraph: string, index: number) => (
+        <p key={index} className="mb-2">
+          {paragraph}
+        </p>
+      ));
+    }
+    
+    // Fallback to pretty-printed JSON if no synthesized response
+    return <pre className="whitespace-pre-wrap">
+      {JSON.stringify(parsed, null, 2)}
+    </pre>;
+    
+  } catch (error) {
+    // If parsing fails, return the original text
+    return <pre className="whitespace-pre-wrap">{responseText}</pre>;
+  }
+};
+
 export function QueryEngine() {
   const [query, setQuery] = useState('');
   const [accountId, setAccountId] = useState('trovelabs.near');
@@ -113,14 +141,10 @@ export function QueryEngine() {
       </form>
 
       {response && (
-        <div className="mt-6 bg-white/80 rounded-lg p-4">
-          <h3 className="text-lg font-medium text-black mb-2">Results</h3>
-          <pre className="whitespace-pre-wrap overflow-x-auto text-gray-800 bg-white p-4 rounded-lg">
-            {JSON.stringify(response.results, null, 2)}
-          </pre>
-          {response.message && (
-            <p className="mt-2 text-sm text-gray-800">{response.message}</p>
-          )}
+        <div className="mt-4 p-4 bg-white/10 rounded-lg">
+          <div className="prose prose-invert max-w-none">
+            {formatResponse(response.results[0])}
+          </div>
         </div>
       )}
     </div>
