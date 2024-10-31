@@ -10,13 +10,12 @@ export default function QueryComponent() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log('Form submitted with address:', nearAddress);
     setLoading(true);
     setResult(null);
 
-    console.group('Query Submission');
-    console.log('Submitting address:', nearAddress);
-
     try {
+      console.log('Making API request...');
       const response = await fetch('/api/pipeline', {
         method: 'POST',
         headers: {
@@ -25,28 +24,25 @@ export default function QueryComponent() {
         body: JSON.stringify({ accountId: nearAddress })
       });
 
-      console.log('Response status:', response.status);
+      console.log('Response received:', response.status);
       const data = await response.json();
-      console.log('Response data:', JSON.stringify(data, null, 2));
+      console.log('Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to process request');
       }
 
-      if (data.taskId) {
-        setResult(data);
-        toast.success(`Processing started with task ID: ${data.taskId}`);
-      } else {
-        toast.warn('Received response but no task ID was generated');
-      }
+      setResult(data);
+      console.log('Setting result:', data);
+      toast.success('Query submitted successfully');
 
     } catch (error) {
-      console.error('Error occurred:', error);
+      console.error('Error in submission:', error);
       const message = error instanceof Error ? error.message : 'Failed to process query';
       toast.error(message);
     } finally {
       setLoading(false);
-      console.groupEnd();
+      console.log('Request completed');
     }
   };
 
