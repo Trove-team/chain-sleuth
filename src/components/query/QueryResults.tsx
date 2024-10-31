@@ -23,6 +23,12 @@ export default function QueryResults({ queries }: QueryResultsProps) {
     }
   };
 
+  console.log('Rendering QueryResults with:', queries);
+
+  if (!queries || queries.length === 0) {
+    return <div className="p-4 text-gray-500">No query results available</div>;
+  }
+
   return (
     <div className="bg-white bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-lg overflow-hidden">
       <h2 className="text-xl font-semibold p-6 text-gray-800">Query Results</h2>

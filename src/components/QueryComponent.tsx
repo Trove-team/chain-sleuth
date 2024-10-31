@@ -157,11 +157,16 @@ export default function QueryComponent() {
       )}
 
       {/* Results Display */}
-      {queryResults.length > 0 ? (
-        <QueryResults queries={queryResults} />
-      ) : (
-        <p className="text-gray-500">No results available yet</p>
-      )}
+      <div className="mt-8">
+        {queryResults.length > 0 ? (
+          <>
+            <h2 className="text-xl font-bold mb-4">Query Results</h2>
+            <QueryResults queries={queryResults} />
+          </>
+        ) : (
+          <p className="text-gray-500">No results available yet</p>
+        )}
+      </div>
 
       {/* Existing Data Display */}
       {result?.existingData && !queryResults.length && (
