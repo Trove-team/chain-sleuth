@@ -138,6 +138,17 @@ export default function QueryPage() {
                     </button>
                 </form>
 
+                {/* Progress Bar */}
+                {progress > 0 && progress < 100 && (
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                )}
+
+                {/* Status Message */}
                 {result && (
                     <div className={`mt-4 p-4 rounded-lg ${
                         result.status === 'error' ? 'bg-red-50' : 'bg-green-50'
@@ -155,20 +166,12 @@ export default function QueryPage() {
                     </div>
                 )}
 
-                {/* Progress Bar */}
-                {progress > 0 && progress < 100 && (
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div
-                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                )}
-
                 {/* Query Results Section */}
-                {queryResults.length > 0 && (
-                    <QueryResults queries={queryResults} />
-                )}
+                <div className="mt-8">
+                    {queryResults.length > 0 && (
+                        <QueryResults queries={queryResults} />
+                    )}
+                </div>
             </div>
         </div>
     );
