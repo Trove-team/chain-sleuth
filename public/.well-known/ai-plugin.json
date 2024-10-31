@@ -671,25 +671,77 @@
     },
     "/api/query": {
       "post": {
-        "operationId": "analyzeTransactions",
-        "summary": "Analyze NEAR account transactions and patterns",
+        "summary": "Execute a natural language query about NEAR accounts",
+        "description": "Analyzes NEAR blockchain accounts using natural language queries. Use 'analyze' or 'query' followed by the analysis request and account ID.",
+        "operationId": "executeNaturalLanguageQuery",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["query", "accountId"],
                 "properties": {
                   "query": {
                     "type": "string",
-                    "description": "Natural language query about the account"
+                    "description": "Analyze, or query an address on NEAR, this triggers natural language query of trends/realtionships for the respective address",
+                    "example": "analyze transaction patterns for account.near"
                   },
                   "accountId": {
                     "type": "string",
-                    "description": "NEAR account ID to analyze"
+                    "description": "NEAR account ID to analyze",
+                    "pattern": "^[a-z0-9_-]+\\.near$"
+                  }
+                }
+              },
+              "examples": {
+                "basicAnalysis": {
+                  "value": {
+                    "query": "analyze transaction history for trovelabs.near",
+                    "accountId": "trovelabs.near"
                   }
                 },
-                "required": ["query"]
+                "trendAnalysis": {
+                  "value": {
+                    "query": "analyze trading patterns and trends for ref-finance.near",
+                    "accountId": "ref-finance.near"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis results as plain text",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Natural language analysis of the account"
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Query timeout",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Query timed out. Please try a simpler query."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Failed to process query"
+                }
               }
             }
           }
