@@ -24,23 +24,12 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
         body: JSON.stringify({ query, accountId })
       });
 
-      const data = await response.json();
-
-      // Format response for AI plugin
-      return new Response(
-        JSON.stringify({
-          status: 'success',
-          data: {
-            synthesized_response: data.results?.[0] || data,
-            query,
-            accountId
-          }
-        }),
-        { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      // Simply pass through the plain text response
+      const responseText = await response.text();
+      return new Response(responseText, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' }
+      });
 
     } catch (error) {
       logger.error('Error in query-engine route:', {
@@ -48,12 +37,8 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
         error: error instanceof Error ? error.message : 'Unknown error'
       });
 
-      return new Response(
-        JSON.stringify({ 
-          status: 'error',
-          error: 'Failed to process query',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }),
+      return new Response('Failed to process query: ' + 
+        (error instanceof Error ? error.message : 'Unknown error'), 
         { status: 500 }
       );
     }

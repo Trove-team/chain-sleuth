@@ -674,7 +674,6 @@
         "summary": "Execute a natural language query about NEAR accounts",
         "description": "Analyzes NEAR blockchain accounts using natural language queries. Use 'analyze' or 'query' followed by the analysis request and account ID.",
         "operationId": "executeNaturalLanguageQuery",
-        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -685,7 +684,7 @@
                 "properties": {
                   "query": {
                     "type": "string",
-                    "description": "analyze, or query an address on NEAR, this triggers natural language query of trends/realtionships for the respective address",
+                    "description": "Analyze, or query an address on NEAR, this triggers natural language query of trends/realtionships for the respective address",
                     "example": "analyze transaction patterns for account.near"
                   },
                   "accountId": {
@@ -714,38 +713,39 @@
         },
         "responses": {
           "200": {
-            "description": "Analysis results",
+            "description": "Analysis results as plain text",
             "content": {
-              "application/json": {
+              "text/plain": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": ["success", "error"]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "synthesized_response": {
-                          "type": "string",
-                          "description": "Natural language analysis of the account"
-                        }
-                      }
-                    }
-                  }
+                  "type": "string",
+                  "description": "Natural language analysis of the account"
                 }
               }
             }
           },
-          "400": {
-            "description": "Invalid query format or missing parameters"
-          },
           "408": {
-            "description": "Query timeout - try a simpler query"
+            "description": "Query timeout",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Query timed out. Please try a simpler query."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Failed to process query"
+                }
+              }
+            }
           }
-        },
-        "tags": ["Analysis"]
+        }
       }
     }
   },
