@@ -7,6 +7,9 @@ import { PipelineService } from '@/services/pipelineService';
 const logger = createLogger('query-engine');
 const pipelineService = new PipelineService();
 
+// Get base URL from environment or use default
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://chain-sleuth.vercel.app';
+
 const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
   .post("/query", async ({ body }) => {
     const requestId = uuidv4();
@@ -17,11 +20,12 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
       logger.info('Received request:', {
         requestId,
         query,
-        accountId
+        accountId,
+        url: `${BASE_URL}/api/query`
       });
       
-      // Forward to Next.js API route
-      const response = await fetch('/api/query', {
+      // Use full URL for fetch
+      const response = await fetch(`${BASE_URL}/api/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
