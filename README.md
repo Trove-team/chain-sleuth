@@ -9,7 +9,7 @@ Chain Sleuth is a a comprehnsive data querying tool that uses a Bitte.ai Plugin 
 
 **Tooling:**
 
-[![Use Case](https://img.shields.io/badge/Use%20Case-AI-blue)](#)
+
 [![Framework](https://img.shields.io/badge/Framework-Next.js%2014-blue)](#)
 
 ## Project Walkthrough
