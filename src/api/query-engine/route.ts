@@ -14,6 +14,12 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
     try {
       const { query, accountId } = body;
       
+      logger.info('Received request:', {
+        requestId,
+        query,
+        accountId
+      });
+      
       // Forward to Next.js API route
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/query`, {
         method: 'POST',
@@ -24,10 +30,16 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
         body: JSON.stringify({ query, accountId })
       });
 
-      // Simply pass through the plain text response
       const responseText = await response.text();
+      
+      logger.info('Received response:', {
+        requestId,
+        status: response.status,
+        responseText
+      });
+
       return new Response(responseText, {
-        status: 200,
+        status: response.status,
         headers: { 'Content-Type': 'text/plain' }
       });
 
