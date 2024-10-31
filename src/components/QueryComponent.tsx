@@ -10,7 +10,7 @@ export default function QueryComponent() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submitted with address:', nearAddress);
+    console.log('Submitting address:', nearAddress);
     setLoading(true);
     setResult(null);
 
@@ -21,7 +21,9 @@ export default function QueryComponent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ accountId: nearAddress })
+        body: JSON.stringify({ 
+          accountId: nearAddress.trim()
+        })
       });
 
       console.log('Response received:', response.status);

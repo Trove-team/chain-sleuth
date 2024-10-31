@@ -26,14 +26,18 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const { accountId } = await request.json();
-        
-        if (!accountId) {
+        const body = await request.json();
+        console.log('Received request body:', body);
+
+        const { accountId } = body;
+        if (!accountId?.trim()) {
+            console.error('Missing or empty accountId');
             return NextResponse.json({ 
-                error: 'Missing accountId' 
+                error: 'Valid accountId is required' 
             }, { status: 400 });
         }
 
+        console.log('Processing account:', accountId);
         const result = await pipelineService.startProcessing(accountId);
         return NextResponse.json(result);
     } catch (error) {

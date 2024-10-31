@@ -96,8 +96,14 @@ export class PipelineService {
     }
 
     async startProcessing(accountId: string): Promise<ProcessingResponse> {
+        if (!accountId?.trim()) {
+            throw new Error('Valid accountId is required');
+        }
+
         try {
+            console.log('Starting processing for account:', accountId);
             const token = await this.getToken();
+            
             const response = await fetch(`${this.baseUrl}/api/v1/process`, {
                 method: 'POST',
                 headers: {
@@ -105,7 +111,9 @@ export class PipelineService {
                     'Content-Type': 'application/json',
                     'x-api-key': this.apiKey
                 },
-                body: JSON.stringify({ accountId })
+                body: JSON.stringify({ 
+                    accountId: accountId.trim() 
+                })
             });
 
             if (!response.ok) {
