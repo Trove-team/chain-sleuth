@@ -62,12 +62,13 @@ export class PipelineService {
         }
 
         const data = await response.json();
+        
         return {
             taskId: data.data.taskId,
-            existingData: {
-                robustSummary: data.robustSummary,
-                shortSummary: data.shortSummary
-            }
+            existingData: data.status === 'exists' ? {
+                robustSummary: data.data.robustSummary,
+                shortSummary: data.data.shortSummary
+            } : undefined
         };
     }
 
