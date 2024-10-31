@@ -22,37 +22,42 @@ export class PipelineService {
     private wsUrl: string;
 
     constructor() {
-        this.apiKey = process.env.NEO4J_API_KEY || '';
-        this.baseUrl = process.env.NEO4J_API_URL || '';
-        
-        if (process.env.NEO4J_WS_URL) {
-            this.wsUrl = process.env.NEO4J_WS_URL;
-        } else if (this.baseUrl) {
-            this.wsUrl = this.baseUrl.replace('http', 'ws');
-        } else {
-            this.wsUrl = '';
+        if (!process.env.NEO4J_API_KEY || !process.env.NEO4J_API_URL) {
+            throw new Error('Missing required environment variables');
         }
+        
+        this.apiKey = process.env.NEO4J_API_KEY;
+        this.baseUrl = process.env.NEO4J_API_URL.replace(/\/$/, ''); // Remove trailing slash if present
+        this.wsUrl = process.env.NEO4J_WS_URL || this.baseUrl.replace('http', 'ws');
     }
 
     async getToken(): Promise<string> {
         try {
+            // Make sure we're using the correct endpoint path
             const response = await fetch(`${this.baseUrl}/api/v1/auth/token`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': this.apiKey
-                }
+                },
+                body: JSON.stringify({}) // Add any required payload
             });
 
             if (!response.ok) {
-                throw new Error(`Auth failed: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`Auth failed: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
+            
+            if (!data.token) {
+                throw new Error('Token not found in response');
+            }
+
             return data.token;
         } catch (error) {
             console.error('Token fetch failed:', error);
-            throw new Error('Failed to get authentication token');
+            throw new Error(error instanceof Error ? error.message : 'Failed to get authentication token');
         }
     }
 
@@ -60,6 +65,10 @@ export class PipelineService {
         try {
             const token = await this.getToken();
             
+            if (!token) {
+                throw new Error('Failed to get authentication token');
+            }
+
             const response = await fetch(`${this.baseUrl}/api/v1/account`, {
                 method: 'POST',
                 headers: {
@@ -74,7 +83,8 @@ export class PipelineService {
             });
             
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`API error: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
