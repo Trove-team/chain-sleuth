@@ -2,28 +2,15 @@
 
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import type { ProcessingResponse, StatusResponse } from '@/services/pipelineService';
-
-interface ProcessingMetadata {
-  financialSummary: {
-    nearBalance: string;
-    totalUsdValue: string;
-    defiValue: string;
-  };
-  analysisSummary: {
-    transactionCount: number;
-    isBot: boolean;
-    robustSummary: string | null;
-    shortSummary: string | null;
-  };
-}
+import QueryResults from './query/QueryResults';
+import type { ProcessingResponse, StatusResponse, QueryResult } from '@/types/pipeline';
 
 export default function QueryComponent() {
   const [nearAddress, setNearAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProcessingResponse | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  const [metadata, setMetadata] = useState<ProcessingMetadata | null>(null);
+  const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
 
   const startStatusPolling = async (taskId: string) => {
     const pollInterval = setInterval(async () => {
@@ -37,23 +24,28 @@ export default function QueryComponent() {
 
         if (status.status === 'complete') {
           clearInterval(pollInterval);
-          // Fetch metadata once processing is complete
           const metadataResponse = await fetch(`/api/pipeline/metadata/${nearAddress}`);
           const metadataData = await metadataResponse.json();
           
-          setMetadata({
+          const queryResult: QueryResult = {
+            accountId: nearAddress,
+            timestamp: new Date().toISOString(),
+            status: 'Completed',
             financialSummary: {
-              nearBalance: metadataData.financial_summary.near_balance,
-              totalUsdValue: metadataData.financial_summary.total_usd_value,
-              defiValue: metadataData.financial_summary.defi_value
+              totalUsdValue: metadataData.wealth.totalUSDValue,
+              nearBalance: metadataData.wealth.balance.items
+                .find((i: any) => i.symbol === "NEAR")?.amount.toString() || "0",
+              defiValue: metadataData.wealth.defi.totalUSDValue
             },
-            analysisSummary: {
-              transactionCount: metadataData.analysis_summary.transaction_count,
-              isBot: metadataData.analysis_summary.is_bot,
-              robustSummary: metadataData.analysis_summary.robust_summary,
-              shortSummary: metadataData.analysis_summary.short_summary
+            analysis: {
+              transactionCount: metadataData.tx_count,
+              isBot: metadataData.bot_detection.isPotentialBot,
+              robustSummary: metadataData.robustSummary,
+              shortSummary: metadataData.shortSummary
             }
-          });
+          };
+
+          setQueryResults(prev => [queryResult, ...prev]);
           toast.success('Processing completed');
         } else if (status.status === 'failed') {
           clearInterval(pollInterval);
@@ -163,60 +155,12 @@ export default function QueryComponent() {
       )}
 
       {/* Results Display */}
-      {metadata && (
-        <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 space-y-6">
-          {/* Financial Summary */}
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Financial Summary</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">NEAR Balance</p>
-                <p className="font-medium">Ⓝ {metadata.financialSummary.nearBalance}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Value</p>
-                <p className="font-medium">${metadata.financialSummary.totalUsdValue}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">DeFi Value</p>
-                <p className="font-medium">${metadata.financialSummary.defiValue}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Analysis Summary */}
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Analysis Summary</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span>Transaction Count: {metadata.analysisSummary.transactionCount}</span>
-                <span className={`px-2 py-1 rounded text-sm ${
-                  metadata.analysisSummary.isBot ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                }`}>
-                  {metadata.analysisSummary.isBot ? 'Potential Bot' : 'Human Activity'}
-                </span>
-              </div>
-              
-              {metadata.analysisSummary.shortSummary && (
-                <div>
-                  <h4 className="font-medium mb-2">Quick Summary</h4>
-                  <p className="text-sm text-gray-700">{metadata.analysisSummary.shortSummary}</p>
-                </div>
-              )}
-              
-              {metadata.analysisSummary.robustSummary && (
-                <div>
-                  <h4 className="font-medium mb-2">Detailed Analysis</h4>
-                  <p className="text-sm text-gray-700">{metadata.analysisSummary.robustSummary}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {queryResults.length > 0 && (
+        <QueryResults queries={queryResults} />
       )}
 
       {/* Existing Data Display */}
-      {result?.existingData && !metadata && (
+      {result?.existingData && !queryResults.length && (
         <div className="mt-4 space-y-2">
           <h3 className="font-semibold">Existing Results:</h3>
           <p>{result.existingData.shortSummary}</p>
