@@ -29,54 +29,29 @@ export class PipelineService {
     private apiKey: string;
 
     constructor() {
-        this.baseUrl = process.env.NEO4J_API_URL || 'https://filepile.ai';
+        this.baseUrl = process.env.NEO4J_API_URL || '';
         this.apiKey = process.env.NEO4J_API_KEY || '';
+        
+        if (!this.baseUrl) throw new Error('NEO4J_API_URL is not configured');
+        if (!this.apiKey) throw new Error('NEO4J_API_KEY is not configured');
     }
 
     async getToken(): Promise<string> {
-        const response = await fetch(`${this.baseUrl}/auth/token`, {
+        const response = await fetch(`${this.baseUrl}/api/v1/auth/token`, {
             method: 'POST',
             headers: {
-                'x-api-key': this.apiKey,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-api-key': this.apiKey
             }
         });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Failed to get token: ${response.status} ${response.statusText}\nBody: ${errorBody}`);
+        }
+
         const data = await response.json();
         return data.token;
-    }
-
-    private createErrorResponse(error: Error | string | unknown): ProcessingResponse {
-        if (error instanceof Error) {
-            return {
-                taskId: 'error',
-                status: 'failed',
-                error: {
-                    code: 'PROCESSING_ERROR',
-                    message: error.message,
-                    details: error.stack
-                }
-            };
-        }
-
-        if (typeof error === 'string') {
-            return {
-                taskId: 'error',
-                status: 'failed',
-                error: {
-                    code: 'PROCESSING_ERROR',
-                    message: error
-                }
-            };
-        }
-
-        return {
-            taskId: 'error',
-            status: 'failed',
-            error: {
-                code: 'UNKNOWN_ERROR',
-                message: 'An unexpected error occurred'
-            }
-        };
     }
 
     async startProcessing(accountId: string, force?: boolean): Promise<ProcessingResponse> {
@@ -87,7 +62,7 @@ export class PipelineService {
         try {
             console.log('Starting processing for account:', accountId);
             const token = await this.getToken();
-            const response = await fetch(`${this.baseUrl}/account`, {
+            const response = await fetch(`${this.baseUrl}/api/v1/account`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -100,7 +75,8 @@ export class PipelineService {
             });
 
             if (!response.ok) {
-                throw new Error(`Processing failed: ${response.status}`);
+                const errorBody = await response.text();
+                throw new Error(`Processing failed: ${response.status}\nBody: ${errorBody}`);
             }
 
             const data = await response.json();
@@ -123,10 +99,13 @@ export class PipelineService {
             });
 
             if (!response.ok) {
-                throw new Error(`Status check failed: ${response.status}`);
+                const errorBody = await response.text();
+                throw new Error(`Status check failed: ${response.status}\nBody: ${errorBody}`);
             }
 
-            return response.json();
+            const data = await response.json();
+            console.log('Status response:', JSON.stringify(data, null, 2));
+            return data;
         } catch (error) {
             console.error('Status check failed:', error);
             throw error;
