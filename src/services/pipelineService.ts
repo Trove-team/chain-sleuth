@@ -22,9 +22,16 @@ export class PipelineService {
     private wsUrl: string;
 
     constructor() {
-        this.apiKey = process.env.NEO4J_API_KEY!;
-        this.baseUrl = process.env.NEO4J_API_URL!;
-        this.wsUrl = process.env.NEO4J_WS_URL || this.baseUrl.replace('http', 'ws');
+        this.apiKey = process.env.NEO4J_API_KEY || '';
+        this.baseUrl = process.env.NEO4J_API_URL || '';
+        
+        if (process.env.NEO4J_WS_URL) {
+            this.wsUrl = process.env.NEO4J_WS_URL;
+        } else if (this.baseUrl) {
+            this.wsUrl = this.baseUrl.replace('http', 'ws');
+        } else {
+            this.wsUrl = '';
+        }
     }
 
     async getToken(): Promise<string> {
@@ -114,29 +121,28 @@ export class PipelineService {
         return response.json();
     }
 
-    setupWebSocket(taskId: string): WebSocket {
-        if (typeof window === 'undefined') {
-            throw new Error('WebSocket can only be initialized in browser environment');
+    setupWebSocket(taskId: string): WebSocket | null {
+        if (typeof window === 'undefined' || !this.wsUrl) {
+            console.warn('WebSocket setup skipped: not in browser or missing URL');
+            return null;
         }
 
-        const wsUrl = `${this.wsUrl}/api/v1/ws/${taskId}`;
-        console.log('Connecting to WebSocket:', wsUrl);
-        
-        const ws = new WebSocket(wsUrl);
-        
-        ws.onopen = () => {
-            console.log('WebSocket connected');
-        };
+        try {
+            const ws = new WebSocket(`${this.wsUrl}/api/v1/ws/${taskId}`);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
 
-        ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
 
-        ws.onclose = () => {
-            console.log('WebSocket disconnected');
-        };
-
-        return ws;
+            return ws;
+        } catch (error) {
+            console.error('WebSocket setup failed:', error);
+            return null;
+        }
     }
 
     async getSummaries(accountId: string, token: string): Promise<{
