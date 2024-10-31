@@ -2,11 +2,11 @@
 // Export the interfaces
 export interface ProcessingResponse {
     taskId: string;
+    status: 'processing' | 'complete' | 'failed' | 'exists';
     existingData?: {
         robustSummary: string;
         shortSummary: string;
     };
-    status: 'success' | 'error';
     error?: {
         code: string;
         message: string;
@@ -60,11 +60,11 @@ export class PipelineService {
         }
     }
 
-    private createErrorResponse(error: unknown): ProcessingResponse {
+    private createErrorResponse(error: Error | string | unknown): ProcessingResponse {
         if (error instanceof Error) {
             return {
                 taskId: 'error',
-                status: 'error',
+                status: 'failed',
                 error: {
                     code: 'PROCESSING_ERROR',
                     message: error.message,
@@ -76,7 +76,7 @@ export class PipelineService {
         if (typeof error === 'string') {
             return {
                 taskId: 'error',
-                status: 'error',
+                status: 'failed',
                 error: {
                     code: 'PROCESSING_ERROR',
                     message: error
@@ -86,7 +86,7 @@ export class PipelineService {
 
         return {
             taskId: 'error',
-            status: 'error',
+            status: 'failed',
             error: {
                 code: 'UNKNOWN_ERROR',
                 message: 'An unexpected error occurred'

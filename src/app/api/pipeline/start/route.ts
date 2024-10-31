@@ -7,6 +7,7 @@ const pipelineService = new PipelineService();
 interface PipelineStartRequest {
   accountId: string;
   requestId?: string;  // Made optional since we might not always need it
+  force?: boolean;  // Add this field
 }
 
 interface PipelineStartResponse {
@@ -21,9 +22,9 @@ interface PipelineStartResponse {
 
 export async function POST(request: Request) {
     try {
-        const { accountId, requestId } = await request.json() as PipelineStartRequest;
+        const { accountId, requestId, force } = await request.json() as PipelineStartRequest;
         
-        const processingResult = await pipelineService.startProcessing(accountId);
+        const processingResult = await pipelineService.startProcessing(accountId, force);
         
         const response: PipelineStartResponse = {
             taskId: processingResult.taskId,

@@ -71,14 +71,19 @@ export default function QueryComponent() {
           throw new Error('Reprocessing failed');
         }
         
-        setResult(await reprocessResponse.json());
+        const reprocessData = await reprocessResponse.json();
+        setResult(reprocessData);
+        
+        if (reprocessData.taskId) {
+          startStatusPolling(reprocessData.taskId);
+          toast.success(`Reprocessing started - Task ID: ${reprocessData.taskId}`);
+        }
       } else {
         setResult(data);
-      }
-
-      if (data.taskId) {
-        startStatusPolling(data.taskId);
-        toast.success(`Processing started - Task ID: ${data.taskId}`);
+        if (data.taskId) {
+          startStatusPolling(data.taskId);
+          toast.success(`Processing started - Task ID: ${data.taskId}`);
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -111,6 +116,16 @@ export default function QueryComponent() {
             className="bg-blue-600 h-2 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
+        </div>
+      )}
+      {result?.existingData && (
+        <div className="mt-4 space-y-2">
+          <h3 className="font-semibold">Results:</h3>
+          <p>{result.existingData.shortSummary}</p>
+          <details>
+            <summary>Detailed Analysis</summary>
+            <p>{result.existingData.robustSummary}</p>
+          </details>
         </div>
       )}
     </form>

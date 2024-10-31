@@ -1,10 +1,10 @@
 // Add this new file
 export interface ProcessingResponse {
     taskId: string;
-    status: 'processing' | 'complete' | 'failed';
+    status: 'processing' | 'complete' | 'failed' | 'exists';
     existingData?: {
-      robustSummary?: string;
-      shortSummary?: string;
+      robustSummary: string;
+      shortSummary: string;
     };
     error?: {
       code: string;
