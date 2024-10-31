@@ -24,40 +24,50 @@ export default function QueryComponent() {
 
         if (status.status === 'complete') {
           clearInterval(pollInterval);
-          const metadataResponse = await fetch(`/api/pipeline/metadata/${nearAddress}`);
-          const metadataData = await metadataResponse.json();
-          
-          const queryResult: QueryResult = {
-            accountId: nearAddress,
-            timestamp: new Date().toISOString(),
-            status: 'Completed',
-            financialSummary: {
-              totalUsdValue: metadataData.wealth.totalUSDValue,
-              nearBalance: metadataData.wealth.balance.items
-                .find((i: any) => i.symbol === "NEAR")?.amount.toString() || "0",
-              defiValue: metadataData.wealth.defi.totalUSDValue
-            },
-            analysis: {
-              transactionCount: metadataData.tx_count,
-              isBot: metadataData.bot_detection.isPotentialBot,
-              robustSummary: metadataData.robustSummary,
-              shortSummary: metadataData.shortSummary
-            }
-          };
-
-          setQueryResults(prev => [queryResult, ...prev]);
-          toast.success('Processing completed');
+          await fetchResults(nearAddress);
         } else if (status.status === 'failed') {
           clearInterval(pollInterval);
           toast.error(status.data?.error || 'Processing failed');
         }
       } catch (error) {
-        console.error('Status polling failed:', error);
+        console.error('Polling error:', error);
         clearInterval(pollInterval);
+        toast.error('Failed to check status');
       }
     }, 5000);
 
     return () => clearInterval(pollInterval);
+  };
+
+  const fetchResults = async (accountId: string) => {
+    try {
+      const metadataResponse = await fetch(`/api/pipeline/metadata/${accountId}`);
+      const metadataData = await metadataResponse.json();
+      
+      const queryResult: QueryResult = {
+        accountId,
+        timestamp: new Date().toISOString(),
+        status: 'Completed',
+        financialSummary: {
+          totalUsdValue: metadataData.wealth.totalUSDValue,
+          nearBalance: metadataData.wealth.balance.items
+            .find((i: any) => i.symbol === "NEAR")?.amount.toString() || "0",
+          defiValue: metadataData.wealth.defi.totalUSDValue
+        },
+        analysis: {
+          transactionCount: metadataData.tx_count,
+          isBot: metadataData.bot_detection.isPotentialBot,
+          robustSummary: metadataData.robustSummary,
+          shortSummary: metadataData.shortSummary
+        }
+      };
+
+      setQueryResults(prev => [queryResult, ...prev]);
+      toast.success('Processing completed');
+    } catch (error) {
+      console.error('Error fetching results:', error);
+      toast.error('Failed to fetch results');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

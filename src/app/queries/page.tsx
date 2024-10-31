@@ -19,56 +19,21 @@ export default function QueryPage() {
     const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
     const [progress, setProgress] = useState<number>(0);
 
+    // Debug logging for state updates
     useEffect(() => {
-        console.log('QueryPage - queryResults updated:', queryResults);
+        console.log('QueryResults state updated:', queryResults);
     }, [queryResults]);
 
-    const startProcessing = async (accountId: string) => {
-        try {
-            const response = await fetch('/api/pipeline/start', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    accountId,
-                    webhookUrl: `${window.location.origin}/api/webhook/pipeline` 
-                })
-            });
-
-            const data: ProcessingResponse = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error?.message || 'Failed to start processing');
-            }
-
-            setResult(data);
-            setProgress(0);
-            
-            // Subscribe to Server-Sent Events for real-time updates
-            const eventSource = new EventSource(`/api/pipeline/events/${data.taskId}`);
-            
-            eventSource.onmessage = (event) => {
-                const update = JSON.parse(event.data);
-                if (update.progress) {
-                    setProgress(update.progress);
-                }
-                if (update.status === 'complete') {
-                    eventSource.close();
-                    fetchResults(accountId);
-                }
-            };
-
-            return () => eventSource.close();
-        } catch (error) {
-            console.error('Failed to start processing:', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to start processing');
-        }
-    };
-
     const fetchResults = async (accountId: string) => {
+        console.log('Fetching results for account:', accountId);
         try {
             const metadataResponse = await fetch(`/api/pipeline/metadata/${accountId}`);
+            if (!metadataResponse.ok) {
+                throw new Error(`Metadata fetch failed: ${metadataResponse.statusText}`);
+            }
+            
             const metadataData: MetadataResponse = await metadataResponse.json();
+            console.log('Received metadata:', metadataData);
 
             const queryResult: QueryResult = {
                 accountId,
@@ -88,10 +53,16 @@ export default function QueryPage() {
                 }
             };
 
-            setQueryResults(prev => [queryResult, ...prev]);
+            console.log('Setting new query result:', queryResult);
+            setQueryResults(prev => {
+                const newResults = [queryResult, ...prev];
+                console.log('Updated queryResults:', newResults);
+                return newResults;
+            });
+            
             toast.success('Processing completed');
         } catch (error) {
-            console.error('Failed to fetch results:', error);
+            console.error('Error fetching results:', error);
             toast.error('Failed to fetch results');
         }
     };
@@ -100,9 +71,58 @@ export default function QueryPage() {
         e.preventDefault();
         setLoading(true);
         setResult(null);
+        setProgress(0);
 
         try {
-            await startProcessing(nearAddress.trim());
+            const response = await fetch('/api/pipeline/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    accountId: nearAddress.trim(),
+                    webhookUrl: `${window.location.origin}/api/webhook/pipeline` 
+                })
+            });
+
+            const data: ProcessingResponse = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error?.message || 'Failed to start processing');
+            }
+
+            setResult(data);
+            
+            // Set up SSE connection
+            const eventSource = new EventSource(`/api/pipeline/events/${data.taskId}`);
+            
+            eventSource.onmessage = (event) => {
+                try {
+                    const update = JSON.parse(event.data);
+                    console.log('SSE Update:', update);
+                    
+                    if (update.progress) {
+                        setProgress(update.progress);
+                    }
+                    
+                    if (update.status === 'complete') {
+                        eventSource.close();
+                        fetchResults(nearAddress.trim());
+                    }
+                } catch (error) {
+                    console.error('Error processing SSE message:', error);
+                    eventSource.close();
+                    toast.error('Failed to process server update');
+                }
+            };
+
+            eventSource.onerror = (error) => {
+                console.error('SSE Error:', error);
+                eventSource.close();
+                toast.error('Lost connection to server');
+            };
+
+            return () => eventSource.close();
+        } catch (error) {
+            console.error('Error starting process:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to start processing');
         } finally {
             setLoading(false);
         }
@@ -144,7 +164,6 @@ export default function QueryPage() {
                     </button>
                 </form>
 
-                {/* Progress Bar */}
                 {progress > 0 && progress < 100 && (
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
                         <div
@@ -154,7 +173,6 @@ export default function QueryPage() {
                     </div>
                 )}
 
-                {/* Status Message */}
                 {result && (
                     <div className={`mt-4 p-4 rounded-lg ${
                         result.status === 'error' ? 'bg-red-50' : 'bg-green-50'
@@ -172,14 +190,14 @@ export default function QueryPage() {
                     </div>
                 )}
 
-                {/* Query Results Section */}
                 <div className="mt-8">
-                    {queryResults.length > 0 && (
+                    {queryResults.length > 0 ? (
                         <QueryResults queries={queryResults} />
+                    ) : (
+                        <p className="text-gray-500 text-center">No results available yet</p>
                     )}
                 </div>
 
-                {/* Existing Data Display */}
                 {result?.existingData && !queryResults.length && (
                     <div className="mt-4 space-y-2">
                         <h3 className="font-semibold">Existing Results:</h3>
