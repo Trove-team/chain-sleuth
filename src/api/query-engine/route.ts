@@ -17,57 +17,59 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
     try {
       const { query, accountId } = body;
       
-      logger.info('Received request:', {
-        requestId,
-        query,
-        accountId,
-        url: `${BASE_URL}/api/query`
-      });
-      
-      // Add timeout to the fetch request
+      // Add shorter timeout for Vercel functions
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 9000); // 9 seconds to be safe
 
       const response = await fetch(`${BASE_URL}/api/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Request-ID': requestId
+          'X-Request-ID': requestId,
+          'X-Timeout-Limit': '9000' // Pass timeout info to Next.js
         },
         body: JSON.stringify({ query, accountId }),
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
-      
-      const responseText = await response.text();
-      
-      logger.info('Received response:', {
-        requestId,
-        status: response.status,
-        responseText
-      });
 
+      if (!response.ok) {
+        // Handle non-200 responses
+        const errorText = await response.text();
+        logger.error('Non-200 response:', {
+          requestId,
+          status: response.status,
+          error: errorText
+        });
+        return new Response(errorText, {
+          status: response.status,
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      }
+
+      const responseText = await response.text();
       return new Response(responseText, {
-        status: response.status,
+        status: 200,
         headers: { 'Content-Type': 'text/plain' }
       });
 
     } catch (error) {
-      logger.error('Error in query-engine route:', {
+      if (error instanceof Error && error.name === 'AbortError') {
+        logger.warn('Query timeout:', { requestId });
+        return new Response(
+          'Query processing took too long. Try a simpler query or a different account.', 
+          { status: 408 }
+        );
+      }
+
+      logger.error('Query error:', {
         requestId,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
 
-      // Handle timeout specifically
-      if (error instanceof Error && error.name === 'AbortError') {
-        return new Response('Query timed out. Please try a simpler query.', { 
-          status: 408 
-        });
-      }
-
-      return new Response('Failed to process query: ' + 
-        (error instanceof Error ? error.message : 'Unknown error'), 
+      return new Response(
+        'Failed to process query. Please try again later.',
         { status: 500 }
       );
     }
