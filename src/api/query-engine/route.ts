@@ -21,7 +21,7 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
       });
       
       // Forward to Next.js API route
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/query`, {
+      const response = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
