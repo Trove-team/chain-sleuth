@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import { PipelineService } from '@/services/pipelineService';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -25,7 +24,19 @@ interface PipelineStatus {
   };
 }
 
-const pipelineService = new PipelineService();
+const startProcessing = async (accountId: string) => {
+  const response = await fetch('/api/pipeline', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accountId })
+  });
+  return response.json();
+};
+
+const checkStatus = async (taskId: string) => {
+  const response = await fetch(`/api/pipeline?taskId=${taskId}`);
+  return response.json();
+};
 
 const ProgressBar = ({ progress }: { progress: number }) => (
   <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
@@ -46,7 +57,7 @@ export default function QueryInput() {
     setStatus({ stage: 'requesting', message: 'Starting investigation...' });
 
     try {
-      const { taskId } = await pipelineService.startProcessing(nearAddress);
+      const { taskId } = await startProcessing(nearAddress);
 
       setStatus({ 
         stage: 'processing', 
@@ -70,8 +81,7 @@ export default function QueryInput() {
   const startStatusPolling = async (taskId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const pipelineResponse = await fetch(`/api/pipeline/status/${taskId}`);
-        const pipelineStatus = await pipelineResponse.json() as PipelineStatus;
+        const pipelineStatus = await checkStatus(taskId);
         
         if (pipelineStatus.data?.progress !== undefined) {
           setStatus(prev => ({

@@ -27,19 +27,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const { accountId } = await request.json();
-        const { taskId, existingData } = await pipelineService.startProcessing(accountId);
         
-        if (existingData) {
-            return NextResponse.json({
-                status: 'complete',
-                data: existingData
-            });
+        if (!accountId) {
+            return NextResponse.json({ 
+                error: 'Missing accountId' 
+            }, { status: 400 });
         }
-        
-        return NextResponse.json({
-            status: 'processing',
-            taskId
-        });
+
+        const result = await pipelineService.startProcessing(accountId);
+        return NextResponse.json(result);
     } catch (error) {
         return NextResponse.json({ 
             error: error instanceof Error ? error.message : 'Unknown error' 

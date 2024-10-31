@@ -1,12 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { PipelineService } from '@/services/pipelineService';
 import { toast } from 'react-toastify';
 
-const pipelineService = new PipelineService();
-
-export default function QueryPage() {
+export default function QueryComponent() {
   const [nearAddress, setNearAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
@@ -21,22 +18,24 @@ export default function QueryPage() {
     setResult(null);
 
     try {
-      const response = await pipelineService.startProcessing(nearAddress);
+      const response = await fetch('/api/pipeline', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accountId: nearAddress }),
+      });
       
-      if (response.status === 'error') {
-        toast.error(response.error?.message || 'Processing failed');
-        setResult({
-          taskId: response.taskId,
-          status: 'error',
-          message: response.error?.message
-        });
-        return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Processing failed');
       }
 
       setResult({
-        taskId: response.taskId,
-        status: 'success',
-        message: response.existingData 
+        taskId: data.taskId,
+        status: data.status,
+        message: data.existingData 
           ? 'Found existing data'
           : 'Processing started successfully'
       });

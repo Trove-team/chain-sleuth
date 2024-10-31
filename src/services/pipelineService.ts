@@ -31,7 +31,7 @@ export class PipelineService {
         this.baseUrl = 'https://filepile.ai';
 
         if (!this.apiKey) {
-            console.error('API key is missing');
+            console.error('API key is missing in server environment');
         }
     }
 
@@ -97,39 +97,22 @@ export class PipelineService {
 
     async startProcessing(accountId: string): Promise<ProcessingResponse> {
         try {
-            if (!this.apiKey) {
-                throw new Error('API key is not configured');
-            }
-
             const token = await this.getToken();
-            
-            const response = await fetch(`${this.baseUrl}/api/v1/account`, {
+            const response = await fetch(`${this.baseUrl}/api/v1/process`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                     'x-api-key': this.apiKey
                 },
-                body: JSON.stringify({
-                    accountId,
-                    forceReprocess: true,
-                    generateSummary: true
-                })
+                body: JSON.stringify({ accountId })
             });
-            
+
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                throw new Error(`Processing failed: ${response.status}`);
             }
 
-            const data = await response.json();
-            return {
-                taskId: data.data.taskId,
-                existingData: data.status === 'exists' ? {
-                    robustSummary: data.data.robustSummary,
-                    shortSummary: data.data.shortSummary
-                } : undefined,
-                status: 'success'
-            };
+            return response.json();
         } catch (error) {
             console.error('Processing start failed:', error);
             return this.createErrorResponse(error);
