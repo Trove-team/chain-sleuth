@@ -24,16 +24,22 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
         url: `${BASE_URL}/api/query`
       });
       
-      // Use full URL for fetch
+      // Add timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const response = await fetch(`${BASE_URL}/api/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Request-ID': requestId
         },
-        body: JSON.stringify({ query, accountId })
+        body: JSON.stringify({ query, accountId }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+      
       const responseText = await response.text();
       
       logger.info('Received response:', {
@@ -52,6 +58,13 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
         requestId,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+
+      // Handle timeout specifically
+      if (error instanceof Error && error.name === 'AbortError') {
+        return new Response('Query timed out. Please try a simpler query.', { 
+          status: 408 
+        });
+      }
 
       return new Response('Failed to process query: ' + 
         (error instanceof Error ? error.message : 'Unknown error'), 
