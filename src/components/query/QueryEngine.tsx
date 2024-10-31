@@ -21,22 +21,41 @@ const formatResponse = (responseText: string) => {
     const synthesizedResponse = parsed?.data?.data?.synthesized_response;
     
     if (synthesizedResponse) {
-      // Split into paragraphs for better readability
-      return synthesizedResponse.split('\n').map((paragraph: string, index: number) => (
-        <p key={index} className="mb-2">
-          {paragraph}
-        </p>
-      ));
+      // Split into sections based on headers
+      const sections = synthesizedResponse.split(/(?=\n[A-Z][^a-z:]+:)/);
+      
+      return (
+        <div className="space-y-4">
+          {sections.map((section: string, index: number) => {
+            const [header, ...content] = section.split('\n');
+            return (
+              <div key={index} className="border-b border-gray-200 pb-4">
+                {header && (
+                  <h3 className="font-semibold text-lg mb-2">{header.trim()}</h3>
+                )}
+                {content.map((paragraph: string, pIndex: number) => (
+                  <p key={pIndex} className="mb-2">
+                    {paragraph.trim()}
+                  </p>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      );
     }
     
-    // Fallback to pretty-printed JSON if no synthesized response
-    return <pre className="whitespace-pre-wrap">
+    // Fallback to pretty-printed JSON
+    return <pre className="whitespace-pre-wrap bg-gray-800 p-4 rounded-lg text-sm">
       {JSON.stringify(parsed, null, 2)}
     </pre>;
     
   } catch (error) {
+    console.error('Response parsing error:', error);
     // If parsing fails, return the original text
-    return <pre className="whitespace-pre-wrap">{responseText}</pre>;
+    return <pre className="whitespace-pre-wrap text-red-500">
+      {responseText}
+    </pre>;
   }
 };
 
@@ -48,14 +67,18 @@ export function QueryEngine() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const startTime = performance.now();
     setLoading(true);
+    
+    console.group('Query Execution');
+    console.log('Query:', query);
     
     try {
       const accountMatch = query.match(/\b[\w-]+\.near\b/);
-      const targetAccount = accountMatch ? accountMatch[0] : 'trovelabs.near';
+      const targetAccount = accountMatch ? accountMatch[0] : accountId;
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+      console.log('Target Account:', targetAccount);
+      console.time('Query Duration');
 
       const result = await fetch('/api/query', {
         method: 'POST',
@@ -63,14 +86,17 @@ export function QueryEngine() {
         body: JSON.stringify({ 
           query: query.trim(),
           accountId: targetAccount
-        }),
-        signal: controller.signal
+        })
       });
 
-      clearTimeout(timeoutId);
-
+      console.timeEnd('Query Duration');
       const responseText = await result.text();
+      const endTime = performance.now();
       
+      console.log('Response Time:', `${(endTime - startTime).toFixed(2)}ms`);
+      console.log('Response Status:', result.status);
+      console.log('Raw Response:', responseText);
+
       if (responseText.includes('FUNCTION_INVOCATION_TIMEOUT')) {
         toast.error('Query took too long to complete. Please try a simpler query.');
         setResponse({
@@ -102,6 +128,7 @@ export function QueryEngine() {
         message: 'Query failed'
       });
     } finally {
+      console.groupEnd();
       setLoading(false);
     }
   };
