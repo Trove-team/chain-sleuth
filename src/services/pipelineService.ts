@@ -1,5 +1,6 @@
 // src/services/pipelineService.ts
-interface ProcessingResponse {
+// Export the interfaces
+export interface ProcessingResponse {
     taskId: string;
     existingData?: {
         robustSummary: string;
@@ -13,12 +14,13 @@ interface ProcessingResponse {
     };
 }
 
-interface StatusResponse {
+export interface StatusResponse {
     status: 'processing' | 'complete' | 'failed';
     data: {
         accountId: string;
         progress?: number;
         currentStep?: string;
+        error?: string;
     };
 }
 
@@ -38,19 +40,16 @@ export class PipelineService {
     async getToken(): Promise<string> {
         try {
             console.log('Requesting token from:', `${this.baseUrl}/api/v1/auth/token`);
-            
             const response = await fetch(`${this.baseUrl}/api/v1/auth/token`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': this.apiKey
-                },
-                credentials: 'include'
+                }
             });
 
             if (!response.ok) {
-                console.error('Token response:', response.status, await response.text());
-                throw new Error(`Auth failed: ${response.status}`);
+                throw new Error(`Token request failed: ${response.status}`);
             }
 
             const data = await response.json();
@@ -95,7 +94,7 @@ export class PipelineService {
         };
     }
 
-    async startProcessing(accountId: string): Promise<ProcessingResponse> {
+    async startProcessing(accountId: string, force?: boolean): Promise<ProcessingResponse> {
         if (!accountId?.trim()) {
             throw new Error('Valid accountId is required');
         }
@@ -112,7 +111,8 @@ export class PipelineService {
                     'x-api-key': this.apiKey
                 },
                 body: JSON.stringify({ 
-                    accountId: accountId.trim() 
+                    accountId: accountId.trim(),
+                    force: force || false
                 })
             });
 
@@ -120,7 +120,9 @@ export class PipelineService {
                 throw new Error(`Processing failed: ${response.status}`);
             }
 
-            return response.json();
+            const data = await response.json();
+            console.log('Processing response:', data);
+            return data;
         } catch (error) {
             console.error('Processing start failed:', error);
             return this.createErrorResponse(error);
@@ -132,7 +134,9 @@ export class PipelineService {
             const token = await this.getToken();
             const response = await fetch(`${this.baseUrl}/api/v1/status/${taskId}`, {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'x-api-key': this.apiKey
                 }
             });
 
