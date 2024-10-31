@@ -19,28 +19,21 @@ interface StatusResponse {
 export class PipelineService {
     private apiKey: string;
     private baseUrl: string;
-    private wsUrl: string;
 
     constructor() {
-        if (!process.env.NEO4J_API_KEY || !process.env.NEO4J_API_URL) {
-            throw new Error('Missing required environment variables');
-        }
-        
-        this.apiKey = process.env.NEO4J_API_KEY;
-        this.baseUrl = process.env.NEO4J_API_URL.replace(/\/$/, ''); // Remove trailing slash if present
-        this.wsUrl = process.env.NEO4J_WS_URL || this.baseUrl.replace('http', 'ws');
+        this.apiKey = process.env.NEXT_PUBLIC_NEO4J_API_KEY || 'development-key';
+        this.baseUrl = process.env.NEXT_PUBLIC_NEO4J_API_URL || 'http://localhost:3000';
     }
 
     async getToken(): Promise<string> {
         try {
-            // Make sure we're using the correct endpoint path
             const response = await fetch(`${this.baseUrl}/api/v1/auth/token`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': this.apiKey
                 },
-                body: JSON.stringify({}) // Add any required payload
+                body: JSON.stringify({})
             });
 
             if (!response.ok) {
@@ -65,10 +58,6 @@ export class PipelineService {
         try {
             const token = await this.getToken();
             
-            if (!token) {
-                throw new Error('Failed to get authentication token');
-            }
-
             const response = await fetch(`${this.baseUrl}/api/v1/account`, {
                 method: 'POST',
                 headers: {
@@ -83,8 +72,7 @@ export class PipelineService {
             });
             
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`API error: ${response.status} - ${errorText}`);
+                throw new Error(`API error: ${response.status}`);
             }
 
             const data = await response.json();
@@ -129,30 +117,6 @@ export class PipelineService {
             }
         });
         return response.json();
-    }
-
-    setupWebSocket(taskId: string): WebSocket | null {
-        if (typeof window === 'undefined' || !this.wsUrl) {
-            console.warn('WebSocket setup skipped: not in browser or missing URL');
-            return null;
-        }
-
-        try {
-            const ws = new WebSocket(`${this.wsUrl}/api/v1/ws/${taskId}`);
-            
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-            };
-
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
-
-            return ws;
-        } catch (error) {
-            console.error('WebSocket setup failed:', error);
-            return null;
-        }
     }
 
     async getSummaries(accountId: string, token: string): Promise<{
