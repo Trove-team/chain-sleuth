@@ -33,8 +33,12 @@ export default function QueryComponent() {
         throw new Error(data.error || 'Failed to process request');
       }
 
-      setResult(data);
-      toast.success('Query submitted successfully');
+      if (data.taskId) {
+        setResult(data);
+        toast.success(`Processing started with task ID: ${data.taskId}`);
+      } else {
+        toast.warn('Received response but no task ID was generated');
+      }
 
     } catch (error) {
       console.error('Error occurred:', error);
