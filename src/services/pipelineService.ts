@@ -25,16 +25,12 @@ export interface StatusResponse {
 }
 
 export class PipelineService {
-    private apiKey: string;
     private baseUrl: string;
+    private apiKey: string;
 
     constructor() {
+        this.baseUrl = process.env.NEO4J_API_URL || 'https://filepile.ai';
         this.apiKey = process.env.NEO4J_API_KEY || '';
-        this.baseUrl = 'https://filepile.ai';
-
-        if (!this.apiKey) {
-            console.error('API key is missing in server environment');
-        }
     }
 
     async getToken(): Promise<string> {
@@ -101,9 +97,10 @@ export class PipelineService {
 
         try {
             console.log('Starting processing for account:', accountId);
-            const response = await fetch('/api/pipeline/start', {
+            const response = await fetch(`${this.baseUrl}/api/v1/process`, {
                 method: 'POST',
                 headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
