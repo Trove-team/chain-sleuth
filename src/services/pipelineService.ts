@@ -34,26 +34,15 @@ export class PipelineService {
     }
 
     async getToken(): Promise<string> {
-        try {
-            console.log('Requesting token from:', `${this.baseUrl}/api/v1/auth/token`);
-            const response = await fetch(`${this.baseUrl}/api/v1/auth/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': this.apiKey
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Token request failed: ${response.status}`);
+        const response = await fetch(`${this.baseUrl}/auth/token`, {
+            method: 'POST',
+            headers: {
+                'x-api-key': this.apiKey,
+                'Content-Type': 'application/json'
             }
-
-            const data = await response.json();
-            return data.token;
-        } catch (error) {
-            console.error('Token fetch failed:', error);
-            throw new Error('Failed to get authentication token');
-        }
+        });
+        const data = await response.json();
+        return data.token;
     }
 
     private createErrorResponse(error: Error | string | unknown): ProcessingResponse {
@@ -98,7 +87,7 @@ export class PipelineService {
         try {
             console.log('Starting processing for account:', accountId);
             const token = await this.getToken();
-            const response = await fetch(`${this.baseUrl}/api/v1/process`, {
+            const response = await fetch(`${this.baseUrl}/account`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
