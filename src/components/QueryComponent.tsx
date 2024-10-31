@@ -3,22 +3,17 @@
 import { useState } from 'react';
 import { PipelineService } from '@/services/pipelineService';
 import { toast } from 'react-toastify';
-import QueryResults from '@/components/query/QueryResults';
 
 const pipelineService = new PipelineService();
-
-interface QueryResult {
-  taskId: string;
-  status: string;
-  message?: string;
-  data?: any;
-}
 
 export default function QueryPage() {
   const [nearAddress, setNearAddress] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<QueryResult | null>(null);
-  const [queries, setQueries] = useState<any[]>([]);
+  const [result, setResult] = useState<{
+    taskId: string;
+    status: string;
+    message?: string;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,23 +33,12 @@ export default function QueryPage() {
         return;
       }
 
-      // Add the new query to the list
-      const newQuery = {
-        taskId: response.taskId,
-        accountId: nearAddress,
-        timestamp: new Date().toISOString(),
-        status: response.existingData ? 'Completed' : 'Processing'
-      };
-      
-      setQueries(prev => [newQuery, ...prev]);
-      
       setResult({
         taskId: response.taskId,
         status: 'success',
         message: response.existingData 
           ? 'Found existing data'
-          : 'Processing started successfully',
-        data: response.existingData
+          : 'Processing started successfully'
       });
       
       toast.success('Query submitted successfully');
@@ -73,11 +57,12 @@ export default function QueryPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      {/* Query Input Section */}
+    <div className="container mx-auto px-4 py-8">
+      <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6 mb-8">
+        <h1 className="text-3xl font-bold text-black">Query Interface</h1>
+      </div>
+
       <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-black mb-6">NEAR Account Query</h1>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="nearAddress" className="block text-sm font-medium text-gray-700 mb-1">
@@ -124,13 +109,6 @@ export default function QueryPage() {
           </div>
         )}
       </div>
-
-      {/* Query Results Section */}
-      {queries.length > 0 && (
-        <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6">
-          <QueryResults queries={queries} />
-        </div>
-      )}
     </div>
   );
 }
