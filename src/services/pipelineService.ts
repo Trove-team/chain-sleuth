@@ -24,61 +24,85 @@ export class PipelineService {
     constructor() {
         this.apiKey = process.env.NEO4J_API_KEY!;
         this.baseUrl = process.env.NEO4J_API_URL!;
-        this.wsUrl = process.env.NEO4J_WS_URL!;
+        this.wsUrl = process.env.NEO4J_WS_URL || this.baseUrl.replace('http', 'ws');
     }
 
     async getToken(): Promise<string> {
-        const response = await fetch(`${this.baseUrl}/api/v1/auth/token`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': this.apiKey
+        try {
+            const response = await fetch(`${this.baseUrl}/api/v1/auth/token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': this.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Auth failed: ${response.status}`);
             }
-        });
-        const data = await response.json();
-        return data.token;
+
+            const data = await response.json();
+            return data.token;
+        } catch (error) {
+            console.error('Token fetch failed:', error);
+            throw new Error('Failed to get authentication token');
+        }
     }
 
-    async startProcessing(accountId: string, token?: string): Promise<ProcessingResponse> {
-        if (!token) {
-            token = await this.getToken();
-        }
-        
-        const response = await fetch(`${this.baseUrl}/api/v1/account`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                accountId,
-                forceReprocess: true,
-                generateSummary: true
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-        }
+    async startProcessing(accountId: string): Promise<ProcessingResponse> {
+        try {
+            const token = await this.getToken();
+            
+            const response = await fetch(`${this.baseUrl}/api/v1/account`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    accountId,
+                    forceReprocess: true,
+                    generateSummary: true
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
 
-        const data = await response.json();
-        
-        return {
-            taskId: data.data.taskId,
-            existingData: data.status === 'exists' ? {
-                robustSummary: data.data.robustSummary,
-                shortSummary: data.data.shortSummary
-            } : undefined
-        };
+            const data = await response.json();
+            
+            return {
+                taskId: data.data.taskId,
+                existingData: data.status === 'exists' ? {
+                    robustSummary: data.data.robustSummary,
+                    shortSummary: data.data.shortSummary
+                } : undefined
+            };
+        } catch (error) {
+            console.error('Processing start failed:', error);
+            throw error;
+        }
     }
 
-    async checkStatus(taskId: string, token: string): Promise<StatusResponse> {
-        const response = await fetch(`${this.baseUrl}/api/v1/status/${taskId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+    async checkStatus(taskId: string): Promise<StatusResponse> {
+        try {
+            const token = await this.getToken();
+            const response = await fetch(`${this.baseUrl}/api/v1/status/${taskId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Status check failed: ${response.status}`);
             }
-        });
-        return response.json();
+
+            return response.json();
+        } catch (error) {
+            console.error('Status check failed:', error);
+            throw error;
+        }
     }
 
     async getMetadata(accountId: string, token: string): Promise<any> {
@@ -91,11 +115,25 @@ export class PipelineService {
     }
 
     setupWebSocket(taskId: string): WebSocket {
-        const ws = new WebSocket(`${this.wsUrl}/api/v1/ws/${taskId}`);
+        if (typeof window === 'undefined') {
+            throw new Error('WebSocket can only be initialized in browser environment');
+        }
+
+        const wsUrl = `${this.wsUrl}/api/v1/ws/${taskId}`;
+        console.log('Connecting to WebSocket:', wsUrl);
         
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            // Handle progress updates
+        const ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket disconnected');
         };
 
         return ws;
