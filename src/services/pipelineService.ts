@@ -97,10 +97,11 @@ export class PipelineService {
 
         try {
             console.log('Starting processing for account:', accountId);
+            const token = await this.getToken();
             const response = await fetch(`${this.baseUrl}/api/v1/process`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
@@ -128,8 +129,7 @@ export class PipelineService {
             const response = await fetch(`${this.baseUrl}/api/v1/status/${taskId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'x-api-key': this.apiKey
+                    'Content-Type': 'application/json'
                 }
             });
 
