@@ -6,26 +6,18 @@ import { PipelineService } from '@/services/pipelineService';
 const logger = createLogger('query-engine');
 const pipelineService = new PipelineService();
 
-// Define request body type
-interface QueryRequest {
-  query: string;
-  accountId?: string;
-}
-
 const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
   .post("/query", async ({ body }) => {
     const requestId = uuidv4();
     
     try {
-      // Type assertion for body
-      const { query, accountId } = body as QueryRequest;
+      const { query, accountId: inputAccountId } = body as { query: string; accountId?: string };
+      const accountId = inputAccountId || 'trovelabs.near';
       const token = await pipelineService.getToken();
 
-      logger.info('Making request to Neo4j:', {
-        requestId,
-        query,
-        accountId
-      });
+      // Match Next.js timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
 
       const response = await fetch(`${process.env.NEO4J_API_URL}/api/v1/query`, {
         method: 'POST',
@@ -35,28 +27,24 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
           'X-Request-ID': requestId
         },
         body: JSON.stringify({ query, accountId }),
-        signal: AbortSignal.timeout(9000)
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const responseText = await response.text();
-      
-      logger.info('Received Neo4j response:', {
-        requestId,
-        status: response.status
-      });
-
       return new Response(responseText, {
         status: response.status,
         headers: { 'Content-Type': 'text/plain' }
       });
 
     } catch (error) {
-      logger.error('Query error:', {
+      logger.error('Error in query-engine route:', {
         requestId,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
 
-      if (error instanceof Error && error.name === 'TimeoutError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         return new Response('Query timed out. Please try a simpler query.', { 
           status: 408 
         });
@@ -64,17 +52,6 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
 
       return new Response('Failed to process query', { status: 500 });
     }
-  }, {
-    body: t.Object({
-      query: t.String({
-        description: 'Natural language query about the account',
-        examples: ['analyze transaction patterns for account.near']
-      }),
-      accountId: t.Optional(t.String({
-        description: 'NEAR account ID to analyze',
-        pattern: '^[a-z0-9_-]+\\.near$'
-      }))
-    })
   });
 
 export default queryEngineRoutes;
