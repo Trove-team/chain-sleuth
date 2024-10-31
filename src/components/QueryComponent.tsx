@@ -6,16 +6,15 @@ import { toast } from 'react-toastify';
 export default function QueryComponent() {
   const [nearAddress, setNearAddress] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{
-    taskId: string;
-    status: string;
-    message?: string;
-  } | null>(null);
+  const [result, setResult] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
+
+    console.group('Query Submission');
+    console.log('Submitting address:', nearAddress);
 
     try {
       const response = await fetch('/api/pipeline', {
@@ -23,35 +22,27 @@ export default function QueryComponent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ accountId: nearAddress }),
+        body: JSON.stringify({ accountId: nearAddress })
       });
-      
+
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', JSON.stringify(data, null, 2));
 
       if (!response.ok) {
-        throw new Error(data.error || 'Processing failed');
+        throw new Error(data.error || 'Failed to process request');
       }
 
-      setResult({
-        taskId: data.taskId,
-        status: data.status,
-        message: data.existingData 
-          ? 'Found existing data'
-          : 'Processing started successfully'
-      });
-      
+      setResult(data);
       toast.success('Query submitted successfully');
 
     } catch (error) {
+      console.error('Error occurred:', error);
       const message = error instanceof Error ? error.message : 'Failed to process query';
       toast.error(message);
-      setResult({
-        taskId: 'error',
-        status: 'error',
-        message
-      });
     } finally {
       setLoading(false);
+      console.groupEnd();
     }
   };
 
@@ -92,19 +83,11 @@ export default function QueryComponent() {
         </form>
 
         {result && (
-          <div className={`mt-4 p-4 rounded-lg ${
-            result.status === 'error' ? 'bg-red-50' : 'bg-green-50'
-          }`}>
-            <p className={`text-sm ${
-              result.status === 'error' ? 'text-red-600' : 'text-green-600'
-            }`}>
-              {result.message}
-            </p>
-            {result.taskId && result.status !== 'error' && (
-              <p className="text-sm text-gray-500 mt-2">
-                Task ID: {result.taskId}
-              </p>
-            )}
+          <div className="mt-4 p-4 bg-white/10 rounded-lg">
+            <h3 className="text-lg font-semibold">Response Data:</h3>
+            <pre className="mt-2 p-2 bg-black/20 rounded overflow-x-auto">
+              {JSON.stringify(result, null, 2)}
+            </pre>
           </div>
         )}
       </div>
