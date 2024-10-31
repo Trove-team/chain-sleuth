@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -19,49 +19,81 @@ export default function QueryPage() {
     const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
     const [progress, setProgress] = useState<number>(0);
 
-    const startStatusPolling = async (taskId: string) => {
-        const pollInterval = setInterval(async () => {
-            try {
-                const response = await fetch(`/api/pipeline?taskId=${taskId}`);
-                const status: StatusResponse = await response.json();
+    useEffect(() => {
+        console.log('QueryPage - queryResults updated:', queryResults);
+    }, [queryResults]);
 
-                if (status.data?.progress !== undefined) {
-                    setProgress(status.data.progress);
-                }
+    const startProcessing = async (accountId: string) => {
+        try {
+            const response = await fetch('/api/pipeline/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    accountId,
+                    webhookUrl: `${window.location.origin}/api/webhook/pipeline` 
+                })
+            });
 
-                if (status.status === 'complete') {
-                    clearInterval(pollInterval);
-                    const metadataResponse = await fetch(`/api/pipeline/metadata/${nearAddress}`);
-                    const metadataData: MetadataResponse = await metadataResponse.json();
-
-                    const queryResult: QueryResult = {
-                        accountId: nearAddress,
-                        timestamp: new Date().toISOString(),
-                        status: 'Completed',
-                        financialSummary: {
-                            totalUsdValue: metadataData.wealth.totalUSDValue,
-                            nearBalance: metadataData.wealth.balance.items
-                                .find(i => i.symbol === "NEAR")?.amount.toString() || "0",
-                            defiValue: metadataData.wealth.defi.totalUSDValue
-                        },
-                        analysis: {
-                            transactionCount: metadataData.tx_count,
-                            isBot: metadataData.bot_detection.isPotentialBot,
-                            robustSummary: metadataData.robustSummary,
-                            shortSummary: metadataData.shortSummary
-                        }
-                    };
-
-                    setQueryResults(prev => [queryResult, ...prev]);
-                }
-            } catch (error) {
-                console.error('Status polling failed:', error);
-                clearInterval(pollInterval);
-                toast.error(error instanceof Error ? error.message : 'Status polling failed');
+            const data: ProcessingResponse = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error?.message || 'Failed to start processing');
             }
-        }, 5000);
 
-        return () => clearInterval(pollInterval);
+            setResult(data);
+            setProgress(0);
+            
+            // Subscribe to Server-Sent Events for real-time updates
+            const eventSource = new EventSource(`/api/pipeline/events/${data.taskId}`);
+            
+            eventSource.onmessage = (event) => {
+                const update = JSON.parse(event.data);
+                if (update.progress) {
+                    setProgress(update.progress);
+                }
+                if (update.status === 'complete') {
+                    eventSource.close();
+                    fetchResults(accountId);
+                }
+            };
+
+            return () => eventSource.close();
+        } catch (error) {
+            console.error('Failed to start processing:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to start processing');
+        }
+    };
+
+    const fetchResults = async (accountId: string) => {
+        try {
+            const metadataResponse = await fetch(`/api/pipeline/metadata/${accountId}`);
+            const metadataData: MetadataResponse = await metadataResponse.json();
+
+            const queryResult: QueryResult = {
+                accountId,
+                timestamp: new Date().toISOString(),
+                status: 'Completed',
+                financialSummary: {
+                    totalUsdValue: metadataData.wealth.totalUSDValue,
+                    nearBalance: metadataData.wealth.balance.items
+                        .find(i => i.symbol === "NEAR")?.amount.toString() || "0",
+                    defiValue: metadataData.wealth.defi.totalUSDValue
+                },
+                analysis: {
+                    transactionCount: metadataData.tx_count,
+                    isBot: metadataData.bot_detection.isPotentialBot,
+                    robustSummary: metadataData.robustSummary,
+                    shortSummary: metadataData.shortSummary
+                }
+            };
+
+            setQueryResults(prev => [queryResult, ...prev]);
+            toast.success('Processing completed');
+        } catch (error) {
+            console.error('Failed to fetch results:', error);
+            toast.error('Failed to fetch results');
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -70,33 +102,7 @@ export default function QueryPage() {
         setResult(null);
 
         try {
-            const response = await fetch('/api/pipeline', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ accountId: nearAddress })
-            });
-
-            const data: ProcessingResponse = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error?.message || 'Failed to process request');
-            }
-
-            setResult(data);
-            if (data.taskId) {
-                startStatusPolling(data.taskId);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            setResult({ 
-                status: 'error',
-                error: {
-                    code: 'PROCESSING_ERROR',
-                    message: error instanceof Error ? error.message : 'Failed to process request'
-                }
-            });
+            await startProcessing(nearAddress.trim());
         } finally {
             setLoading(false);
         }
