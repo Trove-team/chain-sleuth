@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PipelineService } from '@/services/pipelineService';
+import { StatusResponse } from '@/types/pipeline';
 
 const pipelineService = new PipelineService();
 
@@ -11,9 +12,10 @@ export async function GET(
     { params }: { params: { taskId: string } }
 ) {
     const taskId = params.taskId;
+    console.log('Received SSE request for taskId:', taskId);
 
-    // Set up SSE headers
     const encoder = new TextEncoder();
+
     const customHeaders = new Headers({
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -21,42 +23,39 @@ export async function GET(
     });
 
     const stream = new ReadableStream({
-        async start(controller) {
+        async start(controller: ReadableStreamDefaultController) {
             try {
-                // Initial status check
-                const status = await pipelineService.checkStatus(taskId);
+                const status: StatusResponse = await pipelineService.checkStatus(taskId);
                 controller.enqueue(
                     encoder.encode(`data: ${JSON.stringify(status)}\n\n`)
                 );
 
-                // If already complete, close the stream
                 if (status.status === 'complete' || status.status === 'failed') {
                     controller.close();
                     return;
                 }
 
-                // Set up polling interval
-                const interval = setInterval(async () => {
+                let intervalId: NodeJS.Timeout;
+                intervalId = setInterval(async () => {
                     try {
-                        const status = await pipelineService.checkStatus(taskId);
+                        const status: StatusResponse = await pipelineService.checkStatus(taskId);
                         controller.enqueue(
                             encoder.encode(`data: ${JSON.stringify(status)}\n\n`)
                         );
 
                         if (status.status === 'complete' || status.status === 'failed') {
-                            clearInterval(interval);
+                            clearInterval(intervalId);
                             controller.close();
                         }
                     } catch (error) {
                         console.error('Error checking status:', error);
-                        clearInterval(interval);
+                        clearInterval(intervalId);
                         controller.close();
                     }
-                }, 5000); // Poll every 5 seconds
+                }, 5000);
 
-                // Clean up on stream end
                 return () => {
-                    clearInterval(interval);
+                    clearInterval(intervalId);
                 };
             } catch (error) {
                 console.error('Error in SSE stream:', error);

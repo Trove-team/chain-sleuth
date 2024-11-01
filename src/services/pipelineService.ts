@@ -1,34 +1,6 @@
 // src/services/pipelineService.ts
 // Export the interfaces
-export interface ProcessingResponse {
-    taskId: string;
-    status: 'processing' | 'complete' | 'failed' | 'exists';
-    message?: string;
-    existingData?: {
-        robustSummary: string;
-        shortSummary: string;
-    };
-    error?: {
-        code: string;
-        message: string;
-        details?: string;
-    };
-}
-
-export interface StatusResponse {
-    status: 'processing' | 'complete' | 'failed';
-    data: {
-        accountId: string;
-        progress?: number;
-        currentStep?: string;
-        error?: string;
-    };
-}
-
-// Add this helper function at the top of the file
-function generateTaskId(): string {
-    return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
+import { ProcessingResponse, StatusResponse, MetadataResponse } from '@/types/pipeline';
 
 export class PipelineService {
     private baseUrl: string;
@@ -66,8 +38,7 @@ export class PipelineService {
         });
 
         if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`Failed to get token: ${response.status} ${response.statusText}\nBody: ${errorBody}`);
+            throw new Error('Failed to get auth token');
         }
 
         const data = await response.json();
@@ -75,10 +46,6 @@ export class PipelineService {
     }
 
     async startProcessing(accountId: string, force?: boolean): Promise<ProcessingResponse> {
-        if (!accountId?.trim()) {
-            throw new Error('Valid accountId is required');
-        }
-
         try {
             console.log('Starting processing for account:', accountId);
             const token = await this.getToken();
@@ -102,27 +69,32 @@ export class PipelineService {
             const data = await response.json();
             console.log('API Response:', data);
 
-            // Ensure we have a properly typed response
-            const processingResponse: ProcessingResponse = {
-                taskId: data.taskId || generateTaskId(), // Fallback to generated ID if API doesn't provide one
+            // Ensure we have a valid UUID taskId from the server
+            if (!data.taskId || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.taskId)) {
+                throw new Error('Invalid taskId received from server');
+            }
+            
+            return {
+                taskId: data.taskId,
                 status: 'processing',
                 message: 'Processing started',
-                existingData: data.existingData
+                existingData: data.existingData,
+                data: {
+                    robustSummary: data.existingData?.robustSummary,
+                    shortSummary: data.existingData?.shortSummary
+                },
+                statusLink: `/api/pipeline/status/${data.taskId}`
             };
-
-            return processingResponse;
         } catch (error) {
             console.error('Processing start failed:', error);
-            const errorResponse: ProcessingResponse = {
-                taskId: generateTaskId(),
+            throw {
+                taskId: 'error',
                 status: 'failed',
-                message: error instanceof Error ? error.message : 'Unknown error',
                 error: {
                     code: 'PROCESSING_ERROR',
                     message: error instanceof Error ? error.message : 'Unknown error'
                 }
-            };
-            throw errorResponse;
+            } as ProcessingResponse;
         }
     }
 
@@ -150,19 +122,26 @@ export class PipelineService {
         }
     }
 
-    async getMetadata(accountId: string, token: string): Promise<any> {
+    async getMetadata(accountId: string): Promise<MetadataResponse> {
+        const token = await this.getToken();
         const response = await fetch(`${this.baseUrl}/api/v1/metadata/${accountId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+        }
+        
         return response.json();
     }
 
-    async getSummaries(accountId: string, token: string): Promise<{
+    async getSummaries(accountId: string): Promise<{
         robustSummary: string | null;
         shortSummary: string | null;
     }> {
+        const token = await this.getToken();
         const response = await fetch(`${this.baseUrl}/api/v1/summaries/${accountId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,

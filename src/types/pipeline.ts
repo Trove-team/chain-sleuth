@@ -16,9 +16,9 @@ export interface QueryResult {
 }
 
 export interface ProcessingResponse {
+  taskId: string;
   status: 'processing' | 'complete' | 'failed' | 'error' | 'exists';
   message?: string;
-  taskId?: string;
   error?: {
     code: string;
     message: string;
@@ -28,6 +28,11 @@ export interface ProcessingResponse {
     robustSummary: string;
     shortSummary: string;
   };
+  data?: {
+    robustSummary?: string;
+    shortSummary?: string;
+  };
+  statusLink?: string;
 }
 
 export interface StatusResponse {
