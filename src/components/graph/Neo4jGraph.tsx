@@ -40,9 +40,10 @@ function Neo4jGraph() {
     try {
       setLoading(true);
       const query = `
-        MATCH (start:Account {id: 'nf-payments1.near'})-[r*1..2]-(connected:Account)
-        RETURN start, r, connected
-        LIMIT 200
+        MATCH (a:Account)-[r]-(b:Account)
+        WHERE a.id CONTAINS $searchTerm OR b.id CONTAINS $searchTerm
+        RETURN a, r, b
+        LIMIT 500
       `;
       const result = await runQuery(query, { searchTerm });
 
@@ -52,11 +53,11 @@ function Neo4jGraph() {
       const newLinkTypes = new Set<string>();
 
       result.forEach((record: GraphRecord) => {
-        const start = record.get('start') as Neo4jNode;
-        const connected = record.get('connected') as Neo4jNode;
+        const a = record.get('a') as Neo4jNode;
+        const b = record.get('b') as Neo4jNode;
         const relationship = record.get('r') as Neo4jRelationship;
 
-        [start, connected].forEach(node => {
+        [a, b].forEach(node => {
           if (!nodes.has(node.identity.toString())) {
             const nodeType = node.labels[0] as NodeType;
             newNodeTypes.add(nodeType);
@@ -72,8 +73,8 @@ function Neo4jGraph() {
 
         newLinkTypes.add(relationship.type);
         links.push({
-          source: start.properties.id,
-          target: connected.properties.id,
+          source: a.properties.id,
+          target: b.properties.id,
           label: relationship.type,
           type: relationship.type
         });
