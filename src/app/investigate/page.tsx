@@ -16,11 +16,13 @@ export default function InvestigatePage() {
   }, [queryResults]);
 
   const handleProcessingComplete = (result: QueryResult) => {
+    console.log('Processing complete, result:', result);
     setQueryResults(prev => [result, ...prev]);
     setProgress(0);
   };
 
   const handleProgressUpdate = (newProgress: number) => {
+    console.log('Progress update:', newProgress);
     setProgress(newProgress);
   };
 
@@ -30,10 +32,12 @@ export default function InvestigatePage() {
       <div className="max-w-2xl mx-auto space-y-8">
         <h1 className="text-2xl font-bold text-gray-900">NEAR Account Investigation</h1>
         
-        <QueryComponent 
-          onProgressUpdate={handleProgressUpdate}
-          onProcessingComplete={handleProcessingComplete}
-        />
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <QueryComponent 
+            onProgressUpdate={handleProgressUpdate}
+            onProcessingComplete={handleProcessingComplete}
+          />
+        </div>
 
         {progress > 0 && progress < 100 && (
           <div className="w-full bg-gray-200 rounded-full h-2.5">
