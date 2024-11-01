@@ -3,6 +3,7 @@
 export interface ProcessingResponse {
     taskId: string;
     status: 'processing' | 'complete' | 'failed' | 'exists';
+    message?: string;
     existingData?: {
         robustSummary: string;
         shortSummary: string;
@@ -39,6 +40,20 @@ export class PipelineService {
         
         if (!this.baseUrl) throw new Error('NEO4J_API_URL is not configured');
         if (!this.apiKey) throw new Error('NEO4J_API_KEY is not configured');
+        
+        // Add connection verification
+        this.verifyConnection();
+    }
+
+    private async verifyConnection() {
+        try {
+            const token = await this.getToken();
+            console.log('API Connection verified successfully');
+            return true;
+        } catch (error) {
+            console.error('API Connection failed:', error);
+            return false;
+        }
     }
 
     async getToken(): Promise<string> {
@@ -85,23 +100,23 @@ export class PipelineService {
             }
 
             const data = await response.json();
-            console.log('Processing response:', data);
-            
-            // Create a properly typed response
+            console.log('API Response:', data);
+
+            // Ensure we have a properly typed response
             const processingResponse: ProcessingResponse = {
-                taskId: generateTaskId(),
+                taskId: data.taskId || generateTaskId(), // Fallback to generated ID if API doesn't provide one
                 status: 'processing',
-                error: undefined,
-                existingData: data.existingData // Include if available from API response
+                message: 'Processing started',
+                existingData: data.existingData
             };
 
             return processingResponse;
         } catch (error) {
             console.error('Processing start failed:', error);
-            // Return a properly typed error response
             const errorResponse: ProcessingResponse = {
                 taskId: generateTaskId(),
                 status: 'failed',
+                message: error instanceof Error ? error.message : 'Unknown error',
                 error: {
                     code: 'PROCESSING_ERROR',
                     message: error instanceof Error ? error.message : 'Unknown error'
