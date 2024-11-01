@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import QueryResults from './query/QueryResults';
 import type { ProcessingResponse, StatusResponse, QueryResult } from '@/types/pipeline';
 
 interface QueryComponentProps {
@@ -14,8 +13,6 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
   const [nearAddress, setNearAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProcessingResponse | null>(null);
-  const [progress, setProgress] = useState<number>(0);
-  const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
 
   const fetchResults = async (accountId: string) => {
     try {
@@ -45,15 +42,13 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
         }
       };
 
-      setQueryResults(prev => {
-        const newResults = [queryResult, ...prev];
-        onProcessingComplete(queryResult);
-        return newResults;
-      });
+      onProcessingComplete(queryResult);
       toast.success('Processing completed');
     } catch (error) {
       console.error('Error fetching results:', error);
       toast.error('Failed to fetch results');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,7 +56,6 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
     e.preventDefault();
     setLoading(true);
     setResult(null);
-    setProgress(0);
 
     try {
       const response = await fetch('/api/pipeline/start', {
@@ -121,8 +115,8 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
   };
 
   return (
-    <div className="space-y-8">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit}>
         <input
           type="text"
           value={nearAddress}
@@ -140,15 +134,6 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
         </button>
       </form>
 
-      {progress > 0 && progress < 100 && (
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      )}
-
       {result && (
         <div className={`mt-4 p-4 rounded-lg ${
           result.status === 'error' ? 'bg-red-50' : 'bg-green-50'
@@ -165,8 +150,6 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
           )}
         </div>
       )}
-
-      <QueryResults queries={queryResults} />
     </div>
   );
 }

@@ -116,18 +116,23 @@ export class PipelineService {
     }
 
     async getMetadata(accountId: string): Promise<MetadataResponse> {
-        const token = await this.getToken();
-        const response = await fetch(`${this.baseUrl}/api/v1/metadata/${accountId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+        try {
+            const token = await this.getToken();
+            const response = await fetch(`${this.baseUrl}/api/v1/account/${accountId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Metadata fetch failed: ${response.status}`);
             }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+
+            return response.json();
+        } catch (error) {
+            console.error('Failed to fetch metadata:', error);
+            throw error;
         }
-        
-        return response.json();
     }
 
     async getSummaries(accountId: string): Promise<{
