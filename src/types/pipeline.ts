@@ -1,17 +1,17 @@
 export interface QueryResult {
   accountId: string;
   timestamp: string;
-  status: 'Completed' | 'Processing' | 'Failed';
+  status: string;
   financialSummary: {
-    totalUsdValue: string;
+    totalUsdValue: number;
     nearBalance: string;
-    defiValue: string;
+    defiValue: number;
   };
   analysis: {
     transactionCount: number;
     isBot: boolean;
-    robustSummary: string | null;
-    shortSummary: string | null;
+    robustSummary: string;
+    shortSummary: string;
   };
 }
 
@@ -43,21 +43,21 @@ export interface StatusResponse {
 
 export interface MetadataResponse {
   wealth: {
-    totalUSDValue: string;
+    totalUSDValue: number;
     balance: {
       items: Array<{
         symbol: string;
-        amount: string;
+        amount: number | string;
       }>;
     };
     defi: {
-      totalUSDValue: string;
+      totalUSDValue: number;
     };
   };
   tx_count: number;
   bot_detection: {
     isPotentialBot: boolean;
   };
-  robustSummary: string | null;
-  shortSummary: string | null;
+  robustSummary: string;
+  shortSummary: string;
 }

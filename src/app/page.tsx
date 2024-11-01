@@ -12,8 +12,8 @@ export default function Home() {
         <h2 className="text-xl font-semibold mb-4 text-black">Resources</h2>
         <ul className="space-y-3">
           <li>
-            <Link href="/queries" className="text-black hover:text-white transition-colors">
-              View All Queries
+            <Link href="/Investigate" className="text-black hover:text-white transition-colors">
+              Start Investigation
             </Link>
           </li>
           <li>

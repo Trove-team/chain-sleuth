@@ -95,10 +95,14 @@ export default function QueryPage() {
             
             eventSource.onmessage = (event) => {
                 try {
-                    const update = JSON.parse(event.data);
+                    const update: {
+                        status: 'processing' | 'complete' | 'failed';
+                        progress?: number;
+                    } = JSON.parse(event.data);
+                    
                     console.log('SSE Update:', update);
                     
-                    if (update.progress) {
+                    if (update.progress !== undefined) {
                         setProgress(update.progress);
                     }
                     
@@ -127,6 +131,15 @@ export default function QueryPage() {
             setLoading(false);
         }
     };
+
+    // Add after line 56
+    useEffect(() => {
+        console.log('QueryResults being rendered with:', {
+            resultsExist: queryResults.length > 0,
+            firstResult: queryResults[0],
+            totalResults: queryResults.length
+        });
+    }, [queryResults]);
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -191,11 +204,7 @@ export default function QueryPage() {
                 )}
 
                 <div className="mt-8">
-                    {queryResults.length > 0 ? (
-                        <QueryResults queries={queryResults} />
-                    ) : (
-                        <p className="text-gray-500 text-center">No results available yet</p>
-                    )}
+                    <QueryResults queries={queryResults} />
                 </div>
 
                 {result?.existingData && !queryResults.length && (

@@ -25,28 +25,21 @@ export async function POST(request: Request) {
     try {
         const { accountId, force } = await request.json();
         
-        if (!accountId?.trim()) {
-            return NextResponse.json({ 
-                taskId: 'error',
-                status: 'failed',
-                error: {
-                    code: 'VALIDATION_ERROR',
-                    message: 'Valid accountId is required'
-                }
-            } as ProcessingResponse, { status: 400 });
-        }
-        
         const processingResult = await pipelineService.startProcessing(accountId, force);
+        
         return NextResponse.json(processingResult);
     } catch (error) {
         console.error('Pipeline start error:', error);
-        return NextResponse.json({ 
-            taskId: 'error',
-            status: 'failed',
-            error: {
-                code: 'PROCESSING_ERROR',
-                message: error instanceof Error ? error.message : 'Unknown error'
-            }
-        } as ProcessingResponse, { status: 500 });
+        return NextResponse.json(
+            { 
+                taskId: 'error',
+                status: 'failed',
+                error: {
+                    code: 'PROCESSING_ERROR',
+                    message: error instanceof Error ? error.message : 'Unknown error'
+                }
+            } as ProcessingResponse,
+            { status: 500 }
+        );
     }
 }
