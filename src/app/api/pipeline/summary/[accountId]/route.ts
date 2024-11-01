@@ -18,6 +18,7 @@ export async function GET(
             }, { status: 400 });
         }
 
+        // Keep passing the token to maintain Neo4j communication
         const summaries = await pipelineService.getSummaries(params.accountId, token);
         return NextResponse.json(summaries);
     } catch (error) {

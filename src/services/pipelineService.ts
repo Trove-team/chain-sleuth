@@ -116,45 +116,43 @@ export class PipelineService {
     }
 
     async getMetadata(accountId: string): Promise<MetadataResponse> {
+        const token = await this.getToken();
+        const response = await fetch(`${this.baseUrl}/api/v1/metadata/${accountId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+        }
+        
+        return response.json();
+    }
+
+    async getSummaries(accountId: string, token: string): Promise<{
+        robustSummary: string | null;
+        shortSummary: string | null;
+    }> {
         try {
-            const token = await this.getToken();
-            const response = await fetch(`${this.baseUrl}/api/v1/account/${accountId}`, {
+            const response = await fetch(`${this.baseUrl}/api/v1/account/${accountId}/summaries`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
 
             if (!response.ok) {
-                throw new Error(`Metadata fetch failed: ${response.status}`);
+                throw new Error(`Summary fetch failed: ${response.status}`);
             }
 
-            return response.json();
+            const data = await response.json();
+            return {
+                robustSummary: data.robustSummary,
+                shortSummary: data.shortSummary
+            };
         } catch (error) {
-            console.error('Failed to fetch metadata:', error);
+            console.error('Failed to fetch summaries:', error);
             throw error;
         }
-    }
-
-    async getSummaries(accountId: string): Promise<{
-        robustSummary: string | null;
-        shortSummary: string | null;
-    }> {
-        const token = await this.getToken();
-        const response = await fetch(`${this.baseUrl}/api/v1/summaries/${accountId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch summaries: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return {
-            robustSummary: data.robustSummary,
-            shortSummary: data.shortSummary
-        };
     }
 }
