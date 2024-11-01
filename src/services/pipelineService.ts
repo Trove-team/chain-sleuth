@@ -69,11 +69,11 @@ export class PipelineService {
             const data = await response.json();
             console.log('API Response:', data);
 
-            // Ensure we have a valid UUID taskId from the server
-            if (!data.taskId || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.taskId)) {
-                throw new Error('Invalid taskId received from server');
+            // Server returns taskId format like: d2057d16-e33e-4fac-bc9c-aee715ca876e
+            if (!data.taskId) {
+                throw new Error('No taskId received from server');
             }
-            
+
             return {
                 taskId: data.taskId,
                 status: 'processing',
@@ -83,18 +83,11 @@ export class PipelineService {
                     robustSummary: data.existingData?.robustSummary,
                     shortSummary: data.existingData?.shortSummary
                 },
-                statusLink: `/api/pipeline/status/${data.taskId}`
+                statusLink: `/api/pipeline/events/${data.taskId}`
             };
         } catch (error) {
             console.error('Processing start failed:', error);
-            throw {
-                taskId: 'error',
-                status: 'failed',
-                error: {
-                    code: 'PROCESSING_ERROR',
-                    message: error instanceof Error ? error.message : 'Unknown error'
-                }
-            } as ProcessingResponse;
+            throw error;
         }
     }
 
