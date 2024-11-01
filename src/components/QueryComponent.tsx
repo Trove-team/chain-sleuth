@@ -96,11 +96,17 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
         body: JSON.stringify({ accountId: nearAddress.trim() })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to start pipeline');
-      }
+      const data = await response.json();
 
-      await fetchResults(nearAddress.trim());
+      if (data.status === 'exists') {
+        toast.info('Account already analyzed, fetching results...');
+        await fetchResults(nearAddress.trim());
+      } else if (!response.ok) {
+        throw new Error('Failed to start pipeline');
+      } else {
+        toast.info('Starting new analysis...');
+        await fetchResults(nearAddress.trim());
+      }
     } catch (error) {
       console.error('Error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
