@@ -7,7 +7,7 @@ import QueryComponent from '@/components/QueryComponent';
 import QueryResults from '@/components/query/QueryResults';
 import type { QueryResult } from '@/types/pipeline';
 
-export default function InvestigatePage() {
+export default function QueriesPage() {
   const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
   const [progress, setProgress] = useState<number>(0);
 
