@@ -24,6 +24,11 @@ export interface StatusResponse {
     };
 }
 
+// Add this helper function at the top of the file
+function generateTaskId(): string {
+    return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
 export class PipelineService {
     private baseUrl: string;
     private apiKey: string;
@@ -81,10 +86,28 @@ export class PipelineService {
 
             const data = await response.json();
             console.log('Processing response:', data);
-            return data;
+            
+            // Create a properly typed response
+            const processingResponse: ProcessingResponse = {
+                taskId: generateTaskId(),
+                status: 'processing',
+                error: undefined,
+                existingData: data.existingData // Include if available from API response
+            };
+
+            return processingResponse;
         } catch (error) {
             console.error('Processing start failed:', error);
-            throw error;
+            // Return a properly typed error response
+            const errorResponse: ProcessingResponse = {
+                taskId: generateTaskId(),
+                status: 'failed',
+                error: {
+                    code: 'PROCESSING_ERROR',
+                    message: error instanceof Error ? error.message : 'Unknown error'
+                }
+            };
+            throw errorResponse;
         }
     }
 

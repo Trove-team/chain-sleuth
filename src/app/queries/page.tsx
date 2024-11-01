@@ -84,46 +84,51 @@ export default function QueryPage() {
             });
 
             const data: ProcessingResponse = await response.json();
-            if (!response.ok) {
+            console.log('Pipeline start response:', data);
+
+            if (!response.ok || !data.taskId) {
                 throw new Error(data.error?.message || 'Failed to start processing');
             }
 
             setResult(data);
             
-            // Set up SSE connection
-            const eventSource = new EventSource(`/api/pipeline/events/${data.taskId}`);
-            
-            eventSource.onmessage = (event) => {
-                try {
-                    const update: {
-                        status: 'processing' | 'complete' | 'failed';
-                        progress?: number;
-                    } = JSON.parse(event.data);
-                    
-                    console.log('SSE Update:', update);
-                    
-                    if (update.progress !== undefined) {
-                        setProgress(update.progress);
-                    }
-                    
-                    if (update.status === 'complete') {
+            if (data.taskId) {
+                const eventSourceUrl = `/api/pipeline/events/${data.taskId}`;
+                console.log('Creating EventSource with URL:', eventSourceUrl);
+                
+                const eventSource = new EventSource(eventSourceUrl);
+                
+                eventSource.onmessage = (event) => {
+                    try {
+                        const update = JSON.parse(event.data);
+                        console.log('SSE Update:', update);
+                        
+                        if (update.progress !== undefined) {
+                            setProgress(update.progress);
+                        }
+                        
+                        if (update.status === 'complete') {
+                            eventSource.close();
+                            fetchResults(nearAddress.trim());
+                        }
+                    } catch (error) {
+                        console.error('Error processing SSE message:', error);
                         eventSource.close();
-                        fetchResults(nearAddress.trim());
+                        toast.error('Failed to process server update');
                     }
-                } catch (error) {
-                    console.error('Error processing SSE message:', error);
+                };
+
+                eventSource.onerror = (error) => {
+                    console.error('SSE Error:', error);
                     eventSource.close();
-                    toast.error('Failed to process server update');
-                }
-            };
+                    toast.error('Lost connection to server');
+                };
 
-            eventSource.onerror = (error) => {
-                console.error('SSE Error:', error);
-                eventSource.close();
-                toast.error('Lost connection to server');
-            };
-
-            return () => eventSource.close();
+                return () => {
+                    console.log('Cleaning up EventSource');
+                    eventSource.close();
+                };
+            }
         } catch (error) {
             console.error('Error starting process:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to start processing');
