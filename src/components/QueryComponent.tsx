@@ -82,6 +82,18 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
     setError(null);
 
     try {
+      // First start the pipeline
+      const response = await fetch('/api/pipeline/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: nearAddress.trim() })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start pipeline');
+      }
+
+      // Then start polling for results
       await fetchResults(nearAddress.trim());
     } catch (error) {
       console.error('Error:', error);
