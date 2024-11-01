@@ -1,16 +1,16 @@
 // components/query/QueryResults.tsx
 import React from 'react';
-import type { InvestigationNFTMetadata, InvestigationStatus } from '@/types/investigation';
+import type { QueryResult } from '@/types/pipeline';
 
 interface QueryResultsProps {
-  queries: InvestigationNFTMetadata[];
+  queries: QueryResult[];
 }
 
 export default function QueryResults({ queries }: QueryResultsProps) {
   const generateNearExplorerLink = (accountId: string) => 
     `https://explorer.testnet.near.org/accounts/${accountId}`;
 
-  const getStatusColor = (status: InvestigationStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completed':
         return 'bg-green-500';
@@ -23,117 +23,147 @@ export default function QueryResults({ queries }: QueryResultsProps) {
     }
   };
 
-  const formatTimestamp = (timestamp: string | number): string => {
-    try {
-      const date = typeof timestamp === 'string' ? 
-        new Date(timestamp) : 
-        new Date(Number(timestamp) / 1_000_000);
-      
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Invalid Date';
-    }
-  };
+  console.log('Rendering QueryResults with:', queries);
+
+  if (!queries || queries.length === 0) {
+    return (
+      <div className="bg-white bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-lg overflow-hidden">
+        <h2 className="text-xl font-semibold p-6 text-gray-800">Query Results</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Account
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  NEAR Balance
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total USD Value
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DeFi Value
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Bot Detection
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              <tr>
+                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  No query results available yet. Start a query to see results here.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white bg-opacity-30 backdrop-filter backdrop-custom rounded-lg overflow-hidden">
-      <h2 className="text-xl font-semibold mb-4 text-gray-300">Query Results</h2>
+    <div className="bg-white bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-lg overflow-hidden">
+      <h2 className="text-xl font-semibold p-6 text-gray-800">Query Results</h2>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Target Account
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Account
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Requester
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Case Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Transaction Count
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 NEAR Balance
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Value
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Total USD Value
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 DeFi Value
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Investigation Date
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Bot Detection
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {queries.map((query, index) => (
-              <tr key={index} className="hover:bg-gray-50">
+              <tr key={`${query.accountId}-${index}`}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <a 
-                    href={generateNearExplorerLink(query.extra.target_account)}
+                    href={generateNearExplorerLink(query.accountId)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                    className="text-blue-600 hover:text-blue-800"
                   >
-                    {query.extra.target_account}
+                    {query.accountId}
                   </a>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {query.extra.requester}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {query.extra.case_number}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {query.extra.analysis_summary.transaction_count.toLocaleString()}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    Ⓝ {query.extra.financial_summary.near_balance}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    ${query.extra.financial_summary.total_usd_value}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    ${query.extra.financial_summary.defi_value}
-                  </div>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {parseFloat(query.financialSummary.nearBalance).toFixed(2)} NEAR
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatTimestamp(query.extra.investigation_date)}
+                  ${query.financialSummary.totalUsdValue.toFixed(2)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  ${query.financialSummary.defiValue.toFixed(2)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    query.analysis.isBot ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {query.analysis.isBot ? 'Bot' : 'Human'}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
-                    <div className={`h-2.5 w-2.5 rounded-full ${getStatusColor(query.extra.status)}`} />
-                    <span className="text-sm text-gray-700">{query.extra.status}</span>
+                    <div className={`h-2.5 w-2.5 rounded-full ${getStatusColor(query.status)}`} />
+                    <span className="text-sm text-gray-700">{query.status}</span>
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        {/* Analysis Section */}
+        {queries.length > 0 && (queries[0].analysis.robustSummary || queries[0].analysis.shortSummary) && (
+          <div className="p-6 border-t border-gray-200 space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Latest Analysis Results</h3>
+            
+            {queries[0].analysis.shortSummary && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Quick Summary</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {queries[0].analysis.shortSummary}
+                </p>
+              </div>
+            )}
+            
+            {queries[0].analysis.robustSummary && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Detailed Analysis</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {queries[0].analysis.robustSummary}
+                </p>
+              </div>
+            )}
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Transaction Activity</h4>
+              <p className="text-sm text-gray-600">
+                Total Transactions: {queries[0].analysis.transactionCount}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -18,7 +18,7 @@
       "instructions": "You are an assistant that helps users interact with the Chainsleuth API. You can retrieve token metadata, generate swap transactions, analyze NEAR blockchain info from Pikespeak, and investigate NEAR Protocol wallet addresses.",
       "tools": [
         {
-          "type": "generate-transaction"
+          "type": "submit-query"
         }
       ]
     }
@@ -668,6 +668,174 @@
           }
         }
       }
+    },
+    "/api/query": {
+      "post": {
+        "summary": "Execute a natural language query about NEAR accounts",
+        "description": "Analyzes NEAR blockchain accounts using natural language queries. Use 'analyze' or 'query' followed by the analysis request and account ID.",
+        "operationId": "executeNaturalLanguageQuery",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query", "accountId"],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Analyze, or query an address on NEAR, this triggers natural language query of trends/realtionships for the respective address",
+                    "example": "analyze transaction patterns for account.near"
+                  },
+                  "accountId": {
+                    "type": "string",
+                    "description": "NEAR account ID to analyze",
+                    "pattern": "^[a-z0-9_-]+\\.near$"
+                  }
+                }
+              },
+              "examples": {
+                "basicAnalysis": {
+                  "value": {
+                    "query": "analyze transaction history for trovelabs.near",
+                    "accountId": "trovelabs.near"
+                  }
+                },
+                "trendAnalysis": {
+                  "value": {
+                    "query": "analyze trading patterns and trends for ref-finance.near",
+                    "accountId": "ref-finance.near"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis results as plain text",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Natural language analysis of the account"
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Query timeout",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Query timed out. Please try a simpler query."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Failed to process query"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pipeline/start": {
+      "post": {
+        "operationId": "startInvestigation",
+        "summary": "Start a new investigation for a NEAR account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["accountId"],
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "description": "NEAR account to investigate"
+                  },
+                  "force": {
+                    "type": "boolean",
+                    "description": "Force new investigation even if data exists"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Investigation started successfully",
+            "content": {
+              "application/json": {
+                "$ref": "#/components/schemas/ProcessingResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pipeline": {
+      "get": {
+        "operationId": "checkInvestigationStatus",
+        "summary": "Check the status of an ongoing investigation",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current investigation status",
+            "content": {
+              "application/json": {
+                "$ref": "#/components/schemas/StatusResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pipeline/metadata/{accountId}": {
+      "get": {
+        "operationId": "getInvestigationMetadata",
+        "summary": "Get investigation results and metadata for an account",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Investigation metadata and results",
+            "content": {
+              "application/json": {
+                "$ref": "#/components/schemas/MetadataResponse"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -677,6 +845,7 @@
         "in": "header",
         "name": "X-API-Key"
       }
+
     }
   },
   "security": [

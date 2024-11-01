@@ -1,161 +1,54 @@
-// src/app/queries/page.tsx
 'use client';
 
-import { useInfiniteQuery } from '@tanstack/react-query';
-import QueryInput from '@/components/query/QueryInput';
+import { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import QueryComponent from '@/components/QueryComponent';
 import QueryResults from '@/components/query/QueryResults';
-import { InvestigationNFTMetadata, InvestigationStatus, NearTimestamp } from '@/types/investigation';
+import type { QueryResult } from '@/types/pipeline';
 
-const ITEMS_PER_PAGE = 10;
+export default function QueriesPage() {
+  const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
+  const [progress, setProgress] = useState<number>(0);
 
-const convertNearTimestamp = (timestamp: NearTimestamp): string => {
-  if (typeof timestamp === 'string') {
-    // If already a string, ensure it's a valid date or return current date
-    return new Date(timestamp).toISOString();
-  }
-  // Convert NEAR U64 nanoseconds to milliseconds
-  return new Date(Number(timestamp) / 1_000_000).toISOString();
-};
+  useEffect(() => {
+    console.log('QueryResults state updated:', queryResults);
+  }, [queryResults]);
 
-const transformNFTToken = (token: any): InvestigationNFTMetadata => {
-  console.log('Raw token data:', token);
-  
-  try {
-    if (token.metadata.extra) {
-      const extraData = JSON.parse(token.metadata.extra);
-      console.log('Parsed extra data:', extraData);
-      
-      return {
-        title: token.metadata.title || 'Untitled',
-        description: token.metadata.description || 'No description available',
-        media: token.metadata.media || '',
-        media_hash: token.metadata.media_hash,
-        copies: token.metadata.copies,
-        issued_at: convertNearTimestamp(token.metadata.issued_at || Date.now()),
-        extra: {
-          ...extraData,
-          investigation_date: convertNearTimestamp(extraData.investigation_date),
-          last_updated: convertNearTimestamp(extraData.last_updated),
-          status: extraData.status as InvestigationStatus
-        }
-      };
-    }
-    throw new Error('No extra metadata found');
-  } catch (error) {
-    const now = Date.now().toString();
-    console.error('Error parsing extra data:', error);
-    
-    return {
-      title: token.metadata.title || 'Untitled',
-      description: token.metadata.description || 'No description available',
-      media: token.metadata.media || '',
-      media_hash: null,
-      copies: 1,
-      issued_at: convertNearTimestamp(now),
-      extra: {
-        case_number: 0,
-        target_account: 'Unknown',
-        requester: 'Unknown',
-        investigation_date: now,
-        last_updated: now,
-        status: 'Failed' as InvestigationStatus,
-        financial_summary: {
-          total_usd_value: '0',
-          near_balance: '0',
-          defi_value: '0'
-        },
-        analysis_summary: {
-          robust_summary: null,
-          short_summary: null,
-          transaction_count: 0,
-          is_bot: false
-        }
-      }
-    };
-  }
-};
+  const handleProcessingComplete = (result: QueryResult) => {
+    console.log('Processing complete, result:', result);
+    setQueryResults(prev => [result, ...prev]);
+    setProgress(0);
+  };
 
-export default function QueriesPage(): JSX.Element {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-    error
-  } = useInfiniteQuery({
-    queryKey: ['nft-queries'],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await fetch(`/api/near-contract/nft-tokens?page=${pageParam}&limit=${ITEMS_PER_PAGE}`);
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      const tokens = await response.json();
-      return tokens.map(transformNFTToken);
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, pages) => {
-      if (!Array.isArray(lastPage) || lastPage.length === 0) return undefined;
-      return lastPage.length === ITEMS_PER_PAGE ? pages.length : undefined;
-    },
-    retry: 2,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  const flattenedData = data?.pages.flat() || [];
+  const handleProgressUpdate = (newProgress: number) => {
+    console.log('Progress update:', newProgress);
+    setProgress(newProgress);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6 mb-8">
-        <h1 className="text-3xl font-bold text-black">Query Results</h1>
-      </div>
-
-      <div className="mb-8">
-        <QueryInput />
-      </div>
-
-      <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6">
-        <div className="space-y-6">
-          {status === 'pending' ? (
-            <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
-            </div>
-          ) : status === 'error' ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-              <p>Error fetching queries: {error instanceof Error ? error.message : 'Unknown error'}</p>
-              <button 
-                onClick={() => window.location.reload()}
-                className="mt-2 px-4 py-2 bg-red-100 hover:bg-red-200 rounded"
-              >
-                Retry
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {flattenedData.length === 0 ? (
-                <div className="text-center py-12 bg-white/10 backdrop-blur-sm rounded-lg">
-                  <p className="text-black">No queries found</p>
-                </div>
-              ) : (
-                <>
-                  <QueryResults queries={flattenedData} />
-                  
-                  {hasNextPage && (
-                    <div className="flex justify-center mt-8">
-                      <button
-                        onClick={() => fetchNextPage()}
-                        disabled={isFetchingNextPage}
-                        className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-opacity"
-                      >
-                        {isFetchingNextPage ? 'Loading more...' : 'Load More'}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+      <ToastContainer />
+      <div className="max-w-2xl mx-auto space-y-8">
+        <h1 className="text-2xl font-bold text-gray-900">NEAR Account Investigation</h1>
+        
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <QueryComponent 
+            onProgressUpdate={handleProgressUpdate}
+            onProcessingComplete={handleProcessingComplete}
+          />
         </div>
+
+        {progress > 0 && progress < 100 && (
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        )}
+
+        <QueryResults queries={queryResults} />
       </div>
     </div>
   );

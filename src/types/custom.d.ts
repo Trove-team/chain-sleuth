@@ -1,4 +1,6 @@
 declare module 'react-force-graph' {
+  import { ForceLink, ForceManyBody, ForceCenter } from 'd3-force';
+
   export interface ForceGraphNodeObject {
     id: string;
     label?: string;
@@ -33,6 +35,8 @@ declare module 'react-force-graph' {
       ctx: CanvasRenderingContext2D,
       globalScale: number
     ) => void;
+    d3Force?: (forceName: string, force: ForceLink<any, any> | ForceManyBody<any> | ForceCenter<any>) => void;
+    d3VelocityDecay?: number;
   }
 
   export interface ForceGraphMethods {

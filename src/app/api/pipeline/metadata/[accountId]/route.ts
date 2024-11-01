@@ -9,21 +9,19 @@ export async function GET(
     { params }: { params: { accountId: string } }
 ) {
     try {
-        const { searchParams } = new URL(request.url);
-        const token = searchParams.get('token');
-
-        if (!token) {
-            return NextResponse.json({ 
-                error: 'Missing token' 
-            }, { status: 400 });
+        if (!params.accountId) {
+            return NextResponse.json(
+                { error: 'Account ID is required' },
+                { status: 400 }
+            );
         }
 
-        const metadata = await pipelineService.getMetadata(params.accountId, token);
+        const metadata = await pipelineService.getMetadata(params.accountId);
         return NextResponse.json(metadata);
     } catch (error) {
         console.error('Metadata fetch failed:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch metadata' }, 
+            { error: 'Failed to fetch metadata' },
             { status: 500 }
         );
     }

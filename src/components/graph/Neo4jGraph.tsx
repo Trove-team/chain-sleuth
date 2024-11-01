@@ -4,15 +4,19 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { ForceGraph2D, ForceGraphMethods } from 'react-force-graph';
 import { runQuery } from '@/utils/neo4j';
 import { Node, Link, GraphData, GraphRef, Neo4jNode, Neo4jRelationship, GraphRecord, NodeType, GraphNode } from '@/types/graph';
-import { NODE_R, NODE_COLORS } from './constants';
+import { NODE_R, NODE_COLORS, NODE_BORDER_COLOR } from './constants';
 import { ZoomControls } from './controls/ZoomControls';
 import { SearchBar } from './controls/SearchBar';
 import { StatsPanel } from './controls/StatsPanel';
 import { Legend } from './controls/Legend';
 import { NodeInfoPanel } from './panels/NodeInfoPanel';
 import debounce from 'lodash/debounce';
+import { ForceLink, ForceManyBody, ForceCenter } from 'd3-force';
 
-const NODE_LABEL_DISTANCE = 12;
+const NODE_LABEL_DISTANCE = 0;
+const FORCE_STRENGTH = -3500;
+const LINK_DISTANCE = 300;
+const CENTER_STRENGTH = 0.02;
 
 function Neo4jGraph() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -121,33 +125,60 @@ function Neo4jGraph() {
         height={750}
         backgroundColor="rgba(0,0,0,0)"
         onNodeClick={(node) => setSelectedNode(node as Node)}
+        d3VelocityDecay={0.1}
+        d3Force={(forceName, force: any) => {
+          switch (forceName) {
+            case 'charge':
+              (force as ForceManyBody<any>)
+                .strength(FORCE_STRENGTH)
+                .distanceMin(200)
+                .distanceMax(600);
+              break;
+            case 'link':
+              (force as ForceLink<any, any>)
+                .distance(LINK_DISTANCE);
+              break;
+            case 'center':
+              (force as ForceCenter<any>)
+                .strength(CENTER_STRENGTH);
+              break;
+          }
+        }}
         nodeCanvasObject={(node, ctx, globalScale) => {
           const graphNode = node as unknown as GraphNode;
           if (typeof graphNode.x !== 'number' || typeof graphNode.y !== 'number') return;
 
-        // Draw node circle
+          // Draw node circle
           ctx.beginPath();
           ctx.arc(node.x, node.y, NODE_R, 0, 2 * Math.PI);
           ctx.fillStyle = node.color || '#999';
           ctx.fill();
 
-          // Draw node border
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 1.5;
+          // Draw darker blue border
+          ctx.strokeStyle = NODE_BORDER_COLOR;
+          ctx.lineWidth = 2;
           ctx.stroke();
 
-            // Draw node label with proper scaling
+          // Draw node label with smaller font
           const label = node.properties?.id || node.label;
           if (!label) return;
 
-          const fontSize = Math.max(12 / globalScale, 8); // Minimum font size of 8px
+          const fontSize = Math.min(NODE_R * 0.6, 10); // Adjusted for smaller nodes
           ctx.font = `${fontSize}px Arial`;
           ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
           ctx.fillStyle = '#000';
+          
+          // Adjusted text truncation for smaller nodes
+          const maxLength = Math.floor(NODE_R * 2.5 / (fontSize * 0.6));
+          const truncatedLabel = label.toString().length > maxLength 
+            ? `${label.toString().slice(0, maxLength)}...`
+            : label.toString();
+
           ctx.fillText(
-            label.toString().slice(0, 10), // Truncate long labels
+            truncatedLabel,
             node.x,
-            node.y + NODE_R + (NODE_LABEL_DISTANCE / globalScale)
+            node.y
           );
         }}
       />

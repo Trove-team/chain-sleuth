@@ -6,6 +6,7 @@ import pikespeakRoutes from './pikespeak/route';
 import nearContractRoutes from './near-contract/route';
 import testInvestigationRoutes from './near-contract/test-investigation/route';
 import { POST as pipelinePost, GET as pipelineGet } from '../app/api/pipeline/route';
+import queryEngineRoutes from './query-engine/route';
 
 const app = new Elysia({ prefix: "/api", aot: false })
   .use(swagger({
@@ -27,6 +28,7 @@ const app = new Elysia({ prefix: "/api", aot: false })
   .use(pikespeakRoutes)
   .use(nearContractRoutes)
   .use(testInvestigationRoutes)
+  .use(queryEngineRoutes)
   // Wrap the functions to fit the expected signature
   .post('/pipeline', async (context) => {
     const request = context.request;

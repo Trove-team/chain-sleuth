@@ -1,32 +1,31 @@
 // src/services/pipelineService.ts
-interface ProcessingResponse {
-    taskId: string;
-    token: string;
-    statusLink: string;
-    existingData?: {
-        robustSummary: string;
-        shortSummary: string;
-    };
-}
-
-interface StatusResponse {
-    status: 'processing' | 'complete' | 'failed';
-    data: {
-        accountId: string;
-        progress?: number;
-        currentStep?: string;
-    };
-}
+// Export the interfaces
+import { ProcessingResponse, StatusResponse, MetadataResponse } from '@/types/pipeline';
 
 export class PipelineService {
-    private apiKey: string;
     private baseUrl: string;
-    private wsUrl: string;
+    private apiKey: string;
 
     constructor() {
-        this.apiKey = process.env.NEO4J_API_KEY!;
-        this.baseUrl = process.env.NEO4J_API_URL!;
-        this.wsUrl = process.env.NEO4J_WS_URL!;
+        this.baseUrl = process.env.NEO4J_API_URL || '';
+        this.apiKey = process.env.NEO4J_API_KEY || '';
+        
+        if (!this.baseUrl) throw new Error('NEO4J_API_URL is not configured');
+        if (!this.apiKey) throw new Error('NEO4J_API_KEY is not configured');
+        
+        // Add connection verification
+        this.verifyConnection();
+    }
+
+    private async verifyConnection() {
+        try {
+            const token = await this.getToken();
+            console.log('API Connection verified successfully');
+            return true;
+        } catch (error) {
+            console.error('API Connection failed:', error);
+            return false;
+        }
     }
 
     async getToken(): Promise<string> {
@@ -37,93 +36,123 @@ export class PipelineService {
                 'x-api-key': this.apiKey
             }
         });
+
+        if (!response.ok) {
+            throw new Error('Failed to get auth token');
+        }
+
         const data = await response.json();
         return data.token;
     }
 
-    async startProcessing(accountId: string, token: string): Promise<ProcessingResponse> {
+    async startProcessing(accountId: string, force?: boolean): Promise<ProcessingResponse> {
         try {
+            console.log('Starting processing for account:', accountId);
+            const token = await this.getToken();
             const response = await fetch(`${this.baseUrl}/api/v1/account`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    accountId,
-                    forceReprocess: true,
-                    generateSummary: true
+                body: JSON.stringify({ 
+                    accountId: accountId.trim(),
+                    force: force || false 
                 })
             });
-            
+
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                const errorBody = await response.text();
+                throw new Error(`Processing failed: ${response.status}\nBody: ${errorBody}`);
             }
 
             const data = await response.json();
+            console.log('API Response:', data);
+
+            // Server returns taskId format like: d2057d16-e33e-4fac-bc9c-aee715ca876e
+            if (!data.taskId) {
+                throw new Error('No taskId received from server');
+            }
+
             return {
-                taskId: data.data.taskId,
-                token,
-                statusLink: data.data.statusLink,
-                existingData: data.status === 'exists' ? {
-                    robustSummary: data.data.robustSummary,
-                    shortSummary: data.data.shortSummary
-                } : undefined
+                taskId: data.taskId,
+                status: 'processing',
+                message: 'Processing started',
+                existingData: data.existingData,
+                data: {
+                    robustSummary: data.existingData?.robustSummary,
+                    shortSummary: data.existingData?.shortSummary
+                },
+                statusLink: `/api/pipeline/events/${data.taskId}`
             };
         } catch (error) {
-            console.error('Pipeline processing error:', error);
+            console.error('Processing start failed:', error);
             throw error;
         }
     }
 
-    async checkStatus(taskId: string, token: string): Promise<StatusResponse> {
-        const response = await fetch(`${this.baseUrl}/api/v1/status/${taskId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+    async checkStatus(taskId: string): Promise<StatusResponse> {
+        try {
+            const token = await this.getToken();
+            const response = await fetch(`${this.baseUrl}/api/v1/status/${taskId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`Status check failed: ${response.status}\nBody: ${errorBody}`);
             }
-        });
-        return response.json();
+
+            const data = await response.json();
+            console.log('Status response:', JSON.stringify(data, null, 2));
+            return data;
+        } catch (error) {
+            console.error('Status check failed:', error);
+            throw error;
+        }
     }
 
-    async getMetadata(accountId: string, token: string): Promise<any> {
+    async getMetadata(accountId: string): Promise<MetadataResponse> {
+        const token = await this.getToken();
         const response = await fetch(`${this.baseUrl}/api/v1/metadata/${accountId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
-        return response.json();
-    }
-
-    setupWebSocket(taskId: string): WebSocket {
-        const ws = new WebSocket(`${this.wsUrl}/api/v1/ws/${taskId}`);
         
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            // Handle progress updates
-        };
-
-        return ws;
+        if (!response.ok) {
+            throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+        }
+        
+        return response.json();
     }
 
     async getSummaries(accountId: string, token: string): Promise<{
         robustSummary: string | null;
         shortSummary: string | null;
     }> {
-        const response = await fetch(`${this.baseUrl}/api/v1/summaries/${accountId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+        try {
+            const response = await fetch(`${this.baseUrl}/api/v1/account/${accountId}/summaries`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Summary fetch failed: ${response.status}`);
             }
-        });
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch summaries: ${response.statusText}`);
+            const data = await response.json();
+            return {
+                robustSummary: data.robustSummary,
+                shortSummary: data.shortSummary
+            };
+        } catch (error) {
+            console.error('Failed to fetch summaries:', error);
+            throw error;
         }
-
-        const data = await response.json();
-        return {
-            robustSummary: data.robustSummary,
-            shortSummary: data.shortSummary
-        };
     }
 }

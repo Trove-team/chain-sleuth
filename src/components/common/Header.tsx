@@ -24,7 +24,7 @@ const Header = () => {
           <nav className="flex items-center space-x-8">
             <Link 
               href="/queries" 
-              className={`${isActivePath('/queries')} transition-colors`}
+              className={`${isActivePath('/Investigate')} transition-colors`}
             >
               Queries
             </Link>

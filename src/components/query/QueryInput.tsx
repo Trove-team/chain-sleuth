@@ -2,36 +2,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useWalletSelector } from "@/context/WalletSelectorContext";
-import { PipelineService } from '@/services/pipelineService';
-import { DEFAULT_GAS, DEFAULT_DEPOSIT, CONTRACT_METHODS } from '@/constants/contract';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { AccountState } from "@near-wallet-selector/core";
-import type { Wallet } from "@near-wallet-selector/core";
 
 interface InvestigationState {
-  stage: 'idle' | 'requesting' | 'processing' | 'complete' | 'error' | 'existing';
+  stage: 'idle' | 'requesting' | 'processing' | 'complete' | 'error';
   message: string;
   taskId?: string;
-  token?: string;
   progress?: number;
-  requestId?: string;
-}
-
-interface TransactionResult {
-  response?: {
-    status: {
-      SuccessValue?: string;
-      Failure?: any;
-    };
-  };
-}
-
-interface InvestigationResponse {
-  request_id: string;
-  status: 'Pending' | 'Processing' | 'Completed' | 'Failed';
-  message?: string;
 }
 
 interface PipelineStatus {
@@ -46,12 +24,19 @@ interface PipelineStatus {
   };
 }
 
-interface ContractStatus {
-  status: 'complete' | 'processing' | 'failed';
-}
+const startProcessing = async (accountId: string) => {
+  const response = await fetch('/api/pipeline', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accountId })
+  });
+  return response.json();
+};
 
-
-const pipelineService = new PipelineService();
+const checkStatus = async (taskId: string) => {
+  const response = await fetch(`/api/pipeline?taskId=${taskId}`);
+  return response.json();
+};
 
 const ProgressBar = ({ progress }: { progress: number }) => (
   <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
@@ -65,67 +50,23 @@ const ProgressBar = ({ progress }: { progress: number }) => (
 export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
   const [status, setStatus] = useState<InvestigationState>({ stage: 'idle', message: '' });
-  const { selector } = useWalletSelector();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!selector) {
-      toast.error('Please connect your wallet first');
-      return;
-    }
-
     setStatus({ stage: 'requesting', message: 'Starting investigation...' });
 
     try {
-      const wallet = (await selector.wallet()) as Wallet;
-      const activeAccount = selector.store.getState().accounts.find(
-        (account: AccountState) => account.active
-      );
-
-      if (!activeAccount) {
-        throw new Error('No active account found');
-      }
-
-      // Start contract investigation
-      const contractResult = await wallet.signAndSendTransaction({
-        signerId: activeAccount.accountId,
-        receiverId: process.env.NEXT_PUBLIC_CONTRACT_ID!,
-        actions: [{
-          type: 'FunctionCall',
-          params: {
-            methodName: CONTRACT_METHODS.START_INVESTIGATION,
-            args: { target_account: nearAddress },
-            gas: DEFAULT_GAS,
-            deposit: DEFAULT_DEPOSIT
-          }
-        }]
-      }) as TransactionResult;
-
-      if (!contractResult.response?.status.SuccessValue) {
-        throw new Error('Transaction failed or returned no value');
-      }
-
-      // Parse contract response
-      const resultJson = Buffer.from(contractResult.response.status.SuccessValue, 'base64').toString();
-      const response = JSON.parse(resultJson) as InvestigationResponse;
-
-      // Start pipeline processing
-      const { taskId } = await pipelineService.startProcessing(
-        nearAddress,
-        response.request_id
-      );
+      const { taskId } = await startProcessing(nearAddress);
 
       setStatus({ 
         stage: 'processing', 
         message: 'Investigation started, analyzing on-chain data...',
         taskId,
-        requestId: response.request_id,
         progress: 0
       });
 
-      // Start polling
-      startStatusPolling(taskId, response.request_id);
+      startStatusPolling(taskId);
 
     } catch (error) {
       console.error('Investigation failed:', error);
@@ -137,14 +78,11 @@ export default function QueryInput() {
     }
   };
 
-  const startStatusPolling = async (taskId: string, requestId: string) => {
+  const startStatusPolling = async (taskId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        // Check pipeline status
-        const pipelineResponse = await fetch(`/api/pipeline/status/${taskId}`);
-        const pipelineStatus = await pipelineResponse.json() as PipelineStatus;
+        const pipelineStatus = await checkStatus(taskId);
         
-        // Update progress if available
         if (pipelineStatus.data?.progress !== undefined) {
           setStatus(prev => ({
             ...prev,
@@ -153,20 +91,14 @@ export default function QueryInput() {
         }
 
         if (pipelineStatus.status === 'complete') {
-          // Check contract status
-          const contractResponse = await fetch(`/api/near-contract/status/${requestId}`);
-          const contractStatus = await contractResponse.json() as ContractStatus;
-          
-          if (contractStatus.status === 'complete') {
-            clearInterval(pollInterval);
-            setStatus(prev => ({
-              ...prev,
-              stage: 'complete',
-              message: 'Investigation complete! View your NFT in the gallery.',
-              progress: 100
-            }));
-            toast.success('Investigation completed successfully!');
-          }
+          clearInterval(pollInterval);
+          setStatus(prev => ({
+            ...prev,
+            stage: 'complete',
+            message: 'Investigation complete! View results in the graph.',
+            progress: 100
+          }));
+          toast.success('Investigation completed successfully!');
         } else if (pipelineStatus.status === 'failed') {
           clearInterval(pollInterval);
           setStatus(prev => ({
@@ -215,14 +147,14 @@ export default function QueryInput() {
             />
             <button
               type="submit"
-              disabled={!selector || status.stage === 'processing'}
+              disabled={status.stage === 'processing'}
               className={`px-6 py-2 bg-black text-white rounded-lg transition-colors
-                ${(!selector || status.stage === 'processing')
+                ${status.stage === 'processing'
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-gray-800'}
               `}
             >
-              {!selector ? 'Connect Wallet First' : 'Investigate'}
+              Investigate
             </button>
           </div>
         </div>
@@ -242,7 +174,7 @@ export default function QueryInput() {
                 </span>
               </div>
             </div>
-            {status.stage === 'processing' && status.progress !== undefined && (
+            {status.progress !== undefined && (
               <ProgressBar progress={status.progress} />
             )}
           </div>
