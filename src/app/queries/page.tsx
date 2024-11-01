@@ -100,16 +100,19 @@ export default function QueryPage() {
                 
                 eventSource.onmessage = (event) => {
                     try {
-                        const update = JSON.parse(event.data);
-                        console.log('SSE Update:', update);
+                        const status = JSON.parse(event.data);
+                        console.log('SSE Update:', status);
                         
-                        if (update.progress !== undefined) {
-                            setProgress(update.progress);
+                        if (status.data?.progress !== undefined) {
+                            setProgress(status.data.progress);
                         }
                         
-                        if (update.status === 'complete') {
+                        if (status.status === 'complete') {
                             eventSource.close();
                             fetchResults(nearAddress.trim());
+                        } else if (status.status === 'failed') {
+                            eventSource.close();
+                            toast.error(status.data?.error || 'Processing failed');
                         }
                     } catch (error) {
                         console.error('Error processing SSE message:', error);
