@@ -95,7 +95,7 @@ export default function QueryResults({ queries }: QueryResultsProps) {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {queries.map((query, index) => (
-              <tr key={index}>
+              <tr key={`${query.accountId}-${index}`}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <a 
                     href={generateNearExplorerLink(query.accountId)}
@@ -107,13 +107,13 @@ export default function QueryResults({ queries }: QueryResultsProps) {
                   </a>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {query.financialSummary.nearBalance}
+                  {parseFloat(query.financialSummary.nearBalance).toFixed(2)} NEAR
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  ${query.financialSummary.totalUsdValue}
+                  ${query.financialSummary.totalUsdValue.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  ${query.financialSummary.defiValue}
+                  ${query.financialSummary.defiValue.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -133,19 +133,34 @@ export default function QueryResults({ queries }: QueryResultsProps) {
           </tbody>
         </table>
 
-        {/* Detailed Analysis Section */}
-        {queries.length > 0 && queries[0].analysis.robustSummary && (
-          <div className="p-6 border-t border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Latest Analysis</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-gray-700">Quick Summary</h4>
-                <p className="text-sm text-gray-600">{queries[0].analysis.shortSummary}</p>
+        {/* Analysis Section */}
+        {queries.length > 0 && (queries[0].analysis.robustSummary || queries[0].analysis.shortSummary) && (
+          <div className="p-6 border-t border-gray-200 space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Latest Analysis Results</h3>
+            
+            {queries[0].analysis.shortSummary && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Quick Summary</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {queries[0].analysis.shortSummary}
+                </p>
               </div>
-              <div>
-                <h4 className="font-medium text-gray-700">Detailed Analysis</h4>
-                <p className="text-sm text-gray-600">{queries[0].analysis.robustSummary}</p>
+            )}
+            
+            {queries[0].analysis.robustSummary && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Detailed Analysis</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {queries[0].analysis.robustSummary}
+                </p>
               </div>
+            )}
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Transaction Activity</h4>
+              <p className="text-sm text-gray-600">
+                Total Transactions: {queries[0].analysis.transactionCount}
+              </p>
             </div>
           </div>
         )}
