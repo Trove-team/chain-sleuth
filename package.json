@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:make-agent": "concurrently \"next dev\" \"make-agent dev --port 3000\"",
+    "make-agent": "concurrently \"next dev\" \"make-agent dev --port 3000\"",
     "build": "next build",
+    "register": "make-agent register -u https://chain-sleuth.vercel.app",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy-agent": "pnpm make-agent deploy -u https://chain-sleuth.vercel.app"
   },
   "dependencies": {
     "@elysiajs/swagger": "^1.0.5",

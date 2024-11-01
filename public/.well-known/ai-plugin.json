@@ -747,95 +747,6 @@
           }
         }
       }
-    },
-    "/api/pipeline/start": {
-      "post": {
-        "operationId": "startInvestigation",
-        "summary": "Start a new investigation for a NEAR account",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["accountId"],
-                "properties": {
-                  "accountId": {
-                    "type": "string",
-                    "description": "NEAR account to investigate"
-                  },
-                  "force": {
-                    "type": "boolean",
-                    "description": "Force new investigation even if data exists"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Investigation started successfully",
-            "content": {
-              "application/json": {
-                "$ref": "#/components/schemas/ProcessingResponse"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/pipeline": {
-      "get": {
-        "operationId": "checkInvestigationStatus",
-        "summary": "Check the status of an ongoing investigation",
-        "parameters": [
-          {
-            "name": "taskId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Current investigation status",
-            "content": {
-              "application/json": {
-                "$ref": "#/components/schemas/StatusResponse"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/pipeline/metadata/{accountId}": {
-      "get": {
-        "operationId": "getInvestigationMetadata",
-        "summary": "Get investigation results and metadata for an account",
-        "parameters": [
-          {
-            "name": "accountId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Investigation metadata and results",
-            "content": {
-              "application/json": {
-                "$ref": "#/components/schemas/MetadataResponse"
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -845,7 +756,6 @@
         "in": "header",
         "name": "X-API-Key"
       }
-
     }
   },
   "security": [
