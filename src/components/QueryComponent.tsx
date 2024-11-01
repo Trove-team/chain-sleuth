@@ -16,7 +16,6 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
 
   const fetchResults = async (accountId: string): Promise<void> => {
     try {
-      // Add delay before fetching metadata to allow server processing
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       let retryCount = 0;
@@ -30,15 +29,23 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
           throw new Error(`Metadata fetch failed: ${metadataResponse.statusText}`);
         }
         
-        metadataData = await metadataResponse.json() as MetadataResponse;
-        console.log(`Received metadata attempt ${retryCount + 1}:`, metadataData);
+        const response = await metadataResponse.json();
+        console.log(`Received metadata attempt ${retryCount + 1}:`, response);
 
-        // Check if we have the required data
+        if (response.data?.metadata) {
+          metadataData = response.data.metadata as MetadataResponse;
+        } else if (response.data) {
+          metadataData = response.data as MetadataResponse;
+        }
+
+        if (response.status === 'processing') {
+          onProgressUpdate(Math.min((retryCount / maxRetries) * 100, 95));
+        }
+
         if (metadataData?.robustSummary && metadataData?.shortSummary) {
           break;
         }
 
-        // If not complete, wait and retry
         retryCount++;
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
@@ -52,16 +59,16 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
         timestamp: new Date().toISOString(),
         status: 'Completed',
         financialSummary: {
-          totalUsdValue: metadataData.wealth.totalUSDValue,
-          nearBalance: metadataData.wealth.balance.items
-            .find((i: { symbol: string; amount: number | string }) => i.symbol === "NEAR")?.amount.toString() || "0",
-          defiValue: metadataData.wealth.defi.totalUSDValue
+          totalUsdValue: metadataData.wealth?.totalUSDValue || 0,
+          nearBalance: metadataData.wealth?.balance?.items
+            ?.find((i: { symbol: string; amount: number | string }) => i.symbol === "NEAR")?.amount?.toString() || "0",
+          defiValue: metadataData.wealth?.defi?.totalUSDValue || 0
         },
         analysis: {
-          transactionCount: metadataData.tx_count,
-          isBot: metadataData.bot_detection.isPotentialBot,
-          robustSummary: metadataData.robustSummary,
-          shortSummary: metadataData.shortSummary
+          transactionCount: metadataData.tx_count || 0,
+          isBot: metadataData.bot_detection?.isPotentialBot || false,
+          robustSummary: metadataData.robustSummary || '',
+          shortSummary: metadataData.shortSummary || ''
         }
       };
 
@@ -70,9 +77,10 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
     } catch (error) {
       console.error('Error fetching results:', error);
       toast.error('Failed to fetch results');
-      throw error; // Re-throw to be handled by caller
+      throw error;
     } finally {
       setLoading(false);
+      onProgressUpdate(0);
     }
   };
 
@@ -82,7 +90,6 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
     setError(null);
 
     try {
-      // First start the pipeline
       const response = await fetch('/api/pipeline/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +100,6 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
         throw new Error('Failed to start pipeline');
       }
 
-      // Then start polling for results
       await fetchResults(nearAddress.trim());
     } catch (error) {
       console.error('Error:', error);
