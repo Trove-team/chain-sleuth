@@ -4,7 +4,11 @@ import { createLogger } from './logger';
 const logger = createLogger('redis');
 
 export function createRedisClient() {
-  const url = process.env.REDIS_URL;
+  // Choose Redis URL based on environment
+  const isProduction = process.env.REDIS_ENV === 'production';
+  const url = isProduction 
+    ? process.env.UPSTASH_REDIS_URL 
+    : process.env.REDIS_URL;
   
   if (!url) {
     logger.warn('No Redis URL provided, using fallback memory store');
@@ -25,7 +29,7 @@ export function createRedisClient() {
   });
 
   client.on('connect', () => {
-    logger.info('Redis connected successfully');
+    logger.info(`Redis connected successfully to ${isProduction ? 'production' : 'local'} instance`);
   });
 
   return client;

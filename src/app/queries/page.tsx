@@ -10,6 +10,7 @@ import type { QueryResult } from '@/types/pipeline';
 export default function QueriesPage() {
   const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
   const [progress, setProgress] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     console.log('QueryResults state updated:', queryResults);
@@ -19,11 +20,13 @@ export default function QueriesPage() {
     console.log('Processing complete, result:', result);
     setQueryResults(prev => [result, ...prev]);
     setProgress(0);
+    setLoading(false);
   };
 
   const handleProgressUpdate = (newProgress: number) => {
     console.log('Progress update:', newProgress);
     setProgress(newProgress);
+    setLoading(true);
   };
 
   return (
@@ -38,6 +41,13 @@ export default function QueriesPage() {
             onProcessingComplete={handleProcessingComplete}
           />
         </div>
+
+        {loading && (
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <p className="mt-2 text-gray-600">Processing account data...</p>
+          </div>
+        )}
 
         {progress > 0 && progress < 100 && (
           <div className="w-full bg-gray-200 rounded-full h-2.5">

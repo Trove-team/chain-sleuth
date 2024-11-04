@@ -1,30 +1,57 @@
 // src/services/pipelineService.ts
 // Export the interfaces
-import { ProcessingResponse, StatusResponse, MetadataResponse } from '@/types/pipeline';
+import { ProcessingResponse, StatusResponse, MetadataResponse, StatusUpdate, PipelineStatus } from '@/types';
+import { Redis } from 'ioredis';
+import crypto from 'crypto';
+import { PipelineQueueService } from './pipelineQueueService';
+import { WebhookQueueService } from './webhookQueueService';
+import { createLogger } from '@/utils/logger';
+import { getRedisClient } from '@/utils/redis';
+
+const logger = createLogger('pipeline-service');
 
 export class PipelineService {
+    private pipelineQueue: PipelineQueueService;
+    private webhookQueue: WebhookQueueService;
+    private redis: Redis;
     private baseUrl: string;
-    private apiKey: string;
+    private clientSecret: string;
 
     constructor() {
-        this.baseUrl = process.env.NEO4J_API_URL || '';
-        this.apiKey = process.env.NEO4J_API_KEY || '';
+        const redis = getRedisClient();
+        if (!redis) {
+            throw new Error('Redis client not initialized');
+        }
         
-        if (!this.baseUrl) throw new Error('NEO4J_API_URL is not configured');
-        if (!this.apiKey) throw new Error('NEO4J_API_KEY is not configured');
-        
-        // Add connection verification
-        this.verifyConnection();
+        this.redis = redis;
+        this.pipelineQueue = new PipelineQueueService();
+        this.webhookQueue = new WebhookQueueService();
+        this.baseUrl = process.env.API_BASE_URL || '';
+        this.clientSecret = process.env.API_CLIENT_SECRET || '';
     }
 
-    private async verifyConnection() {
+    async checkStatus(taskId: string): Promise<StatusResponse> {
         try {
-            const token = await this.getToken();
-            console.log('API Connection verified successfully');
-            return true;
+            const status = await this.redis.hgetall(`task:${taskId}`);
+            
+            if (!status || Object.keys(status).length === 0) {
+                throw new Error('Task not found');
+            }
+
+            return {
+                status: status.status as PipelineStatus,
+                data: {
+                    accountId: status.accountId,
+                    progress: parseInt(status.progress || '0'),
+                    currentStep: status.currentStep,
+                    error: status.error,
+                    taskId,
+                    metadata: status.metadata ? JSON.parse(status.metadata) : undefined
+                }
+            };
         } catch (error) {
-            console.error('API Connection failed:', error);
-            return false;
+            logger.error('Status check failed:', error);
+            throw error;
         }
     }
 
@@ -33,7 +60,7 @@ export class PipelineService {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': this.apiKey
+                'x-api-key': this.clientSecret
             }
         });
 
@@ -47,71 +74,44 @@ export class PipelineService {
 
     async startProcessing(accountId: string, force?: boolean): Promise<ProcessingResponse> {
         try {
-            console.log('Starting processing for account:', accountId);
-            const token = await this.getToken();
-            const response = await fetch(`${this.baseUrl}/api/v1/account`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    accountId: accountId.trim(),
-                    force: force || false 
-                })
-            });
+            const taskId = await this.pipelineQueue.addToQueue(accountId, force);
 
-            if (!response.ok) {
-                const errorBody = await response.text();
-                throw new Error(`Processing failed: ${response.status}\nBody: ${errorBody}`);
-            }
-
-            const data = await response.json();
-            console.log('API Response:', data);
-
-            // Server returns taskId format like: d2057d16-e33e-4fac-bc9c-aee715ca876e
-            if (!data.taskId) {
-                throw new Error('No taskId received from server');
-            }
-
-            return {
-                taskId: data.taskId,
+            const response: ProcessingResponse = {
+                taskId,
                 status: 'processing',
-                message: 'Processing started',
-                existingData: data.existingData,
+                statusLink: `/api/pipeline/status/${taskId}`,
                 data: {
-                    robustSummary: data.existingData?.robustSummary,
-                    shortSummary: data.existingData?.shortSummary
-                },
-                statusLink: `/api/pipeline/events/${data.taskId}`
+                    progress: 0
+                }
             };
-        } catch (error) {
-            console.error('Processing start failed:', error);
-            throw error;
-        }
-    }
 
-    async checkStatus(taskId: string): Promise<StatusResponse> {
-        try {
-            const token = await this.getToken();
-            const response = await fetch(`${this.baseUrl}/api/v1/status/${taskId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+            // Optionally notify webhook about processing start
+            await this.webhookQueue.addToQueue({
+                taskId,
+                type: 'ProcessingStarted',
+                status: 'processing',
+                data: {
+                    accountId,
+                    progress: 0
                 }
             });
 
-            if (!response.ok) {
-                const errorBody = await response.text();
-                throw new Error(`Status check failed: ${response.status}\nBody: ${errorBody}`);
-            }
-
-            const data = await response.json();
-            console.log('Status response:', JSON.stringify(data, null, 2));
-            return data;
+            return response;
         } catch (error) {
-            console.error('Status check failed:', error);
-            throw error;
+            logger.error('Failed to start processing:', error);
+            
+            const errorResponse: ProcessingResponse = {
+                taskId: crypto.randomUUID(), // Generate an error taskId
+                status: 'failed',
+                data: {
+                    error: {
+                        code: 'PROCESSING_START_FAILED',
+                        message: error instanceof Error ? error.message : 'Unknown error'
+                    }
+                }
+            };
+
+            throw errorResponse;
         }
     }
 
@@ -152,6 +152,49 @@ export class PipelineService {
             };
         } catch (error) {
             console.error('Failed to fetch summaries:', error);
+            throw error;
+        }
+    }
+
+    async updateStatus(taskId: string, update: StatusUpdate): Promise<void> {
+        try {
+            const currentStatus = await this.redis.hgetall(`task:${taskId}`);
+            
+            if (!currentStatus || Object.keys(currentStatus).length === 0) {
+                throw new Error('Task not found');
+            }
+
+            const updatedStatus = {
+                ...currentStatus,
+                ...update,
+                updatedAt: Date.now().toString(),
+                metadata: update.metadata ? JSON.stringify(update.metadata) : currentStatus.metadata
+            };
+
+            await this.redis.hset(`task:${taskId}`, updatedStatus);
+        } catch (error) {
+            logger.error('Status update failed:', error);
+            throw error;
+        }
+    }
+
+    async processAccount(accountId: string, force?: boolean): Promise<MetadataResponse> {
+        try {
+            const token = await this.getToken();
+            
+            // Get metadata and summaries in parallel
+            const [metadata, summaries] = await Promise.all([
+                this.getMetadata(accountId),
+                this.getSummaries(accountId, token)
+            ]);
+
+            return {
+                ...metadata,
+                robustSummary: summaries.robustSummary || undefined,
+                shortSummary: summaries.shortSummary || undefined
+            };
+        } catch (error) {
+            logger.error('Account processing failed:', error);
             throw error;
         }
     }

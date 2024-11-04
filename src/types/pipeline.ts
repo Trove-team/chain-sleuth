@@ -16,33 +16,24 @@ export interface QueryResult {
 }
 
 export interface ProcessingResponse {
-  taskId: string;
-  status: 'processing' | 'complete' | 'failed' | 'error' | 'exists';
-  message?: string;
-  error?: {
-    code: string;
-    message: string;
-    details?: string;
-  };
-  existingData?: {
-    robustSummary: string;
-    shortSummary: string;
-  };
-  data?: {
-    robustSummary?: string;
-    shortSummary?: string;
-  };
+  status: 'processing' | 'complete' | 'failed' | 'exists';
   statusLink?: string;
+  taskId?: string;
+  data?: {
+    progress?: number;
+    metadata?: MetadataResponse;
+  };
 }
 
 export interface StatusResponse {
-  status: 'processing' | 'complete' | 'failed';
+  status: 'processing' | 'complete' | 'failed' | 'exists';
   data: {
     accountId: string;
     progress?: number;
     currentStep?: string;
     error?: string;
     taskId?: string;
+    metadata?: MetadataResponse;
   };
 }
 
@@ -63,6 +54,6 @@ export interface MetadataResponse {
   bot_detection: {
     isPotentialBot: boolean;
   };
-  robustSummary: string;
-  shortSummary: string;
+  robustSummary?: string;
+  shortSummary?: string;
 }
