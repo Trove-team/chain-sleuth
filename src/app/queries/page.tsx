@@ -30,7 +30,9 @@ export default function QueriesPage() {
     <div className="container mx-auto px-4 py-8">
       <ToastContainer />
       <div className="max-w-2xl mx-auto space-y-8">
-        <h1 className="text-2xl font-bold text-gray-900">NEAR Account Intake</h1>
+        <div className="bg-query-box backdrop-blur-lg rounded-lg p-6 mb-6">
+          <h1 className="text-2xl font-bold text-black">NEAR Account Intake</h1>
+        </div>
         
         <div className="bg-query-box p-6 rounded-lg shadow-sm">
           <QueryComponent 
