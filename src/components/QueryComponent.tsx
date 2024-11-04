@@ -123,7 +123,7 @@ export default function QueryComponent({ onProgressUpdate, onProcessingComplete 
           value={nearAddress}
           onChange={(e) => setNearAddress(e.target.value)}
           placeholder="Enter NEAR address"
-          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-400 text-gray-900 bg-white"
           disabled={loading}
         />
       </div>

@@ -12,9 +12,9 @@ export default function Home() {
         <h2 className="text-xl font-semibold mb-4 text-black">Resources</h2>
         <ul className="space-y-3">
           <li>
-            <Link href="/queries" className="text-black hover:text-gray-700 transition-colors">
-              Start Investigation
-            </Link>
+          <Link href="/queries" className="text-black hover:text-gray-700 transition-colors">
+            Account Intake
+          </Link>
           </li>
           <li>
             <Link href="https://docs.mintbase.xyz/ai/mintbase-plugins" className="text-black hover:text-gray-700 transition-colors">
