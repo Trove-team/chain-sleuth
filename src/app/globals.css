@@ -6,8 +6,7 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --background-rgb: 241, 233, 221;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -78,5 +77,17 @@ body {
   }
   .overflow-hidden {
     overflow: hidden;
+  }
+  .bg-query {
+    background-color: #f1e9dd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .bg-query-box {
+    background-color: rgba(241, 233, 221, 0.95);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 }

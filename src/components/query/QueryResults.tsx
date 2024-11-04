@@ -27,8 +27,8 @@ export default function QueryResults({ queries }: QueryResultsProps) {
 
   if (!queries || queries.length === 0) {
     return (
-      <div className="bg-white bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-lg overflow-hidden">
-        <h2 className="text-xl font-semibold p-6 text-gray-800">Query Results</h2>
+      <div className="bg-query-box rounded-lg overflow-hidden">
+        <h2 className="text-xl font-semibold p-6 text-black">Query Results</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -67,8 +67,8 @@ export default function QueryResults({ queries }: QueryResultsProps) {
   }
 
   return (
-    <div className="bg-white bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-lg overflow-hidden">
-      <h2 className="text-xl font-semibold p-6 text-gray-800">Query Results</h2>
+    <div className="bg-query-box rounded-lg overflow-hidden">
+      <h2 className="text-xl font-semibold p-6 text-black">Query Results</h2>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -139,7 +139,7 @@ export default function QueryResults({ queries }: QueryResultsProps) {
             <h3 className="text-lg font-semibold text-gray-900">Latest Analysis Results</h3>
             
             {queries[0].analysis.shortSummary && (
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-[#f1e9dd] p-4 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-2">Quick Summary</h4>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {queries[0].analysis.shortSummary}
@@ -148,7 +148,7 @@ export default function QueryResults({ queries }: QueryResultsProps) {
             )}
             
             {queries[0].analysis.robustSummary && (
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-[#f1e9dd] p-4 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-2">Detailed Analysis</h4>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {queries[0].analysis.robustSummary}
@@ -156,7 +156,7 @@ export default function QueryResults({ queries }: QueryResultsProps) {
               </div>
             )}
 
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-[#f1e9dd] p-4 rounded-lg">
               <h4 className="font-medium text-gray-900 mb-2">Transaction Activity</h4>
               <p className="text-sm text-gray-600">
                 Total Transactions: {queries[0].analysis.transactionCount}

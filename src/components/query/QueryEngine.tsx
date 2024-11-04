@@ -140,12 +140,12 @@ export function QueryEngine() {
   };
 
   return (
-    <div className="bg-white/20 backdrop-blur-lg rounded-lg p-6 space-y-4">
+    <div className="bg-[#f1e9dd] rounded-lg p-6 space-y-4 shadow-sm">
       <h2 className="text-xl font-semibold text-black">Natural Language Query</h2>
-      <p className="text-sm text-gray-800">
+      <p className="text-sm text-gray-900">
         Enter your query in natural language (e.g., &quot;analyze transactions for trovelabs.near&quot;)
         <br />
-        <span className="text-xs">Include a .near account in your query or it will default to trovelabs.near</span>
+        <span className="text-xs text-gray-900">Include a .near account in your query or it will default to trovelabs.near</span>
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -154,22 +154,22 @@ export function QueryEngine() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyPress}
           placeholder="Enter your query here..."
-          className="w-full h-32 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+          className="w-full h-32 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400 text-gray-900 bg-white"
           disabled={loading}
         />
         
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-6 py-3 bg-gray-900 text-white rounded-lg transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Processing...' : 'Submit Query'}
         </button>
       </form>
 
       {response && (
-        <div className="mt-4 p-4 bg-white/10 rounded-lg">
-          <div className="prose prose-invert max-w-none">
+        <div className="mt-4 p-4 bg-[#f1e9dd] rounded-lg border border-gray-200">
+          <div className="prose max-w-none text-gray-900">
             {formatResponse(response.results[0])}
           </div>
         </div>

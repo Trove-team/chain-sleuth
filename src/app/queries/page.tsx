@@ -32,7 +32,7 @@ export default function QueriesPage() {
       <div className="max-w-2xl mx-auto space-y-8">
         <h1 className="text-2xl font-bold text-gray-900">NEAR Account Investigation</h1>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-query-box p-6 rounded-lg shadow-sm">
           <QueryComponent 
             onProgressUpdate={handleProgressUpdate}
             onProcessingComplete={handleProcessingComplete}
