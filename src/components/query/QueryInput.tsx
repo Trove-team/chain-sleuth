@@ -135,7 +135,7 @@ export default function QueryInput() {
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Natural Language Query</h2>
             <p className="text-sm text-gray-700 mb-4">
-              Enter your query in natural language (e.g., "analyze transactions for trovelabs.near")
+              Enter your query in natural language (e.g., &quot;analyze transactions for trovelabs.near&quot;)
             </p>
             <p className="text-sm text-gray-700 mb-4">
               Include a .near account in your query or it will default to trovelabs.near
