@@ -24,6 +24,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/v1/:path*',
+        destination: `${process.env.NEO4J_API_URL}/api/v1/:path*`,
+      },
+      {
         source: '/.well-known/:path*',
         destination: '/api/.well-known/:path*',
       },
@@ -44,6 +48,8 @@ const nextConfig = {
   },
 
   env: {
+    NEO4J_API_KEY: process.env.NEO4J_API_KEY,
+    NEO4J_API_URL: process.env.NEO4J_API_URL,
     NEO4J_URI: process.env.NEO4J_URI,
     NEO4J_USER: process.env.NEO4J_USER,
     NEO4J_PASSWORD: process.env.NEO4J_PASSWORD,

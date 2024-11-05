@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { PipelineService } from '@/services/pipelineService';
+import type { QueryResult } from '@/types/pipeline';
 
 interface InvestigationState {
   stage: 'idle' | 'requesting' | 'processing' | 'complete' | 'error';
@@ -12,31 +14,12 @@ interface InvestigationState {
   progress?: number;
 }
 
-interface PipelineStatus {
-  status: 'processing' | 'complete' | 'failed';
-  data: {
-    accountId: string;
-    taskId: string;
-    progress?: number;
-    message?: string;
-    error?: string;
-    status: 'processing' | 'complete' | 'failed';
-  };
-}
+// Define the event handler types
+type ProgressUpdateHandler = (progress: number) => void;
+type ProcessingCompleteHandler = (result: QueryResult) => void;
 
-const startProcessing = async (accountId: string) => {
-  const response = await fetch('/api/pipeline', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accountId })
-  });
-  return response.json();
-};
-
-const checkStatus = async (taskId: string) => {
-  const response = await fetch(`/api/pipeline?taskId=${taskId}`);
-  return response.json();
-};
+const POLLING_INTERVAL = 5000; // 5 seconds
+const MAX_POLLING_TIME = 600000; // 10 minutes
 
 const ProgressBar = ({ progress }: { progress: number }) => (
   <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
@@ -51,42 +34,91 @@ export default function QueryInput() {
   const [nearAddress, setNearAddress] = useState('');
   const [status, setStatus] = useState<InvestigationState>({ stage: 'idle', message: '' });
 
+  const onProgressUpdate: ProgressUpdateHandler = (progress) => {
+    setStatus(prev => ({
+      ...prev,
+      progress,
+      stage: 'processing',
+      message: `Processing: ${progress}% complete`
+    }));
+  };
+
+  const onProcessingComplete: ProcessingCompleteHandler = (result) => {
+    setStatus({
+      stage: 'complete',
+      message: 'Investigation complete! View results in the graph.',
+      progress: 100
+    });
+    toast.success('Investigation completed successfully!');
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     setStatus({ stage: 'requesting', message: 'Starting investigation...' });
 
     try {
-      const { taskId } = await startProcessing(nearAddress);
+      const pipelineService = PipelineService.getInstance();
+      await pipelineService.initialize();
+      
+      // Type-safe event handlers
+      pipelineService.on('progressUpdate', onProgressUpdate);
+      pipelineService.on('processingComplete', onProcessingComplete);
+      
+      const response = await pipelineService.startProcessing(nearAddress.trim());
+      
+      if (response.status === 'error') {
+        throw new Error(response.error?.message || 'Processing failed');
+      }
+      
+      if (!response.taskId) {
+        throw new Error('No task ID received from server');
+      }
 
-      setStatus({ 
-        stage: 'processing', 
-        message: 'Investigation started, analyzing on-chain data...',
-        taskId,
+      setStatus(prev => ({
+        ...prev,
+        taskId: response.taskId,
+        stage: 'processing',
+        message: 'Processing started...',
         progress: 0
-      });
+      }));
 
-      startStatusPolling(taskId);
-
+      startStatusPolling(response.taskId);
     } catch (error) {
-      console.error('Investigation failed:', error);
+      console.error('Processing error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       setStatus({ 
         stage: 'error', 
-        message: error instanceof Error ? error.message : 'Unknown error occurred' 
+        message: errorMessage 
       });
-      toast.error('Failed to start investigation');
+      toast.error(errorMessage);
     }
   };
 
   const startStatusPolling = async (taskId: string) => {
+    const startTime = Date.now();
     const pollInterval = setInterval(async () => {
       try {
-        const pipelineStatus = await checkStatus(taskId);
+        // Check if we've exceeded maximum polling time
+        if (Date.now() - startTime > MAX_POLLING_TIME) {
+          clearInterval(pollInterval);
+          setStatus(prev => ({
+            ...prev,
+            stage: 'error',
+            message: 'Processing timed out after 10 minutes',
+            progress: 0
+          }));
+          toast.error('Processing timed out');
+          return;
+        }
+
+        const pipelineService = PipelineService.getInstance();
+        const pipelineStatus = await pipelineService.checkStatus(taskId);
         
         if (pipelineStatus.data?.progress !== undefined) {
           setStatus(prev => ({
             ...prev,
-            progress: pipelineStatus.data.progress
+            progress: pipelineStatus.data.progress || 0
           }));
         }
 
@@ -111,8 +143,13 @@ export default function QueryInput() {
         }
       } catch (error) {
         console.error('Status polling failed:', error);
+        // Don't clear interval on transient errors, only if max time exceeded
+        if (Date.now() - startTime > MAX_POLLING_TIME) {
+          clearInterval(pollInterval);
+          toast.error('Status check failed');
+        }
       }
-    }, 5000);
+    }, POLLING_INTERVAL);
 
     return () => clearInterval(pollInterval);
   };

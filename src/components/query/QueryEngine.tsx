@@ -14,8 +14,19 @@ interface QueryResponse {
 
 const formatResponse = (responseText: string) => {
   try {
-    // Parse the stringified JSON
-    const parsed = JSON.parse(responseText);
+    // First try to parse the response text
+    let parsed;
+    try {
+      parsed = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Initial parse error:', parseError);
+      // If it fails, try to clean the response text first
+      const cleanedText = responseText
+        .replace(/\bQuery time:\s*\d+\.\d+\s*ms\b/g, '')  // Remove "Query time: X ms"
+        .replace(/\bQuery Duration:\s*\d+\.\d+\s*ms\b/g, '')  // Remove "Query Duration: X ms"
+        .trim();
+      parsed = JSON.parse(cleanedText);
+    }
     
     // Extract the synthesized response which contains the readable text
     const synthesizedResponse = parsed?.data?.data?.synthesized_response;
@@ -52,7 +63,7 @@ const formatResponse = (responseText: string) => {
     
   } catch (error) {
     console.error('Response parsing error:', error);
-    // If parsing fails, return the original text
+    // If all parsing fails, return the original text
     return <pre className="whitespace-pre-wrap text-red-500">
       {responseText}
     </pre>;

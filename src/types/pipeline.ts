@@ -1,7 +1,7 @@
 export interface QueryResult {
   accountId: string;
   timestamp: string;
-  status: string;
+  status: 'processing' | 'complete' | 'failed' | 'error' | 'exists';
   financialSummary: {
     totalUsdValue: number;
     nearBalance: string;
@@ -17,22 +17,13 @@ export interface QueryResult {
 
 export interface ProcessingResponse {
   taskId: string;
-  status: 'processing' | 'complete' | 'failed' | 'error' | 'exists';
+  status: 'processing' | 'complete' | 'error';
   message?: string;
+  statusLink?: string;
   error?: {
     code: string;
     message: string;
-    details?: string;
   };
-  existingData?: {
-    robustSummary: string;
-    shortSummary: string;
-  };
-  data?: {
-    robustSummary?: string;
-    shortSummary?: string;
-  };
-  statusLink?: string;
 }
 
 export interface StatusResponse {
@@ -65,4 +56,17 @@ export interface MetadataResponse {
   };
   robustSummary: string;
   shortSummary: string;
+}
+
+export interface PipelineError {
+    code: string;
+    message: string;
+    details?: string;
+}
+
+export interface PipelineResponse {
+    status: 'success' | 'error' | 'processing';
+    error?: PipelineError;
+    data?: any;
+    taskId?: string;
 }

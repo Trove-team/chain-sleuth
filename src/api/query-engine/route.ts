@@ -4,7 +4,7 @@ import { createLogger } from '@/utils/logger';
 import { PipelineService } from '@/services/pipelineService';
 
 const logger = createLogger('query-engine');
-const pipelineService = new PipelineService();
+const pipelineService = PipelineService.getInstance();
 
 const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
   .post("/query", async ({ body }) => {
@@ -33,9 +33,10 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
       clearTimeout(timeoutId);
 
       const responseText = await response.text();
-      return new Response(responseText, {
+      const formattedResponse = formatResponse(responseText);
+      return new Response(JSON.stringify(formattedResponse), {
         status: response.status,
-        headers: { 'Content-Type': 'text/plain' }
+        headers: { 'Content-Type': 'application/json' }
       });
 
     } catch (error) {
@@ -53,5 +54,27 @@ const queryEngineRoutes = new Elysia({ prefix: "/query-engine" })
       return new Response('Failed to process query', { status: 500 });
     }
   });
+
+const formatResponse = (response: string) => {
+    try {
+        // First try parsing as JSON
+        const parsed = JSON.parse(response);
+        return parsed;
+    } catch (e) {
+        // If parsing fails, check if it's the Query time format
+        if (response.includes('Query time')) {
+            // Extract the actual JSON part
+            const jsonStart = response.indexOf('{');
+            const jsonEnd = response.lastIndexOf('}') + 1;
+            if (jsonStart >= 0 && jsonEnd > 0) {
+                const jsonPart = response.slice(jsonStart, jsonEnd);
+                return JSON.parse(jsonPart);
+            }
+        }
+        // If all else fails, return the raw response
+        console.warn('Response parsing failed:', e);
+        return { raw: response };
+    }
+};
 
 export default queryEngineRoutes;

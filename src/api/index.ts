@@ -7,6 +7,7 @@ import nearContractRoutes from './near-contract/route';
 import testInvestigationRoutes from './near-contract/test-investigation/route';
 import { POST as pipelinePost, GET as pipelineGet } from '../app/api/pipeline/route';
 import queryEngineRoutes from './query-engine/route';
+import { POST as processPost } from '../app/api/pipeline/process/route';
 
 const app = new Elysia({ prefix: "/api", aot: false })
   .use(swagger({
@@ -37,6 +38,10 @@ const app = new Elysia({ prefix: "/api", aot: false })
   .get('/pipeline', async (context) => {
     const request = context.request;
     return await pipelineGet(request);
+  })
+  .post('/pipeline/process', async (context) => {
+    const request = context.request;
+    return await processPost(request);
   });
 
 const compiledApp = app.compile();

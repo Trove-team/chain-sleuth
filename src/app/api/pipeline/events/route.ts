@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { PipelineService } from '@/services/pipelineService';
 import { StatusResponse } from '@/types/pipeline';
 
-const pipelineService = new PipelineService();
+const pipelineService = PipelineService.getInstance();
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
