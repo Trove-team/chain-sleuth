@@ -3,11 +3,10 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import refFinanceRoutes from './ref-finance/route';
 import pikespeakRoutes from './pikespeak/route';
-import nearContractRoutes from './near-contract/route';
-import testInvestigationRoutes from './near-contract/test-investigation/route';
 import { POST as pipelinePost, GET as pipelineGet } from '../app/api/pipeline/route';
-import queryEngineRoutes from './query-engine/route';
 import { POST as processPost } from '../app/api/pipeline/process/route';
+import queryEngineRoutes from './query-engine/route';
+import intakeRoutes from './intake/route';
 
 const app = new Elysia({ prefix: "/api", aot: false })
   .use(swagger({
@@ -27,9 +26,9 @@ const app = new Elysia({ prefix: "/api", aot: false })
   }))
   .use(refFinanceRoutes)
   .use(pikespeakRoutes)
-  .use(nearContractRoutes)
-  .use(testInvestigationRoutes)
   .use(queryEngineRoutes)
+  .use(intakeRoutes)
+  
   // Wrap the functions to fit the expected signature
   .post('/pipeline', async (context) => {
     const request = context.request;
