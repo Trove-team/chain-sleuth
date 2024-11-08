@@ -1,7 +1,6 @@
 // src/api/index.ts
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
-import refFinanceRoutes from './ref-finance/route';
 import pikespeakRoutes from './pikespeak/route';
 import { POST as pipelinePost, GET as pipelineGet } from '../app/api/pipeline/route';
 import { POST as processPost } from '../app/api/pipeline/process/route';
@@ -24,7 +23,6 @@ const app = new Elysia({ prefix: "/api", aot: false })
     },
     path: '/swagger',
   }))
-  .use(refFinanceRoutes)
   .use(pikespeakRoutes)
   .use(queryEngineRoutes)
   .use(intakeRoutes)

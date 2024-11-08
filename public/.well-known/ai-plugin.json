@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Chainsleuth Agent",
-    "description": "API for interacting with Chainsleuth account investigation, token swaps, and Pikespeak data retrieval",
+    "description": "API for interacting with Chainsleuth account investigation and Pikespeak data retrieval",
     "version": "1.0.0"
   },
   "servers": [
@@ -14,8 +14,8 @@
     "account-id": "chainsleuth.near",
     "assistant": {
       "name": "Chainsleuth Assistant",
-      "description": "Assistant for using the Chainsleuth API to retrieve token metadata, perform token swaps, and analyze NEAR blockchain data via Pikespeak.",
-      "instructions": "You are an assistant that helps users interact with the Chainsleuth API. You can retrieve token metadata, generate swap transactions, analyze NEAR blockchain info from Pikespeak, and investigate NEAR Protocol wallet addresses.",
+      "description": "Assistant for using the Chainsleuth API to analyze NEAR blockchain data via Pikespeak.",
+      "instructions": "You are an assistant that helps users interact with the Chainsleuth API. You can analyze NEAR blockchain info from Pikespeak, and investigate NEAR Protocol wallet addresses.",
       "tools": [
         {
           "type": "submit-query"
@@ -24,160 +24,6 @@
     }
   },
   "paths": {
-    "/api/{token}": {
-      "get": {
-        "description": "Fetch metadata for a specific token using fuzzy search by name, symbol, or identifier.",
-        "operationId": "getTokenMetadata",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "token",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "The name, symbol, or identifier of the token to search for and retrieve metadata."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Token metadata retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string"
-                    },
-                    "symbol": {
-                      "type": "string"
-                    },
-                    "decimals": {
-                      "type": "integer"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "spec": {
-                      "type": "string"
-                    },
-                    "icon": {
-                      "type": "string",
-                      "format": "data-url",
-                      "description": "Base64 encoded image data for the token icon."
-                    }
-                  },
-                  "required": ["name", "symbol", "decimals", "id", "spec", "icon"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/swap/{tokenIn}/{tokenOut}/{quantity}": {
-      "get": {
-        "summary": "Get swap transactions",
-        "description": "An array of transaction objects necessary to execute the swap, including any required preliminary actions like storage deposits.",
-        "operationId": "getSwapTransactions",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "tokenIn",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "The name, symbol, or identifier of the token to input in the swap."
-          },
-          {
-            "in": "path",
-            "name": "tokenOut",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "The name, symbol, or identifier of the token to output in the swap."
-          },
-          {
-            "in": "path",
-            "name": "quantity",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "The amount of the input token to swap."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Swap transactions generated successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "receiverId": {
-                        "type": "string",
-                        "description": "The account ID of the contract that will receive the transaction."
-                      },
-                      "functionCalls": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "methodName": {
-                              "type": "string",
-                              "description": "The name of the method to be called on the contract."
-                            },
-                            "args": {
-                              "type": "object",
-                              "description": "Arguments for the function call.",
-                              "properties": {
-                                "registration_only": {
-                                  "type": "boolean"
-                                },
-                                "account_id": {
-                                  "type": "string"
-                                },
-                                "receiver_id": {
-                                  "type": "string"
-                                },
-                                "amount": {
-                                  "type": "string"
-                                },
-                                "msg": {
-                                  "type": "string",
-                                  "description": "A JSON string containing swap actions and parameters. Shows minimum amount of tokens to receive."
-                                }
-                              },
-                              "additionalProperties": true
-                            },
-                            "gas": {
-                              "type": "string",
-                              "description": "The amount of gas to attach to the transaction, in yoctoNEAR."
-                            },
-                            "amount": {
-                              "type": "string",
-                              "description": "The amount of NEAR tokens to attach to the transaction, in yoctoNEAR."
-                            }
-                          },
-                          "required": ["methodName", "args", "gas", "amount"]
-                        }
-                      }
-                    },
-                    "required": ["receiverId", "functionCalls"]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/pikespeak/ping": {
       "get": {
         "description": "A Ping for testing connection to Pikespeak API",
