@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import QueryComponent from '@/components/QueryComponent';
+import QueryComponent from '@/components/query/QueryComponent';
 import QueryResults from '@/components/query/QueryResults';
 import type { QueryResult } from '@/types/pipeline';
 
